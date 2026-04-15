@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Serene Path | Habit &amp; Identity Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;family=Plus+Jakarta+Sans:wght@300..800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-surface": "#0b0f0f",
+                    "primary-container": "#cbe9db",
+                    "on-secondary-container": "#40536d",
+                    "on-primary-fixed": "#2a443b",
+                    "inverse-on-surface": "#9b9d9d",
+                    "surface-container": "#eaefee",
+                    "error-container": "#fa746f",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#dde4e3",
+                    "secondary-fixed": "#d3e3ff",
+                    "tertiary-fixed-dim": "#e5d8f0",
+                    "secondary-container": "#d3e3ff",
+                    "on-primary-fixed-variant": "#466156",
+                    "surface-bright": "#f8faf9",
+                    "on-tertiary": "#fef6ff",
+                    "on-secondary-fixed-variant": "#4a5d77",
+                    "surface-container-highest": "#dde4e3",
+                    "on-surface": "#2d3433",
+                    "surface-tint": "#4a655a",
+                    "tertiary": "#655b6f",
+                    "error": "#a83836",
+                    "tertiary-fixed": "#f4e6ff",
+                    "surface-container-low": "#f1f4f3",
+                    "on-background": "#2d3433",
+                    "on-secondary": "#f8f8ff",
+                    "secondary": "#4e607b",
+                    "error-dim": "#67040d",
+                    "surface": "#f8faf9",
+                    "on-primary-container": "#3d574d",
+                    "surface-dim": "#d4dbda",
+                    "on-secondary-fixed": "#2e405a",
+                    "on-error-container": "#6e0a12",
+                    "outline": "#757c7b",
+                    "on-tertiary-fixed": "#4a4154",
+                    "secondary-dim": "#42546f",
+                    "on-surface-variant": "#596060",
+                    "primary": "#4a655a",
+                    "on-error": "#fff7f6",
+                    "surface-container-high": "#e4e9e8",
+                    "secondary-fixed-dim": "#c2d6f5",
+                    "tertiary-dim": "#594f63",
+                    "primary-fixed-dim": "#bedbce",
+                    "on-tertiary-fixed-variant": "#675d71",
+                    "outline-variant": "#acb3b2",
+                    "on-tertiary-container": "#5c5367",
+                    "primary-dim": "#3e594e",
+                    "tertiary-container": "#f4e6ff",
+                    "inverse-primary": "#d7f5e7",
+                    "on-primary": "#e5fff2",
+                    "background": "#f8faf9",
+                    "primary-fixed": "#cbe9db"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Manrope"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        display: inline-block;
+        line-height: 1;
+        text-transform: none;
+        letter-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        direction: ltr;
+      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top Navigation Bar -->
+<header class="bg-[#f8faf9] dark:bg-slate-950 flex justify-between items-center w-full px-6 py-4 docked full-width top-0 sticky z-50 no-line-rule bg-[#f1f4f3] dark:bg-slate-900 flat no shadows">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional portrait of a calm woman in a soft-lit studio with neutral earth tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC54N1fh97FMb60y8DmfYnS3DaiEd8HINjSzIXwOna5i3kvq6CA5IiGlkBUXxAs_R537Hgy7Z7bmlp4DA_UUxINVOXOe850ADHPnhSD1N7yAqlQJPLdsESO2TSah8tLoaNTEXlx54QJVzHS77oW7hO8ToCZnim4t1-JU0FcNzHPbwpE0vAIQ7oz4ObhTOuyjePph_dIFrYJTxaz1mKCrqgPC1rsb0yrz0hC4MyhdcLqXuonW7l5P6h7zwJ4D0luoBY5_YyYwpkoEZw8"/>
+</div>
+<span class="text-xl font-bold text-[#4a655a] dark:text-[#cbe9db] font-headline tracking-tight">Serene Path</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:opacity-80 transition-opacity duration-300 scale-95 duration-300 ease-in-out text-[#4a655a] dark:text-[#cbe9db]">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<main class="max-w-5xl mx-auto px-6 py-10 pb-32">
+<!-- Identity Header: "Who I am becoming" -->
+<section class="mb-12">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+<div class="max-w-2xl">
+<span class="font-label text-label-sm text-tertiary uppercase tracking-[0.2em] mb-3 block">Foundation</span>
+<h1 class="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-4">Who I am becoming</h1>
+<p class="text-on-surface-variant text-lg leading-relaxed">Focusing on identity-based growth rather than just checking boxes.</p>
+</div>
+<div class="hidden md:block">
+<div class="bg-surface-container-low rounded-xl p-6 flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<div>
+<p class="font-label text-[10px] uppercase tracking-wider text-outline">Current Focus</p>
+<p class="font-bold text-on-surface">The Disciplined Reader</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Identity Cards (Bento Style) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="md:col-span-2 bg-gradient-to-br from-primary to-primary-dim rounded-xl p-8 text-on-primary relative overflow-hidden">
+<div class="relative z-10">
+<span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-6 inline-block">Primary Identity</span>
+<h2 class="text-3xl font-bold mb-4 leading-tight italic">"I am a person who prioritizes deep knowledge over superficial distraction."</h2>
+<div class="flex items-center gap-2 mt-8">
+<span class="material-symbols-outlined text-sm" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-label text-sm tracking-wide">Rooted in 12 consistent days</span>
+</div>
+</div>
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary-container/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-8 border-outline-variant/15 border flex flex-col justify-between">
+<div>
+<h3 class="font-headline text-xl font-bold text-on-surface mb-2">Secondary Shift</h3>
+<p class="text-on-surface-variant italic">"I am a healthy athlete who treats my body with respect."</p>
+</div>
+<div class="mt-6 flex items-center justify-between">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-xs border-2 border-white">M</div>
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-xs border-2 border-white">T</div>
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs border-2 border-white text-white">W</div>
+</div>
+<span class="text-primary font-bold text-sm">Active</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Burnout Alert Section (Conditional UI) -->
+<section class="mb-12">
+<div class="bg-error-container/10 border-l-4 border-error-container p-6 rounded-r-xl flex flex-col md:flex-row items-center gap-6">
+<div class="w-14 h-14 bg-error-container rounded-full flex items-center justify-center text-on-error-container animate-pulse shrink-0">
+<span class="material-symbols-outlined text-3xl" data-icon="warning" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div class="flex-grow">
+<h4 class="font-headline text-lg font-bold text-on-error-container mb-1">Burnout Alert: Momentum is Fading</h4>
+<p class="text-on-error-container/80 text-sm">You've missed 4 habits in the last 24 hours. The path to growth requires rhythm, but also recovery.</p>
+</div>
+<button class="bg-error-container text-on-error-container font-label text-xs font-bold px-6 py-3 rounded-full hover:brightness-95 transition-all shrink-0">
+                    REST &amp; RECHARGE
+                </button>
+</div>
+</section>
+<!-- Keystone Habits & Progress -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+<!-- Habit List -->
+<div class="lg:col-span-8">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline text-2xl font-bold">Keystone Habits</h3>
+<button class="text-primary font-label text-sm font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="add_circle">add_circle</span>
+                        NEW HABIT
+                    </button>
+</div>
+<div class="space-y-4">
+<!-- Habit Item 1 -->
+<div class="group bg-surface-container-lowest hover:bg-surface-bright transition-all p-6 rounded-2xl flex items-center gap-6 shadow-sm border border-outline-variant/5">
+<button class="w-14 h-14 rounded-full border-4 border-primary-container flex items-center justify-center text-primary-container hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="check_circle">check_circle</span>
+</button>
+<div class="flex-grow">
+<div class="flex items-center gap-3 mb-1">
+<h4 class="font-headline font-bold text-lg text-on-surface">Morning Meditation</h4>
+<span class="bg-secondary-container/50 text-on-secondary-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter">Identity: Calm Observer</span>
+</div>
+<p class="text-on-surface-variant text-sm">"I don't react, I observe my thoughts without judgment."</p>
+</div>
+<div class="text-right shrink-0">
+<p class="text-xs font-label text-outline uppercase tracking-widest">Streak</p>
+<p class="text-2xl font-bold text-primary">12d</p>
+</div>
+</div>
+<!-- Habit Item 2 -->
+<div class="group bg-surface-container-lowest hover:bg-surface-bright transition-all p-6 rounded-2xl flex items-center gap-6 shadow-sm border border-outline-variant/5">
+<button class="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-2xl" data-icon="done_all" style="font-variation-settings: 'FILL' 1;">done_all</span>
+</button>
+<div class="flex-grow opacity-60">
+<div class="flex items-center gap-3 mb-1">
+<h4 class="font-headline font-bold text-lg text-on-surface line-through">Read 20 Pages</h4>
+<span class="bg-primary-container text-on-primary-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter">Identity: Lifelong Learner</span>
+</div>
+<p class="text-on-surface-variant text-sm">"Knowledge is the compound interest of my identity."</p>
+</div>
+<div class="text-right shrink-0">
+<p class="text-xs font-label text-outline uppercase tracking-widest">Streak</p>
+<p class="text-2xl font-bold text-primary">45d</p>
+</div>
+</div>
+<!-- Habit Item 3 -->
+<div class="group bg-surface-container-lowest hover:bg-surface-bright transition-all p-6 rounded-2xl flex items-center gap-6 shadow-sm border border-outline-variant/5">
+<button class="w-14 h-14 rounded-full border-4 border-primary-container flex items-center justify-center text-primary-container hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="check_circle">check_circle</span>
+</button>
+<div class="flex-grow">
+<div class="flex items-center gap-3 mb-1">
+<h4 class="font-headline font-bold text-lg text-on-surface">Evening Reflection</h4>
+<span class="bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter">Identity: Intentional Soul</span>
+</div>
+<p class="text-on-surface-variant text-sm">"I review my day to refine my tomorrow."</p>
+</div>
+<div class="text-right shrink-0">
+<p class="text-xs font-label text-outline uppercase tracking-widest">Streak</p>
+<p class="text-2xl font-bold text-primary">0d</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Visualization / Weekly Summary -->
+<div class="lg:col-span-4">
+<div class="bg-surface-container rounded-3xl p-8 sticky top-24">
+<h3 class="font-headline text-xl font-bold mb-6">Weekly Rhythm</h3>
+<div class="space-y-6">
+<!-- Chart Mock -->
+<div class="flex items-end justify-between h-32 gap-2 mb-8">
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-primary-fixed-dim rounded-t-lg h-[60%]"></div>
+<span class="text-[10px] font-label text-outline">M</span>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-primary-fixed-dim rounded-t-lg h-[85%]"></div>
+<span class="text-[10px] font-label text-outline">T</span>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-primary rounded-t-lg h-[100%]"></div>
+<span class="text-[10px] font-label text-outline font-bold">W</span>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-surface-container-highest rounded-t-lg h-[20%]"></div>
+<span class="text-[10px] font-label text-outline">T</span>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-surface-container-highest rounded-t-lg h-[15%]"></div>
+<span class="text-[10px] font-label text-outline">F</span>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-surface-container-highest rounded-t-lg h-[10%]"></div>
+<span class="text-[10px] font-label text-outline">S</span>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-surface-container-highest rounded-t-lg h-[5%]"></div>
+<span class="text-[10px] font-label text-outline">S</span>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="text-sm font-label text-on-surface-variant">Weekly Completion</span>
+<span class="text-sm font-bold text-primary">78%</span>
+</div>
+<div class="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-primary-fixed-dim w-[78%]"></div>
+</div>
+</div>
+<div class="pt-6 border-t border-outline-variant/10">
+<p class="font-label text-xs text-outline leading-relaxed mb-4">Identity reinforcement suggests you are 14 days away from these habits feeling "automatic." Keep going.</p>
+<button class="w-full py-4 bg-surface-container-lowest rounded-2xl text-on-surface font-bold text-sm hover:bg-white transition-all shadow-sm">
+                                View Deep Analytics
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full z-50 pb-safe bg-[#f8faf9]/80 dark:bg-slate-950/80 backdrop-blur-xl no-line-rule tonal-layering-top shadow-[0_-10px_40px_rgba(45,52,51,0.05)] dark:shadow-none">
+<div class="flex justify-around items-center w-full px-4 py-3">
+<a class="flex flex-col items-center justify-center text-[#acb3b2] dark:text-slate-500 px-5 py-2.5 transition-all duration-500 hover:text-[#4a655a] scale-90 duration-500 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold uppercase tracking-wider mt-1">Focus</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#acb3b2] dark:text-slate-500 px-5 py-2.5 transition-all duration-500 hover:text-[#4a655a] scale-90 duration-500 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold uppercase tracking-wider mt-1">Plan</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#acb3b2] dark:text-slate-500 px-5 py-2.5 transition-all duration-500 hover:text-[#4a655a] scale-90 duration-500 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold uppercase tracking-wider mt-1">AI</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#cbe9db] dark:bg-[#4a655a]/30 text-[#4a655a] dark:text-[#cbe9db] rounded-[1.5rem] px-5 py-2.5 transition-all duration-500 scale-90 duration-500 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="auto_graph" style="font-variation-settings: 'FILL' 1;">auto_graph</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold uppercase tracking-wider mt-1">Habits</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#acb3b2] dark:text-slate-500 px-5 py-2.5 transition-all duration-500 hover:text-[#4a655a] scale-90 duration-500 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold uppercase tracking-wider mt-1">Library</span>
+</a>
+</div>
+</nav>
+</body></html>

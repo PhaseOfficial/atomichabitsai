@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Digital Sanctuary | Sprint Planner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Plus_Jakarta_Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#4a655a",
+                        "error-dim": "#67040d",
+                        "surface": "#f8faf9",
+                        "secondary-fixed-dim": "#c2d6f5",
+                        "error": "#a83836",
+                        "surface-container-high": "#e4e9e8",
+                        "primary-fixed": "#cbe9db",
+                        "secondary-dim": "#42546f",
+                        "on-error-container": "#6e0a12",
+                        "on-tertiary-container": "#5c5367",
+                        "on-background": "#2d3433",
+                        "on-surface-variant": "#596060",
+                        "tertiary": "#655b6f",
+                        "on-primary-fixed-variant": "#466156",
+                        "primary-dim": "#3e594e",
+                        "on-primary-fixed": "#2a443b",
+                        "error-container": "#fa746f",
+                        "surface-container": "#eaefee",
+                        "outline-variant": "#acb3b2",
+                        "tertiary-dim": "#594f63",
+                        "primary-fixed-dim": "#bedbce",
+                        "on-surface": "#2d3433",
+                        "on-primary": "#e5fff2",
+                        "on-secondary-fixed-variant": "#4a5d77",
+                        "tertiary-fixed": "#f4e6ff",
+                        "tertiary-container": "#f4e6ff",
+                        "inverse-primary": "#d7f5e7",
+                        "on-secondary": "#f8f8ff",
+                        "surface-container-low": "#f1f4f3",
+                        "surface-bright": "#f8faf9",
+                        "on-primary-container": "#3d574d",
+                        "background": "#f8faf9",
+                        "surface-dim": "#d4dbda",
+                        "tertiary-fixed-dim": "#e5d8f0",
+                        "on-tertiary": "#fef6ff",
+                        "inverse-surface": "#0b0f0f",
+                        "primary": "#4a655a",
+                        "primary-container": "#cbe9db",
+                        "on-tertiary-fixed-variant": "#675d71",
+                        "on-secondary-container": "#40536d",
+                        "surface-container-highest": "#dde4e3",
+                        "secondary": "#4e607b",
+                        "inverse-on-surface": "#9b9d9d",
+                        "surface-variant": "#dde4e3",
+                        "outline": "#757c7b",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed": "#4a4154",
+                        "on-error": "#fff7f6",
+                        "on-secondary-fixed": "#2e405a",
+                        "secondary-fixed": "#d3e3ff",
+                        "secondary-container": "#d3e3ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-shift { background-color: #f1f4f3; }
+        .glass-panel {
+            background: rgba(248, 250, 249, 0.8);
+            backdrop-filter: blur(20px);
+        }
+        .active-nav-border { border-right: 4px solid #4a655a; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #dde4e3; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-surface text-on-background antialiased overflow-hidden">
+<!-- SideNavBar (Left Column) -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r-0 tonal-shift flex flex-col py-8 px-6 z-50">
+<div class="mb-12">
+<h1 class="text-xl font-bold tracking-tight text-primary">Digital Sanctuary</h1>
+<p class="text-xs font-label text-secondary opacity-70 tracking-wider uppercase mt-1">Stay Focused</p>
+</div>
+<nav class="flex-1 space-y-2">
+<!-- Deep Work (Active) -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-primary font-bold active-nav-border bg-surface-container-high transition-all duration-300 scale-[0.98x]" href="#">
+<span class="material-symbols-outlined" data-icon="timer">timer</span>
+<span class="font-medium text-sm">Deep Work</span>
+</a>
+<!-- Task Batching -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-secondary opacity-70 hover:bg-surface-container-high hover:opacity-100 transition-colors duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="layers">layers</span>
+<span class="font-medium text-sm">Task Batching</span>
+</a>
+<!-- Productivity Stats -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-secondary opacity-70 hover:bg-surface-container-high hover:opacity-100 transition-colors duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="insights">insights</span>
+<span class="font-medium text-sm">Productivity Stats</span>
+</a>
+<!-- Settings -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-secondary opacity-70 hover:bg-surface-container-high hover:opacity-100 transition-colors duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-medium text-sm">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-8">
+<button class="w-full py-4 px-6 rounded-full bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold shadow-lg shadow-primary/10 hover:opacity-90 transition-opacity">
+                Start Sprint
+            </button>
+<div class="mt-8 flex items-center gap-3 px-2">
+<img alt="User profile" class="w-10 h-10 rounded-full object-cover grayscale opacity-80" data-alt="Close-up portrait of a calm professional man in a minimalist office setting, soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMRs-teYoIX1gsBikcDvjkoxnFng7xCzSQY88Mz1RqZU1ahQ14UyQ7r7_ahzmMEibEuy97mNP3M5KuPnHwU0pQVK-VFlhisOndALt0GJ-UL5_u_s_RpRWlGjPSrf-TW7V7KDNjqRuSrcYuitAnTb8k3zCvMmQE2-FVRNtRu3qhSf7kD7uA6zDyIwExLVXAqnSiwMteoIW8qNtV0UqLjW2uAo-jab1jcF5fXamGLR6WbQlRAINGn-m5VUVTZBku68aBGoq02Ax30TOW"/>
+<div>
+<p class="text-sm font-bold text-primary">Julian V.</p>
+<p class="text-[10px] font-label text-secondary uppercase tracking-widest">Focus Mode On</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Cluster -->
+<main class="ml-64 flex min-h-screen">
+<!-- Center Column (Timer & Tasks) -->
+<section class="flex-1 px-12 py-10 overflow-y-auto max-h-screen">
+<!-- TopAppBar Internal -->
+<header class="flex justify-between items-center mb-16 h-16 sticky top-0 bg-surface/80 backdrop-blur-md z-40">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="bolt">bolt</span>
+<h2 class="text-lg font-semibold text-primary">Sprint Planner</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm" data-icon="search">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low rounded-full border-none focus:ring-1 focus:ring-primary/20 text-sm w-64" placeholder="Search focus logs..." type="text"/>
+</div>
+<div class="flex items-center gap-4 text-secondary">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</header>
+<!-- Large Deep Work Timer -->
+<div class="flex flex-col items-center justify-center mb-20 text-center">
+<div class="relative w-80 h-80 flex items-center justify-center rounded-full border-[12px] border-surface-container-highest">
+<!-- Progress Circle Overlay -->
+<svg class="absolute inset-0 w-full h-full -rotate-90">
+<circle cx="160" cy="160" fill="none" r="148" stroke="url(#timerGradient)" stroke-dasharray="929" stroke-dashoffset="230" stroke-linecap="round" stroke-width="12"></circle>
+<defs>
+<lineargradient id="timerGradient" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#4a655a"></stop>
+<stop offset="100%" stop-color="#bedbce"></stop>
+</lineargradient>
+</defs>
+</svg>
+<div class="flex flex-col">
+<span class="text-7xl font-extrabold tracking-tighter text-on-background">24:59</span>
+<span class="text-xs font-label text-secondary uppercase tracking-[0.2em] mt-2">Deep Focus</span>
+</div>
+</div>
+<div class="mt-10 flex items-center gap-6">
+<button class="p-4 rounded-full bg-surface-container-low text-secondary hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined" data-icon="replay">replay</span>
+</button>
+<button class="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-white shadow-xl shadow-primary/20 hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-4xl" data-icon="play_arrow" data-weight="fill" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<button class="p-4 rounded-full bg-surface-container-low text-secondary hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined" data-icon="skip_next">skip_next</span>
+</button>
+</div>
+</div>
+<!-- Sprint Tasks Section -->
+<div class="max-w-3xl mx-auto">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-2xl font-bold tracking-tight text-on-background">Sprint Tasks</h3>
+<button class="text-sm font-label font-semibold text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                        Batch Task
+                    </button>
+</div>
+<div class="space-y-4">
+<!-- Task Item -->
+<div class="group flex items-center gap-4 p-5 rounded-xl bg-surface-container-lowest transition-all hover:bg-surface-container-low border border-transparent hover:border-primary/5">
+<div class="w-6 h-6 rounded-md border-2 border-primary/20 flex items-center justify-center cursor-pointer group-hover:border-primary">
+<span class="material-symbols-outlined text-primary text-lg hidden group-hover:block" data-icon="check">check</span>
+</div>
+<div class="flex-1">
+<p class="font-medium text-on-background">Audit design system color tokens</p>
+<div class="flex gap-4 mt-1">
+<span class="text-[10px] font-label text-secondary bg-surface-container-high px-2 py-0.5 rounded uppercase tracking-wider">High Energy</span>
+<span class="text-[10px] font-label text-outline uppercase tracking-wider">15 mins</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline opacity-0 group-hover:opacity-100 cursor-grab" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="group flex items-center gap-4 p-5 rounded-xl bg-surface-container-lowest transition-all hover:bg-surface-container-low">
+<div class="w-6 h-6 rounded-md border-2 border-primary/20 flex items-center justify-center cursor-pointer"></div>
+<div class="flex-1">
+<p class="font-medium text-on-background">Review feedback for navigation shell</p>
+<div class="flex gap-4 mt-1">
+<span class="text-[10px] font-label text-secondary bg-surface-container-high px-2 py-0.5 rounded uppercase tracking-wider">Batch: Email</span>
+<span class="text-[10px] font-label text-outline uppercase tracking-wider">25 mins</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline opacity-0 group-hover:opacity-100 cursor-grab" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="group flex items-center gap-4 p-5 rounded-xl bg-surface-container-lowest transition-all hover:bg-surface-container-low opacity-60">
+<div class="w-6 h-6 rounded-md border-2 border-primary bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary text-lg" data-icon="check" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="flex-1 line-through">
+<p class="font-medium text-on-background">Update component JSON schema</p>
+<p class="text-[10px] font-label text-outline uppercase tracking-wider mt-1">Completed at 09:45 AM</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Column (Insights & Strategy) -->
+<aside class="w-80 h-screen overflow-y-auto px-8 py-10 tonal-shift">
+<!-- Daily Progress -->
+<div class="mb-12">
+<h4 class="text-sm font-label font-bold text-secondary uppercase tracking-[0.15em] mb-6">Daily Progress</h4>
+<div class="p-6 rounded-2xl bg-surface-container-lowest">
+<div class="flex justify-between items-end mb-4">
+<p class="text-3xl font-bold text-on-background">2/4</p>
+<p class="text-xs font-label text-secondary">Sprints Finished</p>
+</div>
+<div class="w-full h-3 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full w-1/2 bg-gradient-to-r from-primary to-primary-fixed-dim rounded-full"></div>
+</div>
+<p class="text-[11px] text-outline mt-4 leading-relaxed italic">"Slow progress is still progress. Stay breathing."</p>
+</div>
+</div>
+<!-- Deep Work Insights -->
+<div class="mb-12">
+<h4 class="text-sm font-label font-bold text-secondary uppercase tracking-[0.15em] mb-6">Deep Work Insights</h4>
+<div class="space-y-4">
+<div class="p-5 rounded-2xl bg-surface-container-lowest group hover:scale-[1.02] transition-transform cursor-default">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-tertiary" data-icon="flare">flare</span>
+<p class="text-xs font-bold text-on-background">Peak Focus Time</p>
+</div>
+<p class="text-lg font-bold text-primary">09:00 — 11:30</p>
+<p class="text-[10px] text-secondary mt-1">Based on last 7 days activity</p>
+</div>
+<div class="p-5 rounded-2xl bg-surface-container-lowest group hover:scale-[1.02] transition-transform cursor-default">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-secondary" data-icon="speed">speed</span>
+<p class="text-xs font-bold text-on-background">Avg. Task Completion</p>
+</div>
+<p class="text-lg font-bold text-primary">22 mins</p>
+<p class="text-[10px] text-secondary mt-1">8% faster than previous sprint</p>
+</div>
+</div>
+</div>
+<!-- Focus Strategy Widget -->
+<div>
+<h4 class="text-sm font-label font-bold text-secondary uppercase tracking-[0.15em] mb-6">Focus Strategy</h4>
+<div class="relative rounded-2xl overflow-hidden aspect-[4/5] p-6 flex flex-col justify-end">
+<!-- Abstract Background Image -->
+<div class="absolute inset-0 z-0">
+<div class="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent z-10"></div>
+<img alt="Atmospheric plant silhouette" class="w-full h-full object-cover" data-alt="Abstract silhouette of a minimalist plant against a soft morning fog with ethereal lighting and organic textures" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAr83QAjEcihyZZ1-FWloPAjOdORsmWV-VeuuXmgx3nrdUoNp49dmhbdQxpaQklhxfa71hm2OrmIS90CIqtoUb-q9tCGJL5aobe44rCbBzOp5k3b2VMqg6jNLiTumi0d2_S7As27BVcp45_ESzb-LDDxcqT38K2K88UKGFWrfOHugOem8uSui4CiyatZ0YfIKBI1Qo0wnn0qIp4GPqYw-tYmXa_EXGMRV3BlLh8kdnvRnFKqYJBJxH0Icg7hJQtbTWR6CTaeb2oz2A6"/>
+</div>
+<div class="relative z-20">
+<h5 class="text-on-primary font-bold text-lg leading-tight mb-2">Monastic Mode</h5>
+<p class="text-on-primary/80 text-xs leading-relaxed mb-4">Minimize all external sensory input. No notifications. Pure output.</p>
+<button class="text-[11px] font-label font-extrabold text-on-primary uppercase tracking-widest border border-on-primary/30 rounded-full px-4 py-2 hover:bg-on-primary hover:text-primary transition-colors">
+                            Apply Tactic
+                        </button>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- Contextual FAB (Only on Home/Dashboard, not settings/details) -->
+<button class="fixed bottom-10 right-10 w-16 h-16 rounded-full bg-primary-container text-on-primary-container shadow-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95 group z-50">
+<span class="material-symbols-outlined text-3xl" data-icon="add">add</span>
+<span class="absolute right-20 bg-primary text-on-primary px-4 py-2 rounded-xl text-sm font-bold opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">Quick Task</span>
+</button>
+</body></html>

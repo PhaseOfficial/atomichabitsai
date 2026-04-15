@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Serene Path AI Assistant</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#f4e6ff",
+                    "on-primary-container": "#3d574d",
+                    "on-error-container": "#6e0a12",
+                    "on-secondary-fixed": "#2e405a",
+                    "on-tertiary-fixed-variant": "#675d71",
+                    "on-surface": "#2d3433",
+                    "surface-tint": "#4a655a",
+                    "surface": "#f8faf9",
+                    "on-secondary": "#f8f8ff",
+                    "secondary-fixed-dim": "#c2d6f5",
+                    "surface-variant": "#dde4e3",
+                    "primary-fixed-dim": "#bedbce",
+                    "on-tertiary-fixed": "#4a4154",
+                    "primary-dim": "#3e594e",
+                    "primary": "#4a655a",
+                    "on-primary": "#e5fff2",
+                    "inverse-surface": "#0b0f0f",
+                    "on-error": "#fff7f6",
+                    "background": "#f8faf9",
+                    "error": "#a83836",
+                    "outline-variant": "#acb3b2",
+                    "secondary-container": "#d3e3ff",
+                    "on-tertiary": "#fef6ff",
+                    "primary-container": "#cbe9db",
+                    "tertiary-dim": "#594f63",
+                    "tertiary-container": "#f4e6ff",
+                    "surface-container-high": "#e4e9e8",
+                    "tertiary-fixed-dim": "#e5d8f0",
+                    "error-container": "#fa746f",
+                    "on-primary-fixed": "#2a443b",
+                    "surface-container": "#eaefee",
+                    "primary-fixed": "#cbe9db",
+                    "on-primary-fixed-variant": "#466156",
+                    "error-dim": "#67040d",
+                    "on-secondary-container": "#40536d",
+                    "surface-container-highest": "#dde4e3",
+                    "tertiary": "#655b6f",
+                    "on-tertiary-container": "#5c5367",
+                    "surface-bright": "#f8faf9",
+                    "on-secondary-fixed-variant": "#4a5d77",
+                    "inverse-primary": "#d7f5e7",
+                    "surface-container-low": "#f1f4f3",
+                    "outline": "#757c7b",
+                    "secondary-fixed": "#d3e3ff",
+                    "on-background": "#2d3433",
+                    "secondary-dim": "#42546f",
+                    "inverse-on-surface": "#9b9d9d",
+                    "surface-dim": "#d4dbda",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface-variant": "#596060",
+                    "secondary": "#4e607b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Manrope"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: #f8faf9;
+            color: #2d3433;
+        }
+    </style>
+</head>
+<body class="overflow-hidden">
+<!-- SIDE NAV BAR -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-stone-50 dark:bg-stone-950 flex flex-col h-full py-8 px-6 font-manrope text-stone-800 dark:text-stone-200">
+<div class="mb-10 flex flex-col gap-1">
+<h1 class="text-xl font-bold tracking-tight text-emerald-900 dark:text-emerald-200">Serene Path</h1>
+<p class="text-xs text-stone-500 font-label">The Curated Breath</p>
+</div>
+<button class="mb-8 w-full py-3 px-4 rounded-full bg-primary text-on-primary font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+            New Entry
+        </button>
+<nav class="flex-1 flex flex-col gap-2">
+<a class="flex items-center gap-4 py-3 px-4 rounded-xl text-stone-500 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 transition-colors duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-4 py-3 px-4 rounded-xl text-stone-500 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 transition-colors duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+                Calendar
+            </a>
+<a class="flex items-center gap-4 py-3 px-4 rounded-xl text-emerald-800 dark:text-emerald-400 font-bold border-r-4 border-emerald-700 bg-stone-100 dark:bg-stone-900" href="#">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+                AI Assistant
+            </a>
+<a class="flex items-center gap-4 py-3 px-4 rounded-xl text-stone-500 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 transition-colors duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="auto_awesome_motion">auto_awesome_motion</span>
+                Habits
+            </a>
+<a class="flex items-center gap-4 py-3 px-4 rounded-xl text-stone-500 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 transition-colors duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+                Library
+            </a>
+</nav>
+<div class="mt-auto flex flex-col gap-2 pt-6 border-t border-stone-200/50 dark:border-stone-800/50">
+<a class="flex items-center gap-4 py-3 px-4 rounded-xl text-stone-500 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-4 py-3 px-4 rounded-xl text-stone-500 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+                Support
+            </a>
+<div class="mt-4 flex items-center gap-3 px-4">
+<img alt="User profile" class="w-8 h-8 rounded-full object-cover" data-alt="Close up portrait of a calm woman with natural look in soft daylight, minimalist and peaceful aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAR0tdnMdZsJEqW3xObOpP8RaXycu3OrWKpSl-3j6PJkhJA4U6BxpyAi0iOSkRCwhaRudEmhQ58jmdOAKu3oz9WnlxTvBNqQWv1Y-FCS9WqJsgd-xuB5OdS9ZOpUJfCyecu_tQW6q4eack9Nqs6u8rz4CC4-UtpEheRp7zBVkdu6FcyQALU1XqYlAFapOho5xLUQLtXKeKJq1ZAtx16ga1L1vjIP8VhyE5ZvB_QJKhfPJpGNqGc8dw4Ifl7UlI51nFDZEq39HFUE9z6"/>
+<span class="text-sm font-medium">Elena Thorne</span>
+</div>
+</div>
+</aside>
+<!-- MAIN CONTENT AREA -->
+<main class="ml-64 flex h-screen bg-surface">
+<!-- CENTER CHAT INTERFACE -->
+<div class="flex-1 flex flex-col h-full bg-surface-container-low">
+<!-- Top App Bar -->
+<header class="flex items-center justify-between px-12 py-4 bg-transparent sticky top-0 z-10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+</div>
+<div>
+<h2 class="text-lg font-bold text-on-surface">AI Assistant</h2>
+<span class="text-xs font-label text-on-surface-variant flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Online
+                        </span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-all">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Message Area -->
+<div class="flex-1 overflow-y-auto px-12 py-8 space-y-8">
+<!-- AI Message -->
+<div class="flex items-start gap-4 max-w-2xl">
+<div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-primary shrink-0 mt-1">
+<span class="material-symbols-outlined text-sm" data-icon="smart_toy">smart_toy</span>
+</div>
+<div class="space-y-2">
+<div class="p-5 bg-surface-container-lowest rounded-2xl rounded-tl-none shadow-sm">
+<p class="text-body-lg text-on-surface leading-relaxed">
+                                Good morning, Elena. I've analyzed your sleep patterns and today's calendar. You have a few open windows this afternoon. Shall we plan a focused reflection session or a nature walk to keep your serenity score high?
+                            </p>
+</div>
+<span class="text-[10px] font-label text-outline uppercase tracking-wider ml-1">Assistant • 09:12 AM</span>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex items-start gap-4 max-w-2xl ml-auto flex-row-reverse">
+<div class="w-8 h-8 rounded-lg overflow-hidden shrink-0 mt-1">
+<img alt="Elena" class="w-full h-full object-cover" data-alt="Close up portrait of a calm woman with natural look in soft daylight, minimalist and peaceful aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAil22lpK92TzEl-VXOypx4-IEON39DZ5X3naTyQHbq3UtnMCokMmvk4hOw73y9rDdho0BG6JaSCm9XB_2zWaEafPrKnNmDz9GBGpiTexrkJWAGzebVlRdP6Rh1tl9NO2_ROHAdME8FVdfQ8DuKsQ0GVbick2-wZO1nIt0Y2sKlbdliOd_jBtHcHZF7WV7go-d6uqsWm78Xs9KjAnGGTn_Lt1LuHCI3gkqBnOj4JpIvVNWVOzLv1T4vV3saSA6gdyBNJpK_xf3CRiuZ"/>
+</div>
+<div class="space-y-2 flex flex-col items-end">
+<div class="p-5 bg-primary text-on-primary rounded-2xl rounded-tr-none shadow-md">
+<p class="text-body-lg leading-relaxed">
+                                I'd like the nature walk around 3:00 PM. Also, please remind me to finish my meditation log before dinner at 7:00 PM.
+                            </p>
+</div>
+<span class="text-[10px] font-label text-outline uppercase tracking-wider mr-1">You • 09:14 AM</span>
+</div>
+</div>
+<!-- AI Message with Dynamic Action -->
+<div class="flex items-start gap-4 max-w-2xl">
+<div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-primary shrink-0 mt-1">
+<span class="material-symbols-outlined text-sm" data-icon="smart_toy">smart_toy</span>
+</div>
+<div class="space-y-4">
+<div class="p-5 bg-surface-container-lowest rounded-2xl rounded-tl-none shadow-sm border border-primary/5">
+<p class="text-body-lg text-on-surface leading-relaxed">
+                                Perfect choice. I've updated your schedule for today.
+                            </p>
+<div class="mt-4 p-4 bg-surface-container-high rounded-xl flex items-center gap-4">
+<span class="material-symbols-outlined text-primary" data-icon="check_circle">check_circle</span>
+<div>
+<p class="text-sm font-bold">Action Recorded</p>
+<p class="text-xs text-on-surface-variant">Nature Walk scheduled for 15:00</p>
+</div>
+</div>
+</div>
+<span class="text-[10px] font-label text-outline uppercase tracking-wider ml-1">Assistant • 09:15 AM</span>
+</div>
+</div>
+</div>
+<!-- Input Bar Area -->
+<div class="px-12 py-8 bg-gradient-to-t from-surface-container-low to-transparent">
+<div class="max-w-4xl mx-auto flex items-center gap-4 bg-surface-container-lowest p-3 rounded-full shadow-lg shadow-on-surface/5 border border-outline-variant/10">
+<button class="p-2 text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+</button>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-outline/60 font-body" placeholder="Type a message or ask for advice..." type="text"/>
+<button class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="send" data-weight="fill">send</span>
+</button>
+</div>
+<div class="mt-4 flex justify-center gap-6">
+<button class="text-[10px] font-label font-bold text-primary flex items-center gap-1 uppercase tracking-widest hover:opacity-70">
+<span class="material-symbols-outlined text-xs" data-icon="psychology">psychology</span>
+                        Summarize Day
+                    </button>
+<button class="text-[10px] font-label font-bold text-primary flex items-center gap-1 uppercase tracking-widest hover:opacity-70">
+<span class="material-symbols-outlined text-xs" data-icon="eco">eco</span>
+                        Mindfulness Tips
+                    </button>
+</div>
+</div>
+</div>
+<!-- RIGHT SIDEBAR: PLAN SUMMARY -->
+<aside class="w-80 h-full bg-surface-container border-l border-outline-variant/10 p-8 flex flex-col gap-8 overflow-y-auto">
+<div>
+<h3 class="text-headline-sm font-bold text-on-surface mb-6">Plan Summary</h3>
+<div class="space-y-6">
+<!-- Date Header -->
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-xs font-label text-outline uppercase tracking-widest">Today</span>
+<span class="text-lg font-bold text-on-surface">Friday, May 24</span>
+</div>
+<div class="w-12 h-12 rounded-full border-2 border-primary-container flex items-center justify-center">
+<span class="text-xs font-bold text-primary">65%</span>
+</div>
+</div>
+<!-- Tasks Timeline -->
+<div class="relative space-y-4 pt-4">
+<div class="absolute left-4 top-0 bottom-0 w-px bg-outline-variant/30"></div>
+<!-- Task Item -->
+<div class="relative pl-10">
+<div class="absolute left-3 top-2 w-2 h-2 rounded-full bg-primary ring-4 ring-surface-container"></div>
+<div class="p-4 bg-surface-container-lowest rounded-xl shadow-sm">
+<span class="text-[10px] font-label text-primary font-bold">10:00 AM</span>
+<p class="text-sm font-bold text-on-surface mt-1">Project Sync</p>
+<p class="text-xs text-on-surface-variant">Focus on core deliverables</p>
+</div>
+</div>
+<!-- Scheduled Task Item -->
+<div class="relative pl-10">
+<div class="absolute left-3 top-2 w-2 h-2 rounded-full bg-secondary-dim ring-4 ring-surface-container"></div>
+<div class="p-4 bg-secondary-container/30 rounded-xl border border-secondary-container/50">
+<span class="text-[10px] font-label text-secondary font-bold">03:00 PM</span>
+<p class="text-sm font-bold text-on-secondary-container mt-1">Nature Walk</p>
+<p class="text-xs text-on-secondary-container/70">Reflect on weekly progress</p>
+</div>
+</div>
+<!-- Reminder Item -->
+<div class="relative pl-10">
+<div class="absolute left-3 top-2 w-2 h-2 rounded-full bg-tertiary-dim ring-4 ring-surface-container"></div>
+<div class="p-4 bg-tertiary-container/30 rounded-xl">
+<span class="text-[10px] font-label text-tertiary font-bold">07:00 PM</span>
+<p class="text-sm font-bold text-on-tertiary-container mt-1">Meditation Log</p>
+<p class="text-xs text-on-tertiary-container/70">Complete reflection journal</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Health/Wellness Widget -->
+<div class="mt-auto">
+<div class="p-6 bg-gradient-to-br from-primary to-primary-dim rounded-2xl text-on-primary">
+<div class="flex items-center justify-between mb-4">
+<span class="material-symbols-outlined" data-icon="self_improvement">self_improvement</span>
+<span class="text-[10px] font-label font-bold uppercase tracking-widest opacity-80">Serenity Index</span>
+</div>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-extrabold leading-none">8.4</span>
+<span class="text-xs font-label opacity-70 mb-1">/ 10</span>
+</div>
+<p class="text-xs mt-4 opacity-90 leading-relaxed font-body">
+                        "Each breath is a new beginning." You're doing great today, Elena.
+                    </p>
+</div>
+<div class="mt-6 flex items-center justify-between text-on-surface-variant px-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+<span class="text-xs font-label">Sync 2m ago</span>
+</div>
+<button class="text-xs font-label font-bold text-primary hover:underline">Edit Plan</button>
+</div>
+</div>
+</aside>
+</main>
+</body></html>

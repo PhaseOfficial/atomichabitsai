@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Serene Path | Habits &amp; Identity</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#f4e6ff",
+                        "on-primary-container": "#3d574d",
+                        "on-error-container": "#6e0a12",
+                        "on-secondary-fixed": "#2e405a",
+                        "on-tertiary-fixed-variant": "#675d71",
+                        "on-surface": "#2d3433",
+                        "surface-tint": "#4a655a",
+                        "surface": "#f8faf9",
+                        "on-secondary": "#f8f8ff",
+                        "secondary-fixed-dim": "#c2d6f5",
+                        "surface-variant": "#dde4e3",
+                        "primary-fixed-dim": "#bedbce",
+                        "on-tertiary-fixed": "#4a4154",
+                        "primary-dim": "#3e594e",
+                        "primary": "#4a655a",
+                        "on-primary": "#e5fff2",
+                        "inverse-surface": "#0b0f0f",
+                        "on-error": "#fff7f6",
+                        "background": "#f8faf9",
+                        "error": "#a83836",
+                        "outline-variant": "#acb3b2",
+                        "secondary-container": "#d3e3ff",
+                        "on-tertiary": "#fef6ff",
+                        "primary-container": "#cbe9db",
+                        "tertiary-dim": "#594f63",
+                        "tertiary-container": "#f4e6ff",
+                        "surface-container-high": "#e4e9e8",
+                        "tertiary-fixed-dim": "#e5d8f0",
+                        "error-container": "#fa746f",
+                        "on-primary-fixed": "#2a443b",
+                        "surface-container": "#eaefee",
+                        "primary-fixed": "#cbe9db",
+                        "on-primary-fixed-variant": "#466156",
+                        "error-dim": "#67040d",
+                        "on-secondary-container": "#40536d",
+                        "surface-container-highest": "#dde4e3",
+                        "tertiary": "#655b6f",
+                        "on-tertiary-container": "#5c5367",
+                        "surface-bright": "#f8faf9",
+                        "on-secondary-fixed-variant": "#4a5d77",
+                        "inverse-primary": "#d7f5e7",
+                        "surface-container-low": "#f1f4f3",
+                        "outline": "#757c7b",
+                        "secondary-fixed": "#d3e3ff",
+                        "on-background": "#2d3433",
+                        "secondary-dim": "#42546f",
+                        "inverse-on-surface": "#9b9d9d",
+                        "surface-dim": "#d4dbda",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#596060",
+                        "secondary": "#4e607b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-stone-50 flex flex-col py-8 px-6 font-manrope text-stone-800">
+<div class="mb-10">
+<h1 class="text-xl font-bold tracking-tight text-emerald-900">Serene Path</h1>
+<p class="text-[10px] uppercase tracking-widest text-stone-500 mt-1">The Curated Breath</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 py-3 px-4 rounded-xl text-stone-500 hover:bg-stone-200/50 transition-colors duration-300 transition-all active:opacity-80 active:scale-95" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-xl text-stone-500 hover:bg-stone-200/50 transition-colors duration-300 transition-all active:opacity-80 active:scale-95" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-medium">Calendar</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-xl text-stone-500 hover:bg-stone-200/50 transition-colors duration-300 transition-all active:opacity-80 active:scale-95" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+<span class="font-medium">AI Assistant</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-xl text-emerald-800 font-bold border-r-4 border-emerald-700 bg-stone-200/50 transition-all active:opacity-80 active:scale-95" href="#">
+<span class="material-symbols-outlined">auto_awesome_motion</span>
+<span class="font-medium">Habits</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-xl text-stone-500 hover:bg-stone-200/50 transition-colors duration-300 transition-all active:opacity-80 active:scale-95" href="#">
+<span class="material-symbols-outlined">library_books</span>
+<span class="font-medium">Library</span>
+</a>
+</nav>
+<div class="mt-8">
+<button class="w-full bg-primary text-on-primary py-4 rounded-full font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/10 hover:opacity-90 transition-all">
+<span class="material-symbols-outlined">add</span>
+                New Entry
+            </button>
+</div>
+<div class="mt-auto space-y-2 border-t border-stone-100 pt-6">
+<a class="flex items-center gap-3 py-2 px-4 rounded-xl text-stone-500 hover:bg-stone-200/50 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-medium text-sm">Settings</span>
+</a>
+<a class="flex items-center gap-3 py-2 px-4 rounded-xl text-stone-500 hover:bg-stone-200/50 transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-medium text-sm">Support</span>
+</a>
+<div class="flex items-center gap-3 px-4 py-4 mt-2">
+<img alt="User profile" class="w-10 h-10 rounded-full object-cover" data-alt="Close up portrait of a serene woman with natural lighting and a minimalist background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVnnwyoVrgeaS7kEziuuiiE0cyJVfnLCVTECD43Eubqxmhdty131e0GjGvyqXKP69ecEDZ8dvj5AEXagStK65HneJZTjZSgT4s4VfHmGHcb7Xxd9JvCocKDFViC93aGBn_sLlaO1oACISJ8OdgZrKvGUK_vbCOa6Hmx9Zihje4agEikfe2cpM3xg0G3tmJ65QnW8aY5InbDMKg_RVj3ZALN-83Vino_oskJPntq_zV6aNJFRs0O4ZWHr3AHTuM4IJ6UiKLNHIqWE3o"/>
+<div class="overflow-hidden">
+<p class="text-sm font-bold text-on-surface truncate">Elena Thorne</p>
+<p class="text-[10px] text-stone-500 uppercase tracking-tighter">Pro Member</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 min-h-screen flex">
+<!-- Center Canvas -->
+<div class="flex-1 p-12 overflow-y-auto no-scrollbar">
+<!-- TopNavBar (Contextual) -->
+<header class="flex items-center justify-between mb-12">
+<div>
+<h2 class="text-3xl font-extrabold tracking-tight text-on-surface font-headline">Habit Synthesis</h2>
+<p class="text-on-surface-variant font-label text-sm mt-1">Nurturing your daily keystone rituals.</p>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline">search</span>
+<input class="bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 w-64" placeholder="Search rituals..." type="text"/>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">account_circle</span>
+</div>
+</div>
+</header>
+<!-- Keystone Habits Grid -->
+<section class="space-y-8">
+<!-- Highlight Cards: Identity Based -->
+<div class="grid grid-cols-2 gap-6">
+<div class="bg-gradient-to-br from-primary to-primary-dim p-8 rounded-[2rem] text-on-primary relative overflow-hidden group">
+<div class="relative z-10">
+<span class="bg-on-primary/20 text-on-primary text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">Identity Anchor</span>
+<h3 class="text-2xl font-bold mt-4 mb-2">"I am a focused creator."</h3>
+<p class="text-on-primary/80 text-sm max-w-[240px]">Connected to Deep Work habit. You've honored this identity for 14 consecutive days.</p>
+<div class="mt-8 flex items-center gap-4">
+<div class="h-1.5 flex-1 bg-on-primary/20 rounded-full overflow-hidden">
+<div class="h-full bg-on-primary w-[82%]"></div>
+</div>
+<span class="text-xs font-bold font-label">82% Mastery</span>
+</div>
+</div>
+<span class="material-symbols-outlined absolute -bottom-4 -right-4 text-[120px] opacity-10 group-hover:scale-110 transition-transform duration-500">draw</span>
+</div>
+<div class="bg-surface-container-low p-8 rounded-[2rem] relative overflow-hidden">
+<span class="bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full font-label">Active Goal</span>
+<h3 class="text-2xl font-bold mt-4 mb-2 text-on-surface">The Mindful Athlete</h3>
+<p class="text-on-surface-variant text-sm max-w-[240px]">Integrated with Movement rituals. 4/5 weekly milestones achieved.</p>
+<div class="mt-8 flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-primary-container flex items-center justify-center text-[10px] font-bold">M</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-primary-container flex items-center justify-center text-[10px] font-bold">T</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-primary-container flex items-center justify-center text-[10px] font-bold">W</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-primary-container flex items-center justify-center text-[10px] font-bold">T</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-surface-container-highest flex items-center justify-center text-[10px] font-bold text-outline">F</div>
+</div>
+</div>
+</div>
+<!-- Detailed Habit Tracking -->
+<div class="bg-surface-container-lowest p-8 rounded-[2.5rem] shadow-sm">
+<div class="flex items-center justify-between mb-10">
+<h4 class="text-xl font-bold tracking-tight">Keystone Habit Performance</h4>
+<div class="flex gap-2">
+<button class="px-4 py-1.5 rounded-full bg-surface-container-high text-xs font-bold font-label">Weekly</button>
+<button class="px-4 py-1.5 rounded-full hover:bg-surface-container-high text-xs font-bold font-label transition-colors">Monthly</button>
+</div>
+</div>
+<div class="space-y-12">
+<!-- Habit Row 1 -->
+<div class="grid grid-cols-[1fr_2fr_1fr] items-center gap-8">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-tertiary-container flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined">self_improvement</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Morning Stillness</p>
+<p class="text-xs text-on-surface-variant font-label">15 mins • 07:00 AM</p>
+</div>
+</div>
+<div class="flex justify-between items-end h-16 gap-2">
+<div class="w-full bg-primary-container/30 rounded-t-lg h-[40%]"></div>
+<div class="w-full bg-primary-container/30 rounded-t-lg h-[65%]"></div>
+<div class="w-full bg-primary-container/30 rounded-t-lg h-[45%]"></div>
+<div class="w-full bg-primary-container/30 rounded-t-lg h-[80%]"></div>
+<div class="w-full bg-primary rounded-t-lg h-[95%]"></div>
+<div class="w-full bg-primary/40 rounded-t-lg h-[60%]"></div>
+<div class="w-full bg-surface-container-highest rounded-t-lg h-[20%]"></div>
+</div>
+<div class="text-right">
+<p class="text-2xl font-extrabold text-on-surface">12 <span class="text-xs font-label text-on-surface-variant">Day Streak</span></p>
+<p class="text-[10px] uppercase font-bold text-primary tracking-widest">+2 from avg</p>
+</div>
+</div>
+<!-- Habit Row 2 -->
+<div class="grid grid-cols-[1fr_2fr_1fr] items-center gap-8">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-secondary-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">menu_book</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Curated Reading</p>
+<p class="text-xs text-on-surface-variant font-label">20 pages • Afternoon</p>
+</div>
+</div>
+<div class="flex justify-between items-end h-16 gap-2">
+<div class="w-full bg-secondary-container/30 rounded-t-lg h-[90%]"></div>
+<div class="w-full bg-secondary-container/30 rounded-t-lg h-[85%]"></div>
+<div class="w-full bg-secondary-container/30 rounded-t-lg h-[95%]"></div>
+<div class="w-full bg-secondary rounded-t-lg h-[100%]"></div>
+<div class="w-full bg-secondary/40 rounded-t-lg h-[70%]"></div>
+<div class="w-full bg-secondary/20 rounded-t-lg h-[30%]"></div>
+<div class="w-full bg-surface-container-highest rounded-t-lg h-[10%]"></div>
+</div>
+<div class="text-right">
+<p class="text-2xl font-extrabold text-on-surface">31 <span class="text-xs font-label text-on-surface-variant">Day Streak</span></p>
+<p class="text-[10px] uppercase font-bold text-secondary tracking-widest">Milestone: +3d</p>
+</div>
+</div>
+<!-- Habit Row 3 -->
+<div class="grid grid-cols-[1fr_2fr_1fr] items-center gap-8">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-primary-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">forest</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Nature Exposure</p>
+<p class="text-xs text-on-surface-variant font-label">10 mins • Sunlight</p>
+</div>
+</div>
+<div class="flex justify-between items-end h-16 gap-2">
+<div class="w-full bg-primary-container/30 rounded-t-lg h-[20%]"></div>
+<div class="w-full bg-primary-container/30 rounded-t-lg h-[35%]"></div>
+<div class="w-full bg-primary-container/30 rounded-t-lg h-[15%]"></div>
+<div class="w-full bg-primary-container/30 rounded-t-lg h-[50%]"></div>
+<div class="w-full bg-primary rounded-t-lg h-[40%]"></div>
+<div class="w-full bg-primary/40 rounded-t-lg h-[55%]"></div>
+<div class="w-full bg-surface-container-highest rounded-t-lg h-[15%]"></div>
+</div>
+<div class="text-right">
+<p class="text-2xl font-extrabold text-on-surface">4 <span class="text-xs font-label text-on-surface-variant">Day Streak</span></p>
+<p class="text-[10px] uppercase font-bold text-tertiary tracking-widest">In Focus</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Side Panel: Analysis & Affirmation -->
+<aside class="w-[400px] bg-surface-container-low border-l border-outline-variant/10 p-10 flex flex-col gap-8">
+<!-- Identity Affirmation -->
+<div class="space-y-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h5 class="text-sm font-bold uppercase tracking-wider font-label text-tertiary">Identity Affirmation</h5>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-outline-variant/5">
+<p class="text-lg font-medium leading-relaxed italic text-on-surface">
+                        "Your habits are how you embody your identity. Every action is a vote for the person you wish to become."
+                    </p>
+<div class="mt-4 pt-4 border-t border-surface-container-high flex items-center justify-between">
+<span class="text-xs font-label text-on-surface-variant">Identity: The Conscious Architect</span>
+<span class="material-symbols-outlined text-sm text-outline">more_horiz</span>
+</div>
+</div>
+</div>
+<!-- Burnout Analysis -->
+<div class="space-y-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">monitoring</span>
+<h5 class="text-sm font-bold uppercase tracking-wider font-label text-error">Burnout Analysis</h5>
+</div>
+<div class="space-y-4">
+<div class="bg-surface-container-lowest p-6 rounded-3xl">
+<div class="flex items-center justify-between mb-4">
+<span class="text-sm font-bold">Cognitive Load</span>
+<span class="text-xs font-label bg-error-container text-on-error-container px-2 py-0.5 rounded-full">Elevated</span>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-error w-[74%]"></div>
+</div>
+<p class="mt-4 text-xs text-on-surface-variant leading-relaxed">
+                            Research suggests your late-night sessions are impacting habit consistency by <span class="text-error font-bold">14%</span>.
+                        </p>
+</div>
+<div class="bg-tertiary-container/30 p-6 rounded-3xl border border-tertiary/10">
+<h6 class="text-sm font-bold text-tertiary mb-2">Restorative Suggestions</h6>
+<ul class="space-y-3">
+<li class="flex gap-3 text-xs text-on-tertiary-container items-start">
+<span class="material-symbols-outlined text-sm mt-0.5">check_circle</span>
+<span>Shift 'Curated Reading' to 30 mins before bed to lower cortisol.</span>
+</li>
+<li class="flex gap-3 text-xs text-on-tertiary-container items-start">
+<span class="material-symbols-outlined text-sm mt-0.5">check_circle</span>
+<span>Add 5-minute Non-Sleep Deep Rest (NSDR) at 2 PM.</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Visual Context -->
+<div class="mt-auto rounded-3xl overflow-hidden h-48 relative">
+<img alt="Quiet desk with notebook and plant" class="w-full h-full object-cover" data-alt="A clean minimalist workspace with a notebook, a small green plant, and soft morning sunlight casting shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMV31Y42a6hLY9oVtwic2jxzWmx2tD4OdAMuWR9ykSRKDT3CMeUZuz-4ur9C3BAENKHV1HcybZ4Iq6L7fqgL9Tn_MAXY5ClZ0Lo0HHX9j0fkrgT960_ZtBzD2fAC5KrVpk8QvnP3uOd4Nh46A6i3Y4brfel3ijzrdC5BxOODdE0B-YIXoBFLjOUiYqxac7oryruCkAPdkjRHd7FMfN9j-o6NQBgSWc-zNe-eUyQ4JIj6c9JhHRczs9ZjB30OlYKMUwwBzjDu8SfVeA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent flex items-end p-6">
+<p class="text-white text-xs font-medium">Keep your environment as intentional as your actions.</p>
+</div>
+</div>
+</aside>
+</main>
+</body></html>

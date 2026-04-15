@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;family=Plus+Jakarta+Sans:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#f4e6ff",
+                    "on-primary-container": "#3d574d",
+                    "on-error-container": "#6e0a12",
+                    "on-secondary-fixed": "#2e405a",
+                    "on-tertiary-fixed-variant": "#675d71",
+                    "on-surface": "#2d3433",
+                    "surface-tint": "#4a655a",
+                    "surface": "#f8faf9",
+                    "on-secondary": "#f8f8ff",
+                    "secondary-fixed-dim": "#c2d6f5",
+                    "surface-variant": "#dde4e3",
+                    "primary-fixed-dim": "#bedbce",
+                    "on-tertiary-fixed": "#4a4154",
+                    "primary-dim": "#3e594e",
+                    "primary": "#4a655a",
+                    "on-primary": "#e5fff2",
+                    "inverse-surface": "#0b0f0f",
+                    "on-error": "#fff7f6",
+                    "background": "#f8faf9",
+                    "error": "#a83836",
+                    "outline-variant": "#acb3b2",
+                    "secondary-container": "#d3e3ff",
+                    "on-tertiary": "#fef6ff",
+                    "primary-container": "#cbe9db",
+                    "tertiary-dim": "#594f63",
+                    "tertiary-container": "#f4e6ff",
+                    "surface-container-high": "#e4e9e8",
+                    "tertiary-fixed-dim": "#e5d8f0",
+                    "error-container": "#fa746f",
+                    "on-primary-fixed": "#2a443b",
+                    "surface-container": "#eaefee",
+                    "primary-fixed": "#cbe9db",
+                    "on-primary-fixed-variant": "#466156",
+                    "error-dim": "#67040d",
+                    "on-secondary-container": "#40536d",
+                    "surface-container-highest": "#dde4e3",
+                    "tertiary": "#655b6f",
+                    "on-tertiary-container": "#5c5367",
+                    "surface-bright": "#f8faf9",
+                    "on-secondary-fixed-variant": "#4a5d77",
+                    "inverse-primary": "#d7f5e7",
+                    "surface-container-low": "#f1f4f3",
+                    "outline": "#757c7b",
+                    "secondary-fixed": "#d3e3ff",
+                    "on-background": "#2d3433",
+                    "secondary-dim": "#42546f",
+                    "inverse-on-surface": "#9b9d9d",
+                    "surface-dim": "#d4dbda",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface-variant": "#596060",
+                    "secondary": "#4e607b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Manrope"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; background-color: #f8faf9; color: #2d3433; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .calendar-grid { grid-template-columns: 80px repeat(7, 1fr); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-background overflow-hidden">
+<!-- Shared SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-stone-50 dark:bg-stone-950 flex flex-col py-8 px-6 font-manrope text-stone-800 dark:text-stone-200">
+<div class="mb-10">
+<div class="flex items-center gap-3 mb-6">
+<img alt="User profile" class="w-10 h-10 rounded-full object-cover" data-alt="Close-up portrait of a woman in soft natural lighting, minimal aesthetic, serene expression" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGbn0o4qJqoKdsK0dDVFGY7TZ1WDmYrE8gkUpb7PG0hBvf41AX8BAQGScbG7RKgMvxbic2RTaGRAZl0ITsTRdsw1AtenE2CVHtZyDfzn9U0PqefZ7m_HEvu7b44-N95aY9NpDsRctqvmcqEoP9ccPFXwj-gFaAWNneB8PsQPHQ1jfm8iiSDIwa2wZabnEfiNs6kF02TUixrZFLh1KxqGHg9iBGKkLUwkdFiF4AsOY0xDein1h1vqf-olMcwyvAlX0x7Uoe_NsxOtrP"/>
+<div>
+<h1 class="text-xl font-bold tracking-tight text-emerald-900 dark:text-emerald-200">Serene Path</h1>
+<p class="text-xs font-label text-stone-500 uppercase tracking-widest">The Curated Breath</p>
+</div>
+</div>
+<button class="w-full bg-primary py-3 rounded-full text-on-primary font-bold flex items-center justify-center gap-2 hover:opacity-80 transition-all active:scale-95">
+<span class="material-symbols-outlined">add</span>
+                New Entry
+            </button>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 text-stone-500 dark:text-stone-400" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 text-emerald-800 dark:text-emerald-400 font-bold border-r-4 border-emerald-700 bg-stone-100 dark:bg-stone-900" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+                Calendar
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 text-stone-500 dark:text-stone-400" href="#">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+                AI Assistant
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 text-stone-500 dark:text-stone-400" href="#">
+<span class="material-symbols-outlined" data-icon="auto_awesome_motion">auto_awesome_motion</span>
+                Habits
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 text-stone-500 dark:text-stone-400" href="#">
+<span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+                Library
+            </a>
+</nav>
+<footer class="mt-auto space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 hover:bg-stone-200/50 text-stone-500" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 hover:bg-stone-200/50 text-stone-500" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+                Support
+            </a>
+</footer>
+</aside>
+<!-- Main Workspace -->
+<main class="ml-64 flex min-h-screen">
+<!-- Weekly Calendar Center -->
+<section class="flex-1 flex flex-col bg-surface overflow-hidden">
+<!-- Top Nav Bar Shared -->
+<header class="w-full h-16 flex items-center justify-between px-12 sticky top-0 z-10 bg-transparent font-manrope">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-all">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<h2 class="text-xl font-bold tracking-tight text-on-surface">September 11 — 17</h2>
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-all">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<div class="flex bg-surface-container-low p-1 rounded-full">
+<button class="px-4 py-1 text-sm font-label text-on-surface-variant hover:text-on-surface">Day</button>
+<button class="px-6 py-1 text-sm font-label bg-surface-container-lowest text-primary font-bold rounded-full shadow-sm">Week</button>
+<button class="px-4 py-1 text-sm font-label text-on-surface-variant hover:text-on-surface">Month</button>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative group">
+<div class="flex items-center bg-surface-container-low rounded-full px-4 py-2 w-64">
+<span class="material-symbols-outlined text-outline text-sm">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm font-label ml-2 w-full" placeholder="Search focus moments..." type="text"/>
+</div>
+</div>
+<button class="p-2 text-on-secondary-container hover:text-emerald-600 transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-secondary-container hover:text-emerald-600 transition-all">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Calendar Canvas -->
+<div class="flex-1 px-8 pb-8 overflow-y-auto no-scrollbar">
+<div class="bg-surface-container-lowest rounded-[2rem] h-full shadow-sm border border-outline-variant/10 flex flex-col">
+<!-- Day Headers -->
+<div class="calendar-grid grid border-b border-surface-container-low">
+<div class="p-4"></div>
+<div class="p-4 text-center border-l border-surface-container-low">
+<span class="block text-xs font-label text-on-surface-variant mb-1">MON</span>
+<span class="text-xl font-headline font-bold">11</span>
+</div>
+<div class="p-4 text-center border-l border-surface-container-low bg-primary-container/10">
+<span class="block text-xs font-label text-primary font-bold mb-1">TUE</span>
+<span class="text-xl font-headline font-bold text-primary">12</span>
+</div>
+<div class="p-4 text-center border-l border-surface-container-low">
+<span class="block text-xs font-label text-on-surface-variant mb-1">WED</span>
+<span class="text-xl font-headline font-bold">13</span>
+</div>
+<div class="p-4 text-center border-l border-surface-container-low">
+<span class="block text-xs font-label text-on-surface-variant mb-1">THU</span>
+<span class="text-xl font-headline font-bold">14</span>
+</div>
+<div class="p-4 text-center border-l border-surface-container-low">
+<span class="block text-xs font-label text-on-surface-variant mb-1">FRI</span>
+<span class="text-xl font-headline font-bold">15</span>
+</div>
+<div class="p-4 text-center border-l border-surface-container-low">
+<span class="block text-xs font-label text-on-surface-variant mb-1">SAT</span>
+<span class="text-xl font-headline font-bold">16</span>
+</div>
+<div class="p-4 text-center border-l border-surface-container-low">
+<span class="block text-xs font-label text-on-surface-variant mb-1">SUN</span>
+<span class="text-xl font-headline font-bold text-on-surface-variant">17</span>
+</div>
+</div>
+<!-- Time Grid -->
+<div class="flex-1 relative overflow-y-auto no-scrollbar">
+<div class="calendar-grid grid min-h-max">
+<!-- Time Column -->
+<div class="bg-surface-container-low/30">
+<div class="h-20 flex items-start justify-end pr-4 pt-2 text-[10px] font-label text-outline uppercase tracking-tighter">08:00 AM</div>
+<div class="h-20 flex items-start justify-end pr-4 pt-2 text-[10px] font-label text-outline uppercase tracking-tighter">09:00 AM</div>
+<div class="h-20 flex items-start justify-end pr-4 pt-2 text-[10px] font-label text-outline uppercase tracking-tighter border-t border-surface-container-low">10:00 AM</div>
+<div class="h-20 flex items-start justify-end pr-4 pt-2 text-[10px] font-label text-outline uppercase tracking-tighter border-t border-surface-container-low">11:00 AM</div>
+<div class="h-20 flex items-start justify-end pr-4 pt-2 text-[10px] font-label text-outline uppercase tracking-tighter border-t border-surface-container-low">12:00 PM</div>
+<div class="h-20 flex items-start justify-end pr-4 pt-2 text-[10px] font-label text-outline uppercase tracking-tighter border-t border-surface-container-low">01:00 PM</div>
+<div class="h-20 flex items-start justify-end pr-4 pt-2 text-[10px] font-label text-outline uppercase tracking-tighter border-t border-surface-container-low">02:00 PM</div>
+<div class="h-20 flex items-start justify-end pr-4 pt-2 text-[10px] font-label text-outline uppercase tracking-tighter border-t border-surface-container-low">03:00 PM</div>
+<div class="h-20 flex items-start justify-end pr-4 pt-2 text-[10px] font-label text-outline uppercase tracking-tighter border-t border-surface-container-low">04:00 PM</div>
+</div>
+<!-- Day Columns -->
+<div class="relative border-l border-surface-container-low"><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div></div>
+<div class="relative border-l border-surface-container-low bg-primary-container/5">
+<!-- Calendar Block: Focus -->
+<div class="absolute top-[80px] left-1 right-1 h-[140px] bg-primary text-on-primary p-3 rounded-xl shadow-sm z-20">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[14px]">psychology</span>
+<p class="text-[10px] font-label uppercase font-bold tracking-widest opacity-80">Deep Work</p>
+</div>
+<p class="text-sm font-bold leading-tight">UI Design Language</p>
+<p class="text-[10px] mt-1 opacity-70">Focus Zone</p>
+</div>
+<div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div>
+</div>
+<div class="relative border-l border-surface-container-low">
+<!-- Calendar Block: Wellness -->
+<div class="absolute top-[240px] left-1 right-1 h-[60px] bg-tertiary-container text-on-tertiary-container p-2 rounded-xl border border-tertiary/20">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">spa</span>
+<p class="text-xs font-bold">Guided Meditation</p>
+</div>
+</div>
+<div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div>
+</div>
+<div class="relative border-l border-surface-container-low">
+<!-- Calendar Block: Collaboration -->
+<div class="absolute top-[160px] left-1 right-1 h-[80px] bg-secondary-container text-on-secondary-container p-3 rounded-xl border border-secondary/10">
+<p class="text-xs font-bold">Stakeholder Review</p>
+<p class="text-[10px] mt-1 opacity-80">Design Sync</p>
+</div>
+<div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div>
+</div>
+<div class="relative border-l border-surface-container-low"><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div></div>
+<div class="relative border-l border-surface-container-low bg-surface-container-low/20"><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div></div>
+<div class="relative border-l border-surface-container-low bg-surface-container-low/20"><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div><div class="h-20 border-b border-surface-container-low/50"></div></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Context Sidebar -->
+<aside class="w-80 bg-surface-container-low p-6 flex flex-col gap-8 overflow-y-auto no-scrollbar">
+<!-- Mini Month View -->
+<div class="bg-surface-container-lowest p-6 rounded-3xl shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-bold font-headline">September 2023</h3>
+<div class="flex gap-1">
+<span class="material-symbols-outlined text-sm cursor-pointer">chevron_left</span>
+<span class="material-symbols-outlined text-sm cursor-pointer">chevron_right</span>
+</div>
+</div>
+<div class="grid grid-cols-7 gap-y-2 text-center">
+<span class="text-[10px] font-label text-outline">S</span>
+<span class="text-[10px] font-label text-outline">M</span>
+<span class="text-[10px] font-label text-outline">T</span>
+<span class="text-[10px] font-label text-outline">W</span>
+<span class="text-[10px] font-label text-outline">T</span>
+<span class="text-[10px] font-label text-outline">F</span>
+<span class="text-[10px] font-label text-outline">S</span>
+<span class="text-xs text-outline py-1">27</span>
+<span class="text-xs text-outline py-1">28</span>
+<span class="text-xs text-outline py-1">29</span>
+<span class="text-xs text-outline py-1">30</span>
+<span class="text-xs text-outline py-1">31</span>
+<span class="text-xs py-1">1</span>
+<span class="text-xs py-1">2</span>
+<span class="text-xs py-1">3</span>
+<span class="text-xs py-1">4</span>
+<span class="text-xs py-1">5</span>
+<span class="text-xs py-1">6</span>
+<span class="text-xs py-1">7</span>
+<span class="text-xs py-1">8</span>
+<span class="text-xs py-1">9</span>
+<span class="text-xs py-1">10</span>
+<span class="text-xs py-1 bg-primary text-on-primary rounded-full font-bold">11</span>
+<span class="text-xs py-1">12</span>
+<span class="text-xs py-1">13</span>
+<span class="text-xs py-1">14</span>
+<span class="text-xs py-1">15</span>
+<span class="text-xs py-1">16</span>
+</div>
+</div>
+<!-- Health Data Integration -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="text-sm font-bold font-headline uppercase tracking-wider text-on-surface-variant">Vitals Sync</h3>
+<span class="material-symbols-outlined text-emerald-600 text-sm">sync</span>
+</div>
+<!-- Sleep Card -->
+<div class="bg-surface-container-lowest p-5 rounded-3xl border-l-4 border-secondary shadow-sm">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-sm">bedtime</span>
+</div>
+<div>
+<p class="text-[10px] font-label text-outline uppercase">Sleep Score</p>
+<p class="text-lg font-bold font-headline">84/100</p>
+</div>
+</div>
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="w-[84%] h-full bg-secondary"></div>
+</div>
+<p class="text-[10px] text-on-surface-variant mt-2 font-label">Recommended bedtime: 10:30 PM</p>
+</div>
+<!-- Activity Card -->
+<div class="bg-surface-container-lowest p-5 rounded-3xl border-l-4 border-primary shadow-sm">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm">directions_run</span>
+</div>
+<div>
+<p class="text-[10px] font-label text-outline uppercase">Movement</p>
+<p class="text-lg font-bold font-headline">6,240 <span class="text-xs font-normal opacity-60">steps</span></p>
+</div>
+</div>
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="w-[62%] h-full bg-primary"></div>
+</div>
+</div>
+</div>
+<!-- Categories / Tags -->
+<div class="mt-auto">
+<h3 class="text-xs font-bold font-label uppercase tracking-widest text-outline mb-4">Focus Categories</h3>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full border border-primary/20">DEEP WORK</span>
+<span class="px-3 py-1 bg-secondary/10 text-secondary text-[10px] font-bold rounded-full border border-secondary/20">STRATEGY</span>
+<span class="px-3 py-1 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded-full border border-tertiary/20">RECOVERY</span>
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold rounded-full">ADMIN</span>
+</div>
+</div>
+<!-- Insight Quote -->
+<div class="mt-4 p-4 rounded-3xl bg-gradient-to-br from-primary-container/30 to-tertiary-container/30">
+<p class="text-xs italic text-on-primary-container/80 leading-relaxed">
+                    "The way you spend your hours is the way you spend your life."
+                </p>
+</div>
+</aside>
+</main>
+</body></html>

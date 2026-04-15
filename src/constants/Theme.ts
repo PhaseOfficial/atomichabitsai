@@ -1,23 +1,48 @@
 export const COLORS = {
-  primary: '#000000', // Stark Black
-  onPrimary: '#f9f9f9', // Near-white text
-  primaryContainer: '#3b3b3b',
-  secondary: '#3c5d9c', // Deep Archival Blue (from Archive Brut)
-  secondaryContainer: '#c3d4ff',
-  tertiary: '#7d000a', // Archival Red (High priority / Alerts)
-  tertiaryContainer: '#d93633',
-  background: '#f9f9f9', // Paper/Gallery Wall White
-  surface: '#f9f9f9',
-  surfaceContainerLow: '#f3f3f4',
-  surfaceContainer: '#eeeeee',
-  surfaceContainerHigh: '#e8e8e8',
-  surfaceContainerHighest: '#e2e2e2',
-  surfaceContainerLowest: '#ffffff',
-  onSurface: '#1a1c1c',
-  onSurfaceVariant: '#474747',
-  outline: '#777777',
-  outlineVariant: '#c6c6c6',
-  error: '#7d000a', // Archival Red for errors
+  light: {
+    primary: '#7d000a', // Archival Red
+    onPrimary: '#ffffff',
+    primaryContainer: '#ffdad4',
+    onPrimaryContainer: '#410001',
+    secondary: '#000000', // Stark Black
+    onSecondary: '#ffffff',
+    secondaryContainer: '#e0e0e0',
+    onSecondaryContainer: '#000000',
+    tertiary: '#3c5d9c', // Deep Archival Blue
+    onTertiary: '#ffffff',
+    background: '#f9f9f9', // Paper White
+    onBackground: '#1a1c1c',
+    surface: '#ffffff',
+    onSurface: '#1a1c1c',
+    surfaceVariant: '#eeeeee',
+    onSurfaceVariant: '#474747',
+    outline: '#777777',
+    outlineVariant: '#c6c6c6',
+    error: '#ba1a1a',
+    onError: '#ffffff',
+  },
+  dark: {
+    primary: '#ffb4ab', // Lighter red for visibility in dark mode
+    onPrimary: '#690002',
+    primaryContainer: '#930005',
+    onPrimaryContainer: '#ffdad4',
+    secondary: '#ffffff', // Stark White for dark mode
+    onSecondary: '#000000',
+    secondaryContainer: '#333333',
+    onSecondaryContainer: '#e0e0e0',
+    tertiary: '#adc6ff', // Lighter blue for dark mode
+    onTertiary: '#002e68',
+    background: '#121212', // Deep Void
+    onBackground: '#e2e2e2',
+    surface: '#1e1e1e',
+    onSurface: '#e2e2e2',
+    surfaceVariant: '#474747',
+    onSurfaceVariant: '#c6c6c6',
+    outline: '#919191',
+    outlineVariant: '#474747',
+    error: '#ffb4ab',
+    onError: '#690002',
+  }
 };
 
 export const SPACING = {
@@ -31,7 +56,7 @@ export const SPACING = {
 };
 
 export const ROUNDNESS = {
-  none: 0, // 0px border-radius is "the law" in Archival Brut
+  none: 0,
   sm: 0,
   md: 0,
   lg: 0,
@@ -40,12 +65,12 @@ export const ROUNDNESS = {
 };
 
 export const FONTS = {
-  headline: 'Newsreader_700Bold', // Historic, authoritative
-  body: 'Inter_400Regular', // Modern neutral
-  label: 'SpaceGrotesk_500Medium', // Futuristic/Technical Mono-style
-  labelSm: 'SpaceGrotesk_700Bold', // Technical bold data
+  headline: 'Newsreader_700Bold',
+  body: 'Inter_400Regular',
+  label: 'SpaceGrotesk_500Medium',
+  labelSm: 'SpaceGrotesk_700Bold',
 };
 
 export const GRID_STYLE = {
-  ghostBorder: 'rgba(119, 119, 119, 0.15)', // 15% opacity outline-variant
+  ghostBorder: (scheme: 'light' | 'dark') => scheme === 'light' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)',
 };

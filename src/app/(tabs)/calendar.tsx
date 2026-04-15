@@ -1,90 +1,79 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { Settings, Plus, Heart, Sun, MoreHorizontal, Utensils, Footprints } from 'lucide-react-native';
-import { COLORS, SPACING, ROUNDNESS, FONTS } from '../../src/constants/Theme';
-import { useData } from '../../src/hooks/useData';
-import { performMutation } from '../../src/lib/sync';
+import { COLORS, SPACING, ROUNDNESS, FONTS } from '@/src/constants/Theme';
+import { useData } from '@/src/hooks/useData';
+import { performMutation } from '@/src/lib/sync';
+import { useTheme } from '@/src/hooks/useTheme';
 
 const { width } = Dimensions.get('window');
 
-const TIME_MARKERS = [
-  '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
-];
+type Schedule = {
+  id: string;
+  date: string;
+  time_blocks: string;
+  created_at?: string;
+  updated_at?: string;
+};
 
-interface TimeBlock {
+type TimeBlock = {
   start: string;
   end: string;
   task: string;
-  type?: 'sleep' | 'routine' | 'deep-work' | 'lunch' | 'meeting' | 'walk';
   description?: string;
-}
+  type?: 'deep-work' | 'sleep' | 'walk' | 'default';
+};
 
-interface Schedule {
-  id: string;
-  date: string;
-  time_blocks: string; 
-}
+const TIME_MARKERS = Array.from({ length: 24 }, (_, index) => {
+  const hour = index.toString().padStart(2, '0');
+  return `${hour}:00`;
+});
+
+const parseTimeString = (time: string) => {
+  const [hours = '0', minutes = '0'] = time.split(':');
+  return { hours: Number(hours), minutes: Number(minutes) };
+};
+
+const getTimeOffset = (time: string) => {
+  const { hours, minutes } = parseTimeString(time);
+  return hours * 80 + (minutes * 80) / 60;
+};
+
+const getBlockHeight = (start: string, end: string) => {
+  const startTime = parseTimeString(start);
+  const endTime = parseTimeString(end);
+  const startMinutes = startTime.hours * 60 + startTime.minutes;
+  const endMinutes = endTime.hours * 60 + endTime.minutes;
+  return Math.max(40, ((endMinutes - startMinutes) * 80) / 60);
+};
+
+const parseTimeBlocks = (schedules: Schedule[]) => {
+  if (!schedules.length) return [];
+  try {
+    const blocks = JSON.parse(schedules[0].time_blocks) as TimeBlock[];
+    return Array.isArray(blocks) ? blocks : [];
+  } catch {
+    return [];
+  }
+};
 
 export default function CalendarScreen() {
+  const { colors, colorScheme } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const today = new Date().toISOString().split('T')[0];
   const { data: schedules, loading, error, refresh } = useData<Schedule>('SELECT * FROM schedules WHERE date = ?', [today]);
 
-  const timeBlocks = useMemo(() => {
-    if (schedules && schedules.length > 0) {
-      try {
-        return JSON.parse(schedules[0].time_blocks) as TimeBlock[];
-      } catch (e) {
-        console.error('Failed to parse time blocks:', e);
-        return [];
-      }
-    }
-    return [];
-  }, [schedules]);
+  const timeBlocks = useMemo(() => parseTimeBlocks(schedules), [schedules]);
 
   const handleUpdateTimeBlock = async () => {
-    if (!schedules || schedules.length === 0) {
-      try {
-        await performMutation('schedules', 'INSERT', {
-          id: Math.random().toString(36).substring(7),
-          user_id: 'user-123',
-          date: today,
-          time_blocks: JSON.stringify([{ start: '09:00', end: '10:30', task: 'New Task', type: 'routine' }])
-        });
-        refresh();
-      } catch (err) {
-        console.error('Failed to create schedule:', err);
-      }
-    } else {
-      const updatedBlocks = [...timeBlocks, { start: '16:00', end: '17:00', task: 'Added Task', type: 'walk' }];
-      try {
-        await performMutation('schedules', 'UPDATE', {
-          id: schedules[0].id,
-          time_blocks: JSON.stringify(updatedBlocks)
-        });
-        refresh();
-      } catch (err) {
-        console.error('Failed to update schedule:', err);
-      }
-    }
-  };
-
-  const getTimeOffset = (timeStr: string) => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const startHour = 8;
-    return (hours - startHour) * 80 + (minutes / 60) * 80;
-  };
-
-  const getBlockHeight = (start: string, end: string) => {
-    const [startH, startM] = start.split(':').map(Number);
-    const [endH, endM] = end.split(':').map(Number);
-    const durationInMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-    return (durationInMinutes / 60) * 80;
+    await refresh();
   };
 
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -96,12 +85,20 @@ export default function CalendarScreen() {
         <View style={styles.header}>
           <View style={styles.profileSection}>
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitials}>RB</Text>
+              <Image 
+                source={require('@/assets/images/icon.png')} 
+                style={styles.avatarLogo} 
+                resizeMode="contain"
+              />
             </View>
-            <Text style={styles.logoText}>RCS BATSIRAI</Text>
+            <Image 
+              source={require('@/assets/images/Artboard 1 logo.png')} 
+              style={[styles.logoImage, { tintColor: colors.primary }]} 
+              resizeMode="contain" 
+            />
           </View>
           <TouchableOpacity style={styles.iconButton}>
-            <Settings size={20} color={COLORS.primary} strokeWidth={1.5} />
+            <Settings size={20} color={colors.primary} strokeWidth={1.5} />
           </TouchableOpacity>
         </View>
 
@@ -150,18 +147,20 @@ export default function CalendarScreen() {
               if (block.type === 'deep-work') blockStyle = styles.deepWorkBlock;
               if (block.type === 'sleep' || block.type === 'walk') blockStyle = styles.priorityBlock;
 
+              const isDeepWork = block.type === 'deep-work';
+
               return (
                 <View key={index} style={[styles.taskBlock, blockStyle, { top, height }]}>
                   <View style={styles.taskHeader}>
                     <View>
                       <Text style={styles.dataLabel}>BLOCK_ID: {index.toString().padStart(2, '0')}</Text>
-                      <Text style={[styles.taskTitle, block.type === 'deep-work' && { color: '#fff' }]}>{block.task.toUpperCase()}</Text>
-                      {block.description && <Text style={[styles.taskDesc, block.type === 'deep-work' && { color: 'rgba(255,255,255,0.7)' }]}>{block.description}</Text>}
+                      <Text style={[styles.taskTitle, isDeepWork && { color: colors.onPrimary }]}>{block.task.toUpperCase()}</Text>
+                      {block.description && <Text style={[styles.taskDesc, isDeepWork && { color: colors.onPrimary + 'B3' }]}>{block.description}</Text>}
                     </View>
                   </View>
                   <View style={styles.blockFooter}>
-                    <Text style={[styles.taskTime, block.type === 'deep-work' && { color: 'rgba(255,255,255,0.8)' }]}>{block.start} > {block.end}</Text>
-                    {block.type === 'deep-work' && <Text style={styles.statusBadge}>ACTIVE_REINFORCEMENT</Text>}
+                    <Text style={[styles.taskTime, isDeepWork && { color: colors.onPrimary + 'CC' }]}>{block.start} {'>'} {block.end}</Text>
+                    {isDeepWork && <Text style={[styles.statusBadge, { color: colors.onPrimary, backgroundColor: colors.onPrimary + '33' }]}>ACTIVE_REINFORCEMENT</Text>}
                   </View>
                 </View>
               );
@@ -175,8 +174,8 @@ export default function CalendarScreen() {
 
             {/* Current Time Indicator */}
             <View style={[styles.currentTimeIndicator, { top: getTimeOffset(new Date().toTimeString().slice(0, 5)) }]}>
-              <View style={styles.indicatorLine} />
-              <View style={styles.indicatorLabel}>
+              <View style={[styles.indicatorLine, { backgroundColor: colors.tertiary }]} />
+              <View style={[styles.indicatorLabel, { backgroundColor: colors.tertiary }]}>
                 <Text style={styles.indicatorText}>REAL_TIME</Text>
               </View>
             </View>
@@ -185,17 +184,17 @@ export default function CalendarScreen() {
       </ScrollView>
 
       {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab} onPress={handleUpdateTimeBlock}>
-        <Plus size={24} color="#fff" strokeWidth={2} />
+      <TouchableOpacity style={[styles.fab, { backgroundColor: colors.primary }]} onPress={handleUpdateTimeBlock}>
+        <Plus size={24} color={colors.onPrimary} strokeWidth={2} />
       </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -209,7 +208,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(119, 119, 119, 0.15)',
+    borderBottomColor: colors.outline + '26',
   },
   profileSection: {
     flexDirection: 'row',
@@ -219,20 +218,17 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     width: 32,
     height: 32,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitials: {
-    color: '#fff',
-    fontFamily: FONTS.label,
-    fontSize: 12,
+  avatarLogo: {
+    width: 24,
+    height: 24,
   },
-  logoText: {
-    fontSize: 14,
-    fontFamily: FONTS.labelSm,
-    color: COLORS.primary,
-    letterSpacing: 1,
+  logoImage: {
+    height: 32,
+    width: 120,
   },
   iconButton: {
     padding: 4,
@@ -242,24 +238,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     padding: SPACING.lg,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   dayLabel: {
     fontFamily: FONTS.label,
     fontSize: 9,
-    color: COLORS.outline,
+    color: colors.outline,
     letterSpacing: 1.5,
     marginBottom: 4,
   },
   dateLabel: {
     fontFamily: FONTS.headline,
     fontSize: 48,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   toggleContainer: {
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: 'rgba(119, 119, 119, 0.15)',
+    borderColor: colors.outline + '26',
     padding: 2,
   },
   toggleButton: {
@@ -269,28 +265,28 @@ const styles = StyleSheet.create({
   toggleButtonActive: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   toggleText: {
     fontFamily: FONTS.label,
     fontSize: 9,
-    color: COLORS.outline,
+    color: colors.outline,
   },
   toggleTextActive: {
     fontFamily: FONTS.label,
     fontSize: 9,
-    color: '#fff',
+    color: colors.onPrimary,
   },
   timelineContainer: {
     flexDirection: 'row',
     paddingRight: SPACING.lg,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(119, 119, 119, 0.15)',
+    borderTopColor: colors.outline + '26',
   },
   timeMarkers: {
     width: 60,
     borderRightWidth: 1,
-    borderRightColor: 'rgba(119, 119, 119, 0.15)',
+    borderRightColor: colors.outline + '26',
   },
   timeMarkerRow: {
     height: 80,
@@ -301,7 +297,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontFamily: FONTS.label,
     fontSize: 10,
-    color: COLORS.outline,
+    color: colors.outline,
   },
   contentArea: {
     flex: 1,
@@ -314,7 +310,7 @@ const styles = StyleSheet.create({
   gridLine: {
     height: 80,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(119, 119, 119, 0.05)',
+    borderBottomColor: colors.outline + '0D',
   },
   taskBlock: {
     position: 'absolute',
@@ -322,38 +318,38 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderColor: colors.outline + '1A',
     justifyContent: 'space-between',
   },
   dataLabel: {
     fontFamily: FONTS.label,
     fontSize: 7,
     letterSpacing: 1,
-    color: COLORS.outline,
+    color: colors.outline,
     marginBottom: 2,
   },
   taskTitle: {
     fontFamily: FONTS.labelSm,
     fontSize: 14,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   taskDesc: {
     fontFamily: FONTS.body,
     fontSize: 11,
-    color: COLORS.outline,
+    color: colors.outline,
     marginTop: 2,
   },
   defaultBlock: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   deepWorkBlock: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   priorityBlock: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.tertiary,
+    borderLeftColor: colors.tertiary,
   },
   blockFooter: {
     flexDirection: 'row',
@@ -363,13 +359,11 @@ const styles = StyleSheet.create({
   taskTime: {
     fontFamily: FONTS.label,
     fontSize: 9,
-    color: COLORS.outline,
+    color: colors.outline,
   },
   statusBadge: {
     fontFamily: FONTS.label,
     fontSize: 7,
-    color: '#fff',
-    backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
@@ -385,10 +379,8 @@ const styles = StyleSheet.create({
   indicatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.tertiary,
   },
   indicatorLabel: {
-    backgroundColor: COLORS.tertiary,
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
@@ -403,7 +395,6 @@ const styles = StyleSheet.create({
     right: 24,
     width: 56,
     height: 56,
-    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -416,7 +407,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: COLORS.outline,
+    color: colors.outline,
     fontFamily: FONTS.label,
     fontSize: 10,
     letterSpacing: 2,

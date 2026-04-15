@@ -1,5 +1,6 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, ActivityIndicator } from 'react-native';
+import React, { useMemo } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Settings, Play, CheckCircle2, Circle, Plus, Activity, BarChart2, Mail, CreditCard } from 'lucide-react-native';
 import { COLORS, SPACING, ROUNDNESS, FONTS } from '@/src/constants/Theme';
 import { useData } from '@/src/hooks/useData';
@@ -12,6 +13,11 @@ export default function DashboardScreen() {
   const activeHabits = habitStats?.[0]?.count || 0;
   const completedToday = logStats?.[0]?.count || 0;
 
+  const colorScheme = useColorScheme() ?? 'light';
+  const themeColors = COLORS[colorScheme as keyof typeof COLORS];
+
+  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -19,12 +25,20 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.profileSection}>
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitials}>RB</Text>
+              <Image 
+                source={require('@/assets/images/icon.png')} 
+                style={styles.avatarLogo} 
+                resizeMode="contain"
+              />
             </View>
-            <Text style={styles.logo}>RCS BATSIRAI</Text>
+            <Image 
+              source={require('@/assets/images/Artboard 1 logo.png')} 
+              style={[styles.logoImage, { tintColor: themeColors.primary }]} 
+              resizeMode="contain" 
+            />
           </View>
           <TouchableOpacity style={styles.ghostBtn}>
-            <Settings size={20} color={COLORS.primary} strokeWidth={1.5} />
+            <Settings size={20} color={themeColors.primary} strokeWidth={1.5} />
           </TouchableOpacity>
         </View>
 
@@ -49,16 +63,16 @@ export default function DashboardScreen() {
           </View>
 
           {/* Focus Card - Span 2 columns */}
-          <View style={[styles.catalogCard, styles.spanFull, styles.borderBottom, { backgroundColor: COLORS.primary }]}>
-            <Text style={[styles.dataLabel, { color: '#fff' }]}>CURRENT_FOCUS</Text>
-            <Text style={[styles.catalogHeadline, { color: '#fff' }]}>Deep Work: Interface Refinement</Text>
-            <Text style={styles.catalogDesc}>
+          <View style={[styles.catalogCard, styles.spanFull, styles.borderBottom, { backgroundColor: themeColors.primary }]}>
+            <Text style={[styles.dataLabel, { color: themeColors.onPrimary }]}>CURRENT_FOCUS</Text>
+            <Text style={[styles.catalogHeadline, { color: themeColors.onPrimary }]}>Deep Work: Interface Refinement</Text>
+            <Text style={[styles.catalogDesc, { color: themeColors.onPrimary + 'B3' }]}>
               Typography hierarchy and tonal layering transitions for mobile navigation.
             </Text>
             <View style={styles.actionRow}>
               <TouchableOpacity style={styles.starkBtn}>
                 <Text style={styles.starkBtnText}>RESUME_SESSION</Text>
-                <Play size={14} color={COLORS.primary} fill={COLORS.primary} />
+                <Play size={14} color={themeColors.primary} fill={themeColors.primary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -73,7 +87,7 @@ export default function DashboardScreen() {
               <Text style={styles.dataValueMd}>65%</Text>
             </View>
             <View style={styles.technicalBarBg}>
-              <View style={[styles.technicalBarFill, { width: '65%' }]} />
+              <View style={[styles.technicalBarFill, { width: '65%', backgroundColor: themeColors.primary }]} />
             </View>
           </View>
 
@@ -81,9 +95,9 @@ export default function DashboardScreen() {
           <View style={[styles.catalogCard, styles.spanFull]}>
             <Text style={styles.dataLabel}>KEYSTONE_HABITS / {completedToday} OF {activeHabits}</Text>
             <View style={styles.habitList}>
-              <HabitItem title="Morning Meditation" done={completedToday > 0} />
-              <HabitItem title="Deep Work Session" done={completedToday > 1} />
-              <HabitItem title="20min Evening Walk" done={false} />
+              <HabitItem title="Morning Meditation" done={completedToday > 0} themeColors={themeColors} />
+              <HabitItem title="Deep Work Session" done={completedToday > 1} themeColors={themeColors} />
+              <HabitItem title="20min Evening Walk" done={false} themeColors={themeColors} />
             </View>
           </View>
         </View>
@@ -93,42 +107,77 @@ export default function DashboardScreen() {
           <Text style={styles.sectionTitle}>MANAGEMENT_DECK</Text>
         </View>
         <View style={styles.managementGrid}>
-          <ToolCard icon={<Activity size={18} color={COLORS.primary} />} label="GOOGLE_ADS" />
-          <ToolCard icon={<BarChart2 size={18} color={COLORS.primary} />} label="FACEBOOK" />
-          <ToolCard icon={<Activity size={18} color={COLORS.primary} />} label="ANALYTICS" />
-          <ToolCard icon={<Mail size={18} color={COLORS.primary} />} label="INBOX" />
-          <ToolCard icon={<CreditCard size={18} color={COLORS.primary} />} label="FINANCE" />
-          <ToolCard icon={<Plus size={18} color={COLORS.primary} />} label="ADD_TOOL" />
+          <ToolCard icon={<Activity size={18} color={themeColors.primary} />} label="GOOGLE_ADS" themeColors={themeColors} />
+          <ToolCard icon={<BarChart2 size={18} color={themeColors.primary} />} label="FACEBOOK" themeColors={themeColors} />
+          <ToolCard icon={<Activity size={18} color={themeColors.primary} />} label="ANALYTICS" themeColors={themeColors} />
+          <ToolCard icon={<Mail size={18} color={themeColors.primary} />} label="INBOX" themeColors={themeColors} />
+          <ToolCard icon={<CreditCard size={18} color={themeColors.primary} />} label="FINANCE" themeColors={themeColors} />
+          <ToolCard icon={<Plus size={18} color={themeColors.primary} />} label="ADD_TOOL" themeColors={themeColors} />
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function HabitItem({ title, done }: { title: string; done: boolean }) {
+function HabitItem({ title, done, themeColors }: { title: string; done: boolean; themeColors: any }) {
   return (
-    <View style={styles.habitItem}>
-      <View style={[styles.checkbox, done && styles.checkboxChecked]}>
-        {done && <CheckCircle2 size={14} color="#fff" />}
+    <View style={stylesHabit.habitItem}>
+      <View style={[stylesHabit.checkbox, { borderColor: themeColors.primary }, done && { backgroundColor: themeColors.primary }]}>
+        {done && <CheckCircle2 size={14} color={themeColors.onPrimary} />}
       </View>
-      <Text style={[styles.habitText, done && styles.habitTextDone]}>{title.toUpperCase()}</Text>
+      <Text style={[stylesHabit.habitText, { color: themeColors.primary }, done && { color: themeColors.outline, textDecorationLine: 'line-through' }]}>{title.toUpperCase()}</Text>
     </View>
   );
 }
 
-function ToolCard({ icon, label }: { icon: React.ReactNode; label: string }) {
+const stylesHabit = StyleSheet.create({
+  habitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  habitText: {
+    fontFamily: FONTS.label,
+    fontSize: 13,
+  },
+});
+
+function ToolCard({ icon, label, themeColors }: { icon: React.ReactNode; label: string; themeColors: any }) {
   return (
-    <TouchableOpacity style={styles.toolCard}>
+    <TouchableOpacity style={[stylesTool.toolCard, { borderColor: themeColors.outline + '1A' }]}>
       {icon}
-      <Text style={styles.toolLabel}>{label}</Text>
+      <Text style={[stylesTool.toolLabel, { color: themeColors.primary }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+const stylesTool = StyleSheet.create({
+  toolCard: {
+    width: '33.33%',
+    padding: SPACING.md,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 0.5,
+  },
+  toolLabel: {
+    fontFamily: FONTS.label,
+    fontSize: 8,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+});
+
+const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: themeColors.background,
   },
   scrollContent: {
     paddingBottom: 100,
@@ -139,7 +188,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(119, 119, 119, 0.15)',
+    borderBottomColor: themeColors.outline + '26',
   },
   profileSection: {
     flexDirection: 'row',
@@ -149,45 +198,42 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     width: 32,
     height: 32,
-    backgroundColor: COLORS.primary,
+    backgroundColor: themeColors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitials: {
-    color: '#fff',
-    fontFamily: FONTS.label,
-    fontSize: 12,
+  avatarLogo: {
+    width: 24,
+    height: 24,
   },
-  logo: {
-    fontFamily: FONTS.labelSm,
-    fontSize: 14,
-    color: COLORS.primary,
-    letterSpacing: 1,
+  logoImage: {
+    height: 32,
+    width: 120,
   },
   ghostBtn: {
     padding: 4,
   },
   greetingContainer: {
     padding: SPACING.lg,
-    backgroundColor: '#fff',
+    backgroundColor: themeColors.surface,
   },
   labelCaps: {
     fontFamily: FONTS.label,
     fontSize: 10,
     letterSpacing: 2,
-    color: COLORS.outline,
+    color: themeColors.outline,
   },
   greetingText: {
     fontFamily: FONTS.headline,
     fontSize: 24,
     marginTop: SPACING.xs,
-    color: COLORS.primary,
+    color: themeColors.primary,
   },
   catalogGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(119, 119, 119, 0.15)',
+    borderTopColor: themeColors.outline + '26',
   },
   catalogCard: {
     padding: SPACING.lg,
@@ -198,28 +244,28 @@ const styles = StyleSheet.create({
   },
   borderRight: {
     borderRightWidth: 1,
-    borderRightColor: 'rgba(119, 119, 119, 0.15)',
+    borderRightColor: themeColors.outline + '26',
   },
   borderBottom: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(119, 119, 119, 0.15)',
+    borderBottomColor: themeColors.outline + '26',
   },
   dataLabel: {
     fontFamily: FONTS.label,
     fontSize: 9,
     letterSpacing: 1.5,
-    color: COLORS.outline,
+    color: themeColors.outline,
     marginBottom: SPACING.xs,
   },
   dataValue: {
     fontSize: 36,
     fontFamily: FONTS.labelSm,
-    color: COLORS.primary,
+    color: themeColors.primary,
   },
   dataValueMd: {
     fontSize: 24,
     fontFamily: FONTS.labelSm,
-    color: COLORS.primary,
+    color: themeColors.primary,
   },
   catalogHeadline: {
     fontFamily: FONTS.headline,
@@ -230,12 +276,11 @@ const styles = StyleSheet.create({
   catalogHeadlineSm: {
     fontFamily: FONTS.headline,
     fontSize: 18,
-    color: COLORS.primary,
+    color: themeColors.primary,
   },
   catalogDesc: {
     fontFamily: FONTS.body,
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 20,
     marginBottom: SPACING.lg,
   },
@@ -243,7 +288,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   starkBtn: {
-    backgroundColor: '#fff',
+    backgroundColor: themeColors.surface,
     paddingHorizontal: 16,
     paddingVertical: 8,
     flexDirection: 'row',
@@ -251,7 +296,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   starkBtnText: {
-    color: COLORS.primary,
+    color: themeColors.primary,
     fontFamily: FONTS.labelSm,
     fontSize: 12,
   },
@@ -263,40 +308,11 @@ const styles = StyleSheet.create({
   },
   technicalBarBg: {
     height: 4,
-    backgroundColor: 'rgba(119, 119, 119, 0.1)',
-  },
-  technicalBarFill: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
+    backgroundColor: themeColors.outline + '1A',
   },
   habitList: {
     marginTop: SPACING.md,
     gap: 12,
-  },
-  habitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: COLORS.primary,
-  },
-  habitText: {
-    fontFamily: FONTS.label,
-    fontSize: 13,
-    color: COLORS.primary,
-  },
-  habitTextDone: {
-    color: COLORS.outline,
-    textDecorationLine: 'line-through',
   },
   sectionHeader: {
     paddingHorizontal: SPACING.lg,
@@ -306,27 +322,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: FONTS.labelSm,
     fontSize: 11,
-    color: COLORS.outline,
+    color: themeColors.outline,
     letterSpacing: 2,
   },
   managementGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: SPACING.lg / 2,
-  },
-  toolCard: {
-    width: '33.33%',
-    padding: SPACING.md,
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 0.5,
-    borderColor: 'rgba(119, 119, 119, 0.1)',
-  },
-  toolLabel: {
-    fontFamily: FONTS.label,
-    fontSize: 8,
-    color: COLORS.primary,
-    textAlign: 'center',
-    letterSpacing: 0.5,
   },
 });

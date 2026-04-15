@@ -1,21 +1,21 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, Calendar, Sparkles, Activity, Library } from 'lucide-react-native';
+import { LayoutDashboard, Calendar, Sparkles, Activity, Library, Timer } from 'lucide-react-native';
 import { COLORS, FONTS } from '@/src/constants/Theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/src/hooks/useTheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.outline,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.outline,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: COLORS.background,
-          borderTopColor: 'rgba(119, 119, 119, 0.15)', // Ghost Border
+          backgroundColor: colors.background,
+          borderTopColor: colors.outline + '26',
           borderTopWidth: 1,
           height: 64,
           paddingBottom: 12,
@@ -36,6 +36,13 @@ export default function TabLayout() {
         options={{
           title: 'DASHBOARD',
           tabBarIcon: ({ color }) => <LayoutDashboard size={20} color={color} strokeWidth={1.5} />,
+        }}
+      />
+      <Tabs.Screen
+        name="sprint"
+        options={{
+          title: 'SPRINT',
+          tabBarIcon: ({ color }) => <Timer size={20} color={color} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen

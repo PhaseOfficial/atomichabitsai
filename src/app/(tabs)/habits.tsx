@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { Settings, Sparkles, CheckCircle2, PlusCircle, CheckCircle, CheckCheck, TrendingUp, AlertTriangle } from 'lucide-react-native';
-import { COLORS, SPACING, ROUNDNESS, FONTS } from '../../src/constants/Theme';
-import { useData } from '../../src/hooks/useData';
-import { performMutation } from '../../src/lib/sync';
+import { COLORS, SPACING, ROUNDNESS, FONTS } from '@/src/constants/Theme';
+import { useData } from '@/src/hooks/useData';
+import { performMutation } from '@/src/lib/sync';
+import { useTheme } from '@/src/hooks/useTheme';
 
 const { width } = Dimensions.get('window');
 
@@ -15,6 +16,9 @@ interface Habit {
 }
 
 export default function HabitsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { data: habits, loading, error, refresh } = useData<Habit>('SELECT * FROM habits WHERE is_active = 1');
   const [isAddingHabit, setIsAddingHabit] = useState(false);
 
@@ -51,7 +55,7 @@ export default function HabitsScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -73,12 +77,20 @@ export default function HabitsScreen() {
       <View style={styles.header}>
         <View style={styles.profileSection}>
           <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarInitials}>RB</Text>
+            <Image 
+              source={require('@/assets/images/icon.png')} 
+              style={styles.avatarLogo} 
+              resizeMode="contain"
+            />
           </View>
-          <Text style={styles.logoText}>RCS BATSIRAI</Text>
+          <Image 
+            source={require('@/assets/images/Artboard 1 logo.png')} 
+            style={[styles.logoImage, { tintColor: colors.primary }]} 
+            resizeMode="contain" 
+          />
         </View>
         <TouchableOpacity style={styles.iconButton}>
-          <Settings size={20} color={COLORS.primary} strokeWidth={1.5} />
+          <Settings size={20} color={colors.primary} strokeWidth={1.5} />
         </TouchableOpacity>
       </View>
 
@@ -90,11 +102,11 @@ export default function HabitsScreen() {
         
         <View style={styles.focusCard}>
           <View style={styles.focusIconContainer}>
-            <Sparkles size={20} color="#fff" />
+            <Sparkles size={20} color={colors.onPrimary} />
           </View>
           <View>
-            <Text style={styles.focusLabel}>CURRENT_IDENTITY_PROTOCOL</Text>
-            <Text style={styles.focusValue}>The Disciplined Reader</Text>
+            <Text style={[styles.focusLabel, { color: colors.onPrimary + '99' }]}>CURRENT_IDENTITY_PROTOCOL</Text>
+            <Text style={[styles.focusValue, { color: colors.onPrimary }]}>The Disciplined Reader</Text>
           </View>
         </View>
       </View>
@@ -105,7 +117,7 @@ export default function HabitsScreen() {
           <View style={styles.badge}>
             <Text style={styles.badgeText}>CORE_IDENTITY</Text>
           </View>
-          <Text style={styles.identityQuote}>"I prioritize deep knowledge over superficial distraction."</Text>
+          <Text style={styles.identityQuote}>{"\""}I prioritize deep knowledge over superficial distraction.{"\""}</Text>
           <View style={styles.identityFooter}>
             <Text style={styles.identityFooterText}>STREAK_STABILITY: 12_DAYS</Text>
           </View>
@@ -114,7 +126,7 @@ export default function HabitsScreen() {
         <View style={styles.secondaryIdentityCard}>
           <View>
             <Text style={styles.cardTitle}>PHYSICAL_RESTORATION</Text>
-            <Text style={styles.cardQuote}>"I treat my body with technical precision."</Text>
+            <Text style={styles.cardQuote}>{"\""}I treat my body with technical precision.{"\""}</Text>
           </View>
           <View style={styles.cardFooter}>
             <View style={styles.technicalRhythm}>
@@ -130,16 +142,16 @@ export default function HabitsScreen() {
       </View>
 
       {/* Burnout Alert Section - Archival Red */}
-      <View style={styles.alertCard}>
-        <View style={styles.alertIconContainer}>
-          <AlertTriangle size={20} color="#fff" />
+      <View style={[styles.alertCard, { backgroundColor: colors.primary }]}>
+        <View style={[styles.alertIconContainer, { borderColor: colors.onPrimary + '4D' }]}>
+          <AlertTriangle size={20} color={colors.onPrimary} />
         </View>
         <View style={styles.alertContent}>
-          <Text style={styles.alertTitle}>ALERT / BURNOUT_DETECTION</Text>
-          <Text style={styles.alertDescription}>Protocol deviation detected. 4 missed cycles in 24h window.</Text>
+          <Text style={[styles.alertTitle, { color: colors.onPrimary }]}>ALERT / BURNOUT_DETECTION</Text>
+          <Text style={[styles.alertDescription, { color: colors.onPrimary + 'CC' }]}>Protocol deviation detected. 4 missed cycles in 24h window.</Text>
         </View>
-        <TouchableOpacity style={styles.redStarkBtn}>
-          <Text style={styles.redStarkBtnText}>INITIATE_RECOVERY</Text>
+        <TouchableOpacity style={[styles.redStarkBtn, { backgroundColor: colors.onPrimary }]}>
+          <Text style={[styles.redStarkBtnText, { color: colors.primary }]}>INITIATE_RECOVERY</Text>
         </TouchableOpacity>
       </View>
 
@@ -148,7 +160,7 @@ export default function HabitsScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Habit Inventory</Text>
           <TouchableOpacity style={styles.addButton} onPress={handleAddHabit}>
-            <PlusCircle size={16} color={COLORS.primary} />
+            <PlusCircle size={16} color={colors.primary} />
             <Text style={styles.addButtonText}>ADD_ENTRY</Text>
           </TouchableOpacity>
         </View>
@@ -156,7 +168,7 @@ export default function HabitsScreen() {
         <View style={styles.habitList}>
           {habits.map((habit) => (
             <View key={habit.id} style={styles.habitItem}>
-              <TouchableOpacity style={[styles.habitCheck, habit.is_active === 0 && styles.habitCheckDone]} onPress={() => handleToggleHabit(habit.id)}>
+              <TouchableOpacity style={[styles.habitCheck, habit.is_active === 0 && { backgroundColor: colors.primary }]} onPress={() => handleToggleHabit(habit.id)}>
                 <View style={styles.innerCheck} />
               </TouchableOpacity>
               <View style={styles.habitContent}>
@@ -194,7 +206,7 @@ export default function HabitsScreen() {
             { day: 'S', h: '5%' },
           ].map((item, index) => (
             <View key={index} style={styles.chartCol}>
-              <View style={[styles.chartBar, { height: item.h, backgroundColor: item.active ? COLORS.primary : 'rgba(0,0,0,0.1)' }]} />
+              <View style={[styles.chartBar, { height: item.h, backgroundColor: item.active ? colors.primary : colors.outline + '1A' }]} />
               <Text style={[styles.chartDay, item.active && styles.chartDayActive]}>{item.day}</Text>
             </View>
           ))}
@@ -219,10 +231,10 @@ export default function HabitsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   contentContainer: {
     paddingBottom: 100,
@@ -233,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(119, 119, 119, 0.15)',
+    borderBottomColor: colors.outline + '26',
   },
   profileSection: {
     flexDirection: 'row',
@@ -243,52 +255,49 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     width: 32,
     height: 32,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitials: {
-    color: '#fff',
-    fontFamily: FONTS.label,
-    fontSize: 12,
+  avatarLogo: {
+    width: 24,
+    height: 24,
   },
-  logoText: {
-    fontSize: 14,
-    fontFamily: FONTS.labelSm,
-    color: COLORS.primary,
-    letterSpacing: 1,
+  logoImage: {
+    height: 32,
+    width: 120,
   },
   iconButton: {
     padding: 4,
   },
   identityHeader: {
     padding: SPACING.lg,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   label: {
     fontFamily: FONTS.label,
     fontSize: 9,
-    color: COLORS.outline,
+    color: colors.outline,
     letterSpacing: 2,
     marginBottom: SPACING.xs,
   },
   headline: {
     fontFamily: FONTS.headline,
     fontSize: 36,
-    color: COLORS.primary,
+    color: colors.primary,
     marginBottom: SPACING.xs,
   },
   subheadline: {
     fontFamily: FONTS.body,
     fontSize: 14,
-    color: COLORS.outline,
+    color: colors.outline,
     lineHeight: 20,
     marginBottom: SPACING.lg,
   },
   focusCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     padding: SPACING.md,
     gap: SPACING.md,
   },
@@ -303,43 +312,41 @@ const styles = StyleSheet.create({
   focusLabel: {
     fontFamily: FONTS.label,
     fontSize: 8,
-    color: 'rgba(255,255,255,0.6)',
     letterSpacing: 1,
   },
   focusValue: {
     fontFamily: FONTS.headline,
     fontSize: 16,
-    color: '#fff',
   },
   bentoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(119, 119, 119, 0.15)',
+    borderTopColor: colors.outline + '26',
   },
   primaryIdentityCard: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     padding: SPACING.lg,
     width: '100%',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: colors.onPrimary + '1A',
   },
   badge: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: colors.onPrimary + '4D',
     paddingHorizontal: 8,
     paddingVertical: 2,
     alignSelf: 'flex-start',
     marginBottom: SPACING.md,
   },
   badgeText: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontSize: 8,
     fontFamily: FONTS.label,
     letterSpacing: 1.5,
   },
   identityQuote: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontSize: 28,
     fontFamily: FONTS.headline,
     lineHeight: 34,
@@ -348,29 +355,29 @@ const styles = StyleSheet.create({
     marginTop: SPACING.lg,
   },
   identityFooterText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: colors.onPrimary + '80',
     fontSize: 9,
     fontFamily: FONTS.label,
     letterSpacing: 1,
   },
   secondaryIdentityCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: SPACING.lg,
     width: '100%',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(119, 119, 119, 0.15)',
+    borderBottomColor: colors.outline + '26',
   },
   cardTitle: {
     fontFamily: FONTS.labelSm,
     fontSize: 10,
     letterSpacing: 1.5,
-    color: COLORS.outline,
+    color: colors.outline,
     marginBottom: SPACING.xs,
   },
   cardQuote: {
     fontFamily: FONTS.headline,
     fontSize: 20,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -386,20 +393,19 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderColor: colors.outline + '1A',
   },
   rhythmBitActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   activeStatus: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontFamily: FONTS.label,
     fontSize: 9,
     letterSpacing: 1,
   },
   alertCard: {
-    backgroundColor: COLORS.tertiary,
     padding: SPACING.lg,
     flexDirection: 'row',
     gap: SPACING.md,
@@ -409,7 +415,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -419,21 +424,17 @@ const styles = StyleSheet.create({
   alertTitle: {
     fontFamily: FONTS.labelSm,
     fontSize: 10,
-    color: '#fff',
     letterSpacing: 1,
   },
   alertDescription: {
     fontFamily: FONTS.body,
     fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
   },
   redStarkBtn: {
-    backgroundColor: '#fff',
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   redStarkBtnText: {
-    color: COLORS.tertiary,
     fontSize: 9,
     fontFamily: FONTS.labelSm,
   },
@@ -449,7 +450,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: FONTS.headline,
     fontSize: 28,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   addButton: {
     flexDirection: 'row',
@@ -457,17 +458,17 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   addButtonText: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontFamily: FONTS.label,
     fontSize: 10,
     letterSpacing: 1,
   },
   habitList: {
     gap: 1,
-    backgroundColor: 'rgba(119, 119, 119, 0.15)',
+    backgroundColor: colors.outline + '26',
   },
   habitItem: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -477,15 +478,12 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
     padding: 3,
   },
   innerCheck: {
     flex: 1,
     backgroundColor: 'transparent',
-  },
-  habitCheckDone: {
-    backgroundColor: COLORS.primary,
   },
   habitContent: {
     flex: 1,
@@ -499,22 +497,22 @@ const styles = StyleSheet.create({
   habitName: {
     fontFamily: FONTS.labelSm,
     fontSize: 14,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   tag: {
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderColor: colors.outline + '1A',
     paddingHorizontal: 4,
   },
   tagText: {
     fontSize: 7,
     fontFamily: FONTS.label,
-    color: COLORS.outline,
+    color: colors.outline,
   },
   habitQuote: {
     fontFamily: FONTS.label,
     fontSize: 9,
-    color: COLORS.outline,
+    color: colors.outline,
     letterSpacing: 0.5,
   },
   streakContainer: {
@@ -523,18 +521,18 @@ const styles = StyleSheet.create({
   streakLabel: {
     fontFamily: FONTS.label,
     fontSize: 7,
-    color: COLORS.outline,
+    color: colors.outline,
     letterSpacing: 1,
   },
   streakValue: {
     fontFamily: FONTS.labelSm,
     fontSize: 18,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   rhythmCard: {
     margin: SPACING.lg,
     borderWidth: 1,
-    borderColor: 'rgba(119, 119, 119, 0.15)',
+    borderColor: colors.outline + '26',
     padding: SPACING.lg,
   },
   chart: {
@@ -556,10 +554,10 @@ const styles = StyleSheet.create({
   chartDay: {
     fontSize: 9,
     fontFamily: FONTS.label,
-    color: COLORS.outline,
+    color: colors.outline,
   },
   chartDayActive: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontFamily: FONTS.labelSm,
   },
   progressSection: {
@@ -574,43 +572,43 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontFamily: FONTS.label,
     letterSpacing: 1,
-    color: COLORS.outline,
+    color: colors.outline,
   },
   progressValue: {
     fontSize: 10,
     fontFamily: FONTS.labelSm,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   technicalBarBg: {
     height: 4,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: colors.outline + '0D',
   },
   technicalBarFill: {
     height: '100%',
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   rhythmFooter: {
     marginTop: SPACING.lg,
     fontSize: 10,
     fontFamily: FONTS.body,
-    color: COLORS.outline,
+    color: colors.outline,
     fontStyle: 'italic',
     lineHeight: 16,
     paddingTop: SPACING.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    borderTopColor: colors.outline + '0D',
   },
   ghostFullBtn: {
     marginTop: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
     padding: 10,
     alignItems: 'center',
   },
   ghostFullBtnText: {
     fontFamily: FONTS.labelSm,
     fontSize: 10,
-    color: COLORS.primary,
+    color: colors.primary,
     letterSpacing: 1,
   },
   center: {
@@ -618,25 +616,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    color: COLORS.tertiary,
+    color: colors.error,
     fontFamily: FONTS.label,
     marginBottom: SPACING.md,
   },
   starkBtn: {
     padding: 12,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   starkBtnText: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontFamily: FONTS.labelSm,
   },
   emptyText: {
     textAlign: 'center',
     fontFamily: FONTS.label,
     fontSize: 11,
-    color: COLORS.outline,
+    color: colors.outline,
     marginTop: SPACING.xl,
     padding: SPACING.xl,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
 });

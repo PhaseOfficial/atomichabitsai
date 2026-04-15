@@ -26,7 +26,13 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "origin": "https://atomichabits.ai/",
+          "root": "src/app"
+        }
+      ],
       [
         "expo-splash-screen",
         {

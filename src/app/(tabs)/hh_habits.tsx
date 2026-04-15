@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
-import { Settings, Sparkles, CheckCircle2, PlusCircle, CheckCircle, CheckCheck, TrendingUp, AlertTriangle } from 'lucide-react-native';
-import { COLORS, SPACING, ROUNDNESS, FONTS } from '@/src/constants/Theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Settings, Sparkles, PlusCircle, AlertTriangle } from 'lucide-react-native';
+import { COLORS, SPACING, FONTS } from '@/src/constants/Theme';
 import { useData } from '@/src/hooks/useData';
 import { performMutation } from '@/src/lib/sync';
 import { useTheme } from '@/src/hooks/useTheme';
-
-const { width } = Dimensions.get('window');
 
 interface Habit {
   id: string;
@@ -20,7 +19,6 @@ export default function HabitsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { data: habits, loading, error, refresh } = useData<Habit>('SELECT * FROM habits WHERE is_active = 1');
-  const [isAddingHabit, setIsAddingHabit] = useState(false);
 
   const handleToggleHabit = async (habitId: string) => {
     try {
@@ -60,174 +58,169 @@ export default function HabitsScreen() {
     );
   }
 
-  if (error) {
-    return (
-      <View style={[styles.container, styles.center]}>
-        <Text style={styles.errorText}>DATABASE_ERROR: {error.message}</Text>
-        <TouchableOpacity onPress={refresh} style={styles.starkBtn}>
-          <Text style={styles.starkBtnText}>RETRY_SYNC</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-      {/* Top Navigation Bar */}
-      <View style={styles.header}>
-        <View style={styles.profileSection}>
-          <View style={styles.avatarPlaceholder}>
-            <Image 
-              source={require('@/assets/images/icon.png')} 
-              style={styles.avatarLogo} 
-              resizeMode="contain"
-            />
-          </View>
-          <Image 
-            source={require('@/assets/images/Artboard 1 logo.png')} 
-            style={[styles.logoImage, { tintColor: colors.primary }]} 
-            resizeMode="contain" 
-          />
-        </View>
-        <TouchableOpacity style={styles.iconButton}>
-          <Settings size={20} color={colors.primary} strokeWidth={1.5} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Identity Header */}
-      <View style={styles.identityHeader}>
-        <Text style={styles.label}>ARCHIVAL_FOUNDATION</Text>
-        <Text style={styles.headline}>Identity Construction</Text>
-        <Text style={styles.subheadline}>Systemic growth through identity-based reinforcement protocols.</Text>
-        
-        <View style={styles.focusCard}>
-          <View style={styles.focusIconContainer}>
-            <Sparkles size={20} color={colors.onPrimary} />
-          </View>
-          <View>
-            <Text style={[styles.focusLabel, { color: colors.onPrimary + '99' }]}>CURRENT_IDENTITY_PROTOCOL</Text>
-            <Text style={[styles.focusValue, { color: colors.onPrimary }]}>The Disciplined Reader</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Identity Cards (Archive Brut Style) */}
-      <View style={styles.bentoGrid}>
-        <View style={styles.primaryIdentityCard}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>CORE_IDENTITY</Text>
-          </View>
-          <Text style={styles.identityQuote}>{"\""}I prioritize deep knowledge over superficial distraction.{"\""}</Text>
-          <View style={styles.identityFooter}>
-            <Text style={styles.identityFooterText}>STREAK_STABILITY: 12_DAYS</Text>
-          </View>
-        </View>
-
-        <View style={styles.secondaryIdentityCard}>
-          <View>
-            <Text style={styles.cardTitle}>PHYSICAL_RESTORATION</Text>
-            <Text style={styles.cardQuote}>{"\""}I treat my body with technical precision.{"\""}</Text>
-          </View>
-          <View style={styles.cardFooter}>
-            <View style={styles.technicalRhythm}>
-              <View style={[styles.rhythmBit, styles.rhythmBitActive]} />
-              <View style={[styles.rhythmBit, styles.rhythmBitActive]} />
-              <View style={[styles.rhythmBit, styles.rhythmBitActive]} />
-              <View style={styles.rhythmBit} />
-              <View style={styles.rhythmBit} />
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.contentContainer} 
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {/* Top Navigation Bar */}
+          <View style={styles.header}>
+            <View style={styles.profileSection}>
+              <View style={styles.avatarPlaceholder}>
+                <Image 
+                  source={require('@/assets/images/icon.png')} 
+                  style={styles.avatarLogo} 
+                  resizeMode="contain"
+                />
+              </View>
+              <Image 
+                source={require('@/assets/images/Artboard 1 logo.png')} 
+                style={[styles.logoImage, { tintColor: colors.primary }]} 
+                resizeMode="contain" 
+              />
             </View>
-            <Text style={styles.activeStatus}>STATUS_ACTIVE</Text>
+            <TouchableOpacity style={styles.iconButton}>
+              <Settings size={20} color={colors.primary} strokeWidth={1.5} />
+            </TouchableOpacity>
           </View>
-        </View>
-      </View>
 
-      {/* Burnout Alert Section - Archival Red */}
-      <View style={[styles.alertCard, { backgroundColor: colors.primary }]}>
-        <View style={[styles.alertIconContainer, { borderColor: colors.onPrimary + '4D' }]}>
-          <AlertTriangle size={20} color={colors.onPrimary} />
-        </View>
-        <View style={styles.alertContent}>
-          <Text style={[styles.alertTitle, { color: colors.onPrimary }]}>ALERT / BURNOUT_DETECTION</Text>
-          <Text style={[styles.alertDescription, { color: colors.onPrimary + 'CC' }]}>Protocol deviation detected. 4 missed cycles in 24h window.</Text>
-        </View>
-        <TouchableOpacity style={[styles.redStarkBtn, { backgroundColor: colors.onPrimary }]}>
-          <Text style={[styles.redStarkBtnText, { color: colors.primary }]}>INITIATE_RECOVERY</Text>
-        </TouchableOpacity>
-      </View>
+          {/* Identity Header */}
+          <View style={styles.identityHeader}>
+            <Text style={styles.label}>ARCHIVAL_FOUNDATION</Text>
+            <Text style={styles.headline}>Identity Construction</Text>
+            <Text style={styles.subheadline}>Systemic growth through identity-based reinforcement protocols.</Text>
+            
+            <View style={styles.focusCard}>
+              <View style={styles.focusIconContainer}>
+                <Sparkles size={20} color={colors.onPrimary} />
+              </View>
+              <View>
+                <Text style={[styles.focusLabel, { color: colors.onPrimary + '99' }]}>CURRENT_IDENTITY_PROTOCOL</Text>
+                <Text style={[styles.focusValue, { color: colors.onPrimary }]}>The Disciplined Reader</Text>
+              </View>
+            </View>
+          </View>
 
-      {/* Keystone Habits */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Habit Inventory</Text>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddHabit}>
-            <PlusCircle size={16} color={colors.primary} />
-            <Text style={styles.addButtonText}>ADD_ENTRY</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Identity Cards (Archive Brut Style) */}
+          <View style={styles.bentoGrid}>
+            <View style={styles.primaryIdentityCard}>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>CORE_IDENTITY</Text>
+              </View>
+              <Text style={styles.identityQuote}>{"\""}I prioritize deep knowledge over superficial distraction.{"\""}</Text>
+              <View style={styles.identityFooter}>
+                <Text style={styles.identityFooterText}>STREAK_STABILITY: 12_DAYS</Text>
+              </View>
+            </View>
 
-        <View style={styles.habitList}>
-          {habits.map((habit) => (
-            <View key={habit.id} style={styles.habitItem}>
-              <TouchableOpacity style={[styles.habitCheck, habit.is_active === 0 && { backgroundColor: colors.primary }]} onPress={() => handleToggleHabit(habit.id)}>
-                <View style={styles.innerCheck} />
+            <View style={styles.secondaryIdentityCard}>
+              <View>
+                <Text style={styles.cardTitle}>PHYSICAL_RESTORATION</Text>
+                <Text style={styles.cardQuote}>{"\""}I treat my body with technical precision.{"\""}</Text>
+              </View>
+              <View style={styles.cardFooter}>
+                <View style={styles.technicalRhythm}>
+                  <View style={[styles.rhythmBit, styles.rhythmBitActive]} />
+                  <View style={[styles.rhythmBit, styles.rhythmBitActive]} />
+                  <View style={[styles.rhythmBit, styles.rhythmBitActive]} />
+                  <View style={styles.rhythmBit} />
+                  <View style={styles.rhythmBit} />
+                </View>
+                <Text style={styles.activeStatus}>STATUS_ACTIVE</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Burnout Alert Section - Archival Red */}
+          <View style={[styles.alertCard, { backgroundColor: colors.primary }]}>
+            <View style={[styles.alertIconContainer, { borderColor: colors.onPrimary + '4D' }]}>
+              <AlertTriangle size={20} color={colors.onPrimary} />
+            </View>
+            <View style={styles.alertContent}>
+              <Text style={[styles.alertTitle, { color: colors.onPrimary }]}>ALERT / BURNOUT_DETECTION</Text>
+              <Text style={[styles.alertDescription, { color: colors.onPrimary + 'CC' }]}>Protocol deviation detected. 4 missed cycles in 24h window.</Text>
+            </View>
+          </View>
+
+          {/* Keystone Habits */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Habit Inventory</Text>
+              <TouchableOpacity style={styles.addButton} onPress={handleAddHabit}>
+                <PlusCircle size={16} color={colors.primary} />
+                <Text style={styles.addButtonText}>ADD_ENTRY</Text>
               </TouchableOpacity>
-              <View style={styles.habitContent}>
-                <View style={styles.habitTitleRow}>
-                  <Text style={styles.habitName}>{habit.title.toUpperCase()}</Text>
-                  <View style={styles.tag}>
-                    <Text style={styles.tagText}>{habit.frequency.toUpperCase()}</Text>
+            </View>
+
+            <View style={styles.habitList}>
+              {habits.map((habit) => (
+                <View key={habit.id} style={styles.habitItem}>
+                  <TouchableOpacity 
+                    style={[styles.habitCheck, habit.is_active === 0 && { backgroundColor: colors.primary }]} 
+                    onPress={() => handleToggleHabit(habit.id)}
+                  >
+                    <View style={styles.innerCheck} />
+                  </TouchableOpacity>
+                  <View style={styles.habitContent}>
+                    <View style={styles.habitTitleRow}>
+                      <Text style={styles.habitName}>{habit.title.toUpperCase()}</Text>
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>{habit.frequency.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.habitQuote}>PROTOCOL: CONSISTENCY_REINFORCEMENT</Text>
+                  </View>
+                  <View style={styles.streakContainer}>
+                    <Text style={styles.streakLabel}>STREAK</Text>
+                    <Text style={styles.streakValue}>--</Text>
                   </View>
                 </View>
-                <Text style={styles.habitQuote}>PROTOCOL: CONSISTENCY_REINFORCEMENT</Text>
+              ))}
+              {habits.length === 0 && (
+                <Text style={styles.emptyText}>EMPTY_REGISTRY: Add habits to begin.</Text>
+              )}
+            </View>
+          </View>
+
+          {/* Weekly Rhythm */}
+          <View style={styles.rhythmCard}>
+            <Text style={styles.cardTitle}>ARCHIVAL_RHYTHM</Text>
+            <View style={styles.chart}>
+              {[
+                { day: 'M', h: '60%' },
+                { day: 'T', h: '85%' },
+                { day: 'W', h: '100%', active: true },
+                { day: 'T', h: '20%' },
+                { day: 'F', h: '15%' },
+                { day: 'S', h: '10%' },
+                { day: 'S', h: '5%' },
+              ].map((item, index) => (
+                <View key={index} style={styles.chartCol}>
+                  <View style={[styles.chartBar, { height: item.h, backgroundColor: item.active ? colors.primary : colors.outline + '1A' }]} />
+                  <Text style={[styles.chartDay, item.active && styles.chartDayActive]}>{item.day}</Text>
+                </View>
+              ))}
+            </View>
+            
+            <View style={styles.progressSection}>
+              <View style={styles.progressInfo}>
+                <Text style={styles.progressLabel}>COMPLETION_RATE</Text>
+                <Text style={styles.progressValue}>78%</Text>
               </View>
-              <View style={styles.streakContainer}>
-                <Text style={styles.streakLabel}>STREAK</Text>
-                <Text style={styles.streakValue}>--</Text>
+              <View style={styles.technicalBarBg}>
+                <View style={[styles.technicalBarFill, { width: '78%' }]} />
               </View>
             </View>
-          ))}
-          {habits.length === 0 && (
-            <Text style={styles.emptyText}>EMPTY_REGISTRY: Add habits to begin.</Text>
-          )}
-        </View>
-      </View>
 
-      {/* Weekly Rhythm */}
-      <View style={styles.rhythmCard}>
-        <Text style={styles.cardTitle}>ARCHIVAL_RHYTHM</Text>
-        <View style={styles.chart}>
-          {[
-            { day: 'M', h: '60%' },
-            { day: 'T', h: '85%' },
-            { day: 'W', h: '100%', active: true },
-            { day: 'T', h: '20%' },
-            { day: 'F', h: '15%' },
-            { day: 'S', h: '10%' },
-            { day: 'S', h: '5%' },
-          ].map((item, index) => (
-            <View key={index} style={styles.chartCol}>
-              <View style={[styles.chartBar, { height: item.h, backgroundColor: item.active ? colors.primary : colors.outline + '1A' }]} />
-              <Text style={[styles.chartDay, item.active && styles.chartDayActive]}>{item.day}</Text>
-            </View>
-          ))}
-        </View>
-        
-        <View style={styles.progressSection}>
-          <View style={styles.progressInfo}>
-            <Text style={styles.progressLabel}>COMPLETION_RATE</Text>
-            <Text style={styles.progressValue}>78%</Text>
+            <Text style={styles.rhythmFooter}>NOTE: Automating behaviors reduces cognitive overhead. T-14 days to habit crystallization.</Text>
           </View>
-          <View style={styles.technicalBarBg}>
-            <View style={[styles.technicalBarFill, { width: '78%' }]} />
-          </View>
-        </View>
-
-        <Text style={styles.rhythmFooter}>NOTE: Automating behaviors reduces cognitive overhead. T-14 days to habit crystallization.</Text>
-        <TouchableOpacity style={styles.ghostFullBtn}>
-          <Text style={styles.ghostFullBtnText}>ACCESS_DEEP_ANALYTICS</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -236,8 +229,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
   contentContainer: {
-    paddingBottom: 100,
+    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
@@ -246,6 +245,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: SPACING.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.outline + '26',
+    backgroundColor: colors.background,
   },
   profileSection: {
     flexDirection: 'row',
@@ -273,6 +273,8 @@ const createStyles = (colors: any) => StyleSheet.create({
   identityHeader: {
     padding: SPACING.lg,
     backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.outline + '26',
   },
   label: {
     fontFamily: FONTS.label,
@@ -321,8 +323,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   bentoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    borderTopWidth: 1,
-    borderTopColor: colors.outline + '26',
   },
   primaryIdentityCard: {
     backgroundColor: colors.primary,
@@ -410,6 +410,8 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     gap: SPACING.md,
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.outline + '26',
   },
   alertIconContainer: {
     width: 40,
@@ -430,16 +432,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 12,
   },
-  redStarkBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  redStarkBtnText: {
-    fontSize: 9,
-    fontFamily: FONTS.labelSm,
-  },
   section: {
     padding: SPACING.lg,
+    backgroundColor: colors.background,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -466,6 +461,8 @@ const createStyles = (colors: any) => StyleSheet.create({
   habitList: {
     gap: 1,
     backgroundColor: colors.outline + '26',
+    borderWidth: 1,
+    borderColor: colors.outline + '26',
   },
   habitItem: {
     backgroundColor: colors.surface,
@@ -534,6 +531,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.outline + '26',
     padding: SPACING.lg,
+    backgroundColor: colors.surface,
   },
   chart: {
     flexDirection: 'row',
@@ -598,43 +596,8 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.outline + '0D',
   },
-  ghostFullBtn: {
-    marginTop: SPACING.lg,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    padding: 10,
-    alignItems: 'center',
-  },
-  ghostFullBtnText: {
-    fontFamily: FONTS.labelSm,
-    fontSize: 10,
-    color: colors.primary,
-    letterSpacing: 1,
-  },
   center: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  errorText: {
-    color: colors.error,
-    fontFamily: FONTS.label,
-    marginBottom: SPACING.md,
-  },
-  starkBtn: {
-    padding: 12,
-    backgroundColor: colors.primary,
-  },
-  starkBtnText: {
-    color: colors.onPrimary,
-    fontFamily: FONTS.labelSm,
-  },
-  emptyText: {
-    textAlign: 'center',
-    fontFamily: FONTS.label,
-    fontSize: 11,
-    color: colors.outline,
-    marginTop: SPACING.xl,
-    padding: SPACING.xl,
-    backgroundColor: colors.surface,
   },
 });

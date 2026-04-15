@@ -1,104 +1,95 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Search, BookOpen, Bookmark, Clock, ArrowRight, Library as LibraryIcon } from 'lucide-react-native';
-import { COLORS, SPACING, ROUNDNESS, FONTS } from '@/src/constants/Theme';
+import { Settings, Search, BookOpen, Bookmark, Clock, ArrowRight } from 'lucide-react-native';
+import { COLORS, SPACING, FONTS } from '@/src/constants/Theme';
 import { useTheme } from '@/src/hooks/useTheme';
-
-const { width } = Dimensions.get('window');
 
 export default function LibraryScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.profileSection}>
-            <View style={styles.avatarPlaceholder}>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent} 
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.profileSection}>
+              <View style={styles.avatarPlaceholder}>
+                <Image 
+                  source={require('@/assets/images/icon.png')} 
+                  style={styles.avatarLogo} 
+                  resizeMode="contain"
+                />
+              </View>
               <Image 
-                source={require('@/assets/images/icon.png')} 
-                style={styles.avatarLogo} 
-                resizeMode="contain"
+                source={require('@/assets/images/Artboard 1 logo.png')} 
+                style={[styles.logoImage, { tintColor: colors.primary }]} 
+                resizeMode="contain" 
               />
             </View>
-            <Image 
-              source={require('@/assets/images/Artboard 1 logo.png')} 
-              style={[styles.logoImage, { tintColor: colors.primary }]} 
-              resizeMode="contain" 
-            />
+            <TouchableOpacity style={styles.ghostBtn}>
+              <Settings size={20} color={colors.primary} strokeWidth={1.5} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.ghostBtn}>
-            <Settings size={20} color={colors.primary} strokeWidth={1.5} />
-          </TouchableOpacity>
-        </View>
 
-        {/* Library Intro */}
-        <View style={styles.introSection}>
-          <Text style={styles.labelCaps}>KNOWLEDGE_BASE / INDEX</Text>
-          <Text style={styles.headline}>The Archival Library</Text>
-          <Text style={styles.subheadline}>Synthesized insights from primary sources and technical documentation.</Text>
-          
-          <View style={[styles.searchBar, { borderColor: colors.outline + '26' }]}>
-            <Search size={18} color={colors.outline} />
-            <Text style={styles.searchText}>SEARCH_RESOURCES...</Text>
-          </View>
-        </View>
-
-        {/* Featured Brief */}
-        <View style={[styles.featuredCard, { backgroundColor: colors.primary }]}>
-          <View style={styles.featuredBadge}>
-            <Text style={[styles.featuredBadgeText, { color: colors.onPrimary }]}>CURRENT_READ</Text>
-          </View>
-          <Text style={[styles.featuredTitle, { color: colors.onPrimary }]}>Atomic Habits: Systemic Reinforcement</Text>
-          <Text style={[styles.featuredMeta, { color: colors.onPrimary + 'B3' }]}>James Clear / Applied Psychology</Text>
-          <View style={styles.featuredFooter}>
-            <View style={styles.progressRow}>
-              <Text style={[styles.progressLabel, { color: colors.onPrimary }]}>PROGRESS</Text>
-              <Text style={[styles.progressValue, { color: colors.onPrimary }]}>65%</Text>
-            </View>
-            <View style={[styles.technicalBarBg, { backgroundColor: colors.onPrimary + '33' }]}>
-              <View style={[styles.technicalBarFill, { width: '65%', backgroundColor: colors.onPrimary }]} />
+          {/* Library Intro */}
+          <View style={styles.introSection}>
+            <Text style={styles.labelCaps}>KNOWLEDGE_BASE / INDEX</Text>
+            <Text style={styles.headline}>The Archival Library</Text>
+            <Text style={styles.subheadline}>Synthesized insights from primary sources and technical documentation.</Text>
+            
+            <View style={[styles.searchBar, { borderColor: colors.outline + '26' }]}>
+              <Search size={18} color={colors.outline} />
+              <Text style={styles.searchText}>SEARCH_RESOURCES...</Text>
             </View>
           </View>
-        </View>
 
-        {/* Briefs Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>SYNTHESIZED_BRIEFS</Text>
-          <TouchableOpacity>
-            <Text style={[styles.viewAll, { color: colors.primary }]}>VIEW_ALL</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Featured Brief */}
+          <View style={[styles.featuredCard, { backgroundColor: colors.primary }]}>
+            <View style={styles.featuredBadge}>
+              <Text style={[styles.featuredBadgeText, { color: colors.onPrimary }]}>CURRENT_READ</Text>
+            </View>
+            <Text style={[styles.featuredTitle, { color: colors.onPrimary }]}>Atomic Habits: Systemic Reinforcement</Text>
+            <Text style={[styles.featuredMeta, { color: colors.onPrimary + 'B3' }]}>James Clear / Applied Psychology</Text>
+            <View style={styles.featuredFooter}>
+              <View style={styles.progressRow}>
+                <Text style={[styles.progressLabel, { color: colors.onPrimary }]}>PROGRESS</Text>
+                <Text style={[styles.progressValue, { color: colors.onPrimary }]}>65%</Text>
+              </View>
+              <View style={[styles.technicalBarBg, { backgroundColor: colors.onPrimary + '33' }]}>
+                <View style={[styles.technicalBarFill, { width: '65%', backgroundColor: colors.onPrimary }]} />
+              </View>
+            </View>
+          </View>
 
-        <View style={styles.briefsGrid}>
-          <BriefCard 
-            title="Deep Work" 
-            author="Cal Newport" 
-            tag="FOCUS" 
-            colors={colors}
-          />
-          <BriefCard 
-            title="The Antidote" 
-            author="Oliver Burkeman" 
-            tag="STOICISM" 
-            colors={colors}
-          />
-        </View>
+          {/* Briefs Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>SYNTHESIZED_BRIEFS</Text>
+          </View>
 
-        {/* Resource Categories */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>CATEGORIES</Text>
-        </View>
-        <View style={styles.categoryList}>
-          <CategoryItem icon={<Clock size={18} color={colors.primary} />} label="TIME_MANAGEMENT" count={12} colors={colors} />
-          <CategoryItem icon={<BookOpen size={18} color={colors.primary} />} label="TECHNICAL_LIT" count={8} colors={colors} />
-          <CategoryItem icon={<Bookmark size={18} color={colors.primary} />} label="ARCHIVED_NOTES" count={45} colors={colors} />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          <View style={styles.briefsGrid}>
+            <BriefCard title="Deep Work" author="Cal Newport" tag="FOCUS" colors={colors} />
+            <BriefCard title="The Antidote" author="Oliver Burkeman" tag="STOICISM" colors={colors} />
+          </View>
+
+          {/* Resource Categories */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>CATEGORIES</Text>
+          </View>
+          <View style={styles.categoryList}>
+            <CategoryItem icon={<Clock size={18} color={colors.primary} />} label="TIME_MANAGEMENT" count={12} colors={colors} />
+            <CategoryItem icon={<BookOpen size={18} color={colors.primary} />} label="TECHNICAL_LIT" count={8} colors={colors} />
+            <CategoryItem icon={<Bookmark size={18} color={colors.primary} />} label="ARCHIVED_NOTES" count={45} colors={colors} />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -110,7 +101,7 @@ function BriefCard({ title, author, tag, colors }: { title: string; author: stri
       </View>
       <Text style={[stylesBrief.briefTitle, { color: colors.primary }]}>{title}</Text>
       <Text style={stylesBrief.briefMeta}>{author}</Text>
-      <ArrowRight size={16} color={colors.primary} style={{ marginTop: 8 }} />
+      <ArrowRight size={16} color={colors.primary} />
     </TouchableOpacity>
   );
 }
@@ -186,8 +177,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  safeArea: {
+    flex: 1,
+  },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
@@ -196,6 +190,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: SPACING.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.outline + '26',
+    backgroundColor: colors.background,
   },
   profileSection: {
     flexDirection: 'row',
@@ -223,6 +218,8 @@ const createStyles = (colors: any) => StyleSheet.create({
   introSection: {
     padding: SPACING.lg,
     backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.outline + '26',
   },
   labelCaps: {
     fontFamily: FONTS.label,
@@ -307,9 +304,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: '100%',
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.xl,
     paddingBottom: SPACING.md,
@@ -319,11 +313,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 11,
     color: colors.outline,
     letterSpacing: 2,
-  },
-  viewAll: {
-    fontFamily: FONTS.labelSm,
-    fontSize: 9,
-    letterSpacing: 1,
   },
   briefsGrid: {
     paddingHorizontal: SPACING.lg,

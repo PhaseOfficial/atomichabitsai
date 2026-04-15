@@ -53,14 +53,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="ai"
+        name="aa_ai"
         options={{
           title: 'BATSIR AI',
           tabBarIcon: ({ color }) => <Sparkles size={20} color={color} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen
-        name="habits"
+        name="hh_habits"
         options={{
           title: 'HABITS',
           tabBarIcon: ({ color }) => <Activity size={20} color={color} strokeWidth={1.5} />,

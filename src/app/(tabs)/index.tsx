@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, useColorScheme } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Play, CheckCircle2, Circle, Plus, Activity, BarChart2, Mail, CreditCard } from 'lucide-react-native';
-import { COLORS, SPACING, ROUNDNESS, FONTS } from '@/src/constants/Theme';
+import { Settings, Play, CheckCircle2, Plus, Activity, BarChart2, Mail, CreditCard } from 'lucide-react-native';
+import { COLORS, SPACING, FONTS } from '@/src/constants/Theme';
 import { useData } from '@/src/hooks/useData';
 
 export default function DashboardScreen() {
@@ -19,103 +19,111 @@ export default function DashboardScreen() {
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.profileSection}>
-            <View style={styles.avatarPlaceholder}>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent} 
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.profileSection}>
+              <View style={styles.avatarPlaceholder}>
+                <Image 
+                  source={require('@/assets/images/icon.png')} 
+                  style={styles.avatarLogo} 
+                  resizeMode="contain"
+                />
+              </View>
               <Image 
-                source={require('@/assets/images/icon.png')} 
-                style={styles.avatarLogo} 
-                resizeMode="contain"
+                source={require('@/assets/images/Artboard 1 logo.png')} 
+                style={[styles.logoImage, { tintColor: themeColors.primary }]} 
+                resizeMode="contain" 
               />
             </View>
-            <Image 
-              source={require('@/assets/images/Artboard 1 logo.png')} 
-              style={[styles.logoImage, { tintColor: themeColors.primary }]} 
-              resizeMode="contain" 
-            />
-          </View>
-          <TouchableOpacity style={styles.ghostBtn}>
-            <Settings size={20} color={themeColors.primary} strokeWidth={1.5} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Greeting */}
-        <View style={styles.greetingContainer}>
-          <Text style={styles.labelCaps}>SYSTEM_STATUS / ACTIVE</Text>
-          <Text style={styles.greetingText}>ALEX_B / Welcome to the Archival Interface.</Text>
-        </View>
-
-        {/* Grid-based Catalog Layout */}
-        <View style={styles.catalogGrid}>
-          {/* Stats Card 1 */}
-          <View style={[styles.catalogCard, styles.borderRight, styles.borderBottom]}>
-            <Text style={styles.dataLabel}>ACTIVE_HABITS</Text>
-            <Text style={styles.dataValue}>{habitsLoading ? '...' : activeHabits}</Text>
-          </View>
-          
-          {/* Stats Card 2 */}
-          <View style={[styles.catalogCard, styles.borderBottom]}>
-            <Text style={styles.dataLabel}>COMPLETED_TODAY</Text>
-            <Text style={styles.dataValue}>{logsLoading ? '...' : completedToday}</Text>
+            <TouchableOpacity style={styles.ghostBtn}>
+              <Settings size={20} color={themeColors.primary} strokeWidth={1.5} />
+            </TouchableOpacity>
           </View>
 
-          {/* Focus Card - Span 2 columns */}
-          <View style={[styles.catalogCard, styles.spanFull, styles.borderBottom, { backgroundColor: themeColors.primary }]}>
-            <Text style={[styles.dataLabel, { color: themeColors.onPrimary }]}>CURRENT_FOCUS</Text>
-            <Text style={[styles.catalogHeadline, { color: themeColors.onPrimary }]}>Deep Work: Interface Refinement</Text>
-            <Text style={[styles.catalogDesc, { color: themeColors.onPrimary + 'B3' }]}>
-              Typography hierarchy and tonal layering transitions for mobile navigation.
-            </Text>
-            <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.starkBtn}>
-                <Text style={styles.starkBtnText}>RESUME_SESSION</Text>
-                <Play size={14} color={themeColors.primary} fill={themeColors.primary} />
-              </TouchableOpacity>
+          {/* Greeting */}
+          <View style={styles.greetingContainer}>
+            <Text style={styles.labelCaps}>SYSTEM_STATUS / ACTIVE</Text>
+            <Text style={styles.greetingText}>ALEX_B / Welcome to the Archival Interface.</Text>
+          </View>
+
+          {/* Grid-based Catalog Layout - Edge to Edge */}
+          <View style={styles.catalogGrid}>
+            {/* Stats Card 1 */}
+            <View style={[styles.catalogCard, styles.borderRight, styles.borderBottom]}>
+              <Text style={styles.dataLabel}>ACTIVE_HABITS</Text>
+              <Text style={styles.dataValue}>{habitsLoading ? '...' : activeHabits}</Text>
             </View>
-          </View>
+            
+            {/* Stats Card 2 */}
+            <View style={[styles.catalogCard, styles.borderBottom]}>
+              <Text style={styles.dataLabel}>COMPLETED_TODAY</Text>
+              <Text style={styles.dataValue}>{logsLoading ? '...' : completedToday}</Text>
+            </View>
 
-          {/* Reading Progress */}
-          <View style={[styles.catalogCard, styles.spanFull, styles.borderBottom]}>
-            <View style={styles.rowBetween}>
-              <View>
-                <Text style={styles.dataLabel}>READING_PROGRESS</Text>
-                <Text style={styles.catalogHeadlineSm}>Building a Second Brain</Text>
+            {/* Focus Card - Span 2 columns */}
+            <View style={[styles.catalogCard, styles.spanFull, styles.borderBottom, { backgroundColor: themeColors.primary }]}>
+              <Text style={[styles.dataLabel, { color: themeColors.onPrimary }]}>CURRENT_FOCUS</Text>
+              <Text style={[styles.catalogHeadline, { color: themeColors.onPrimary }]}>Deep Work: Interface Refinement</Text>
+              <Text style={[styles.catalogDesc, { color: themeColors.onPrimary + 'B3' }]}>
+                Typography hierarchy and tonal layering transitions for mobile navigation.
+              </Text>
+              <View style={styles.actionRow}>
+                <TouchableOpacity style={styles.starkBtn}>
+                  <Text style={styles.starkBtnText}>RESUME_SESSION</Text>
+                  <Play size={14} color={themeColors.primary} fill={themeColors.primary} />
+                </TouchableOpacity>
               </View>
-              <Text style={styles.dataValueMd}>65%</Text>
             </View>
-            <View style={styles.technicalBarBg}>
-              <View style={[styles.technicalBarFill, { width: '65%', backgroundColor: themeColors.primary }]} />
+
+            {/* Reading Progress */}
+            <View style={[styles.catalogCard, styles.spanFull, styles.borderBottom]}>
+              <View style={styles.rowBetween}>
+                <View>
+                  <Text style={styles.dataLabel}>READING_PROGRESS</Text>
+                  <Text style={styles.catalogHeadlineSm}>Building a Second Brain</Text>
+                </View>
+                <Text style={styles.dataValueMd}>65%</Text>
+              </View>
+              <View style={styles.technicalBarBg}>
+                <View style={[styles.technicalBarFill, { width: '65%', backgroundColor: themeColors.primary }]} />
+              </View>
+            </View>
+
+            {/* Keystone Habits */}
+            <View style={[styles.catalogCard, styles.spanFull]}>
+              <Text style={styles.dataLabel}>KEYSTONE_HABITS / {completedToday} OF {activeHabits}</Text>
+              <View style={styles.habitList}>
+                <HabitItem title="Morning Meditation" done={completedToday > 0} themeColors={themeColors} />
+                <HabitItem title="Deep Work Session" done={completedToday > 1} themeColors={themeColors} />
+                <HabitItem title="20min Evening Walk" done={false} themeColors={themeColors} />
+              </View>
             </View>
           </View>
 
-          {/* Keystone Habits */}
-          <View style={[styles.catalogCard, styles.spanFull]}>
-            <Text style={styles.dataLabel}>KEYSTONE_HABITS / {completedToday} OF {activeHabits}</Text>
-            <View style={styles.habitList}>
-              <HabitItem title="Morning Meditation" done={completedToday > 0} themeColors={themeColors} />
-              <HabitItem title="Deep Work Session" done={completedToday > 1} themeColors={themeColors} />
-              <HabitItem title="20min Evening Walk" done={false} themeColors={themeColors} />
+          {/* Management Deck */}
+          <View style={styles.managementContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>MANAGEMENT_DECK</Text>
+            </View>
+            <View style={styles.managementGrid}>
+              <ToolCard icon={<Activity size={18} color={themeColors.primary} />} label="GOOGLE_ADS" themeColors={themeColors} />
+              <ToolCard icon={<BarChart2 size={18} color={themeColors.primary} />} label="FACEBOOK" themeColors={themeColors} />
+              <ToolCard icon={<Activity size={18} color={themeColors.primary} />} label="ANALYTICS" themeColors={themeColors} />
+              <ToolCard icon={<Mail size={18} color={themeColors.primary} />} label="INBOX" themeColors={themeColors} />
+              <ToolCard icon={<CreditCard size={18} color={themeColors.primary} />} label="FINANCE" themeColors={themeColors} />
+              <ToolCard icon={<Plus size={18} color={themeColors.primary} />} label="ADD_TOOL" themeColors={themeColors} />
             </View>
           </View>
-        </View>
-
-        {/* Management Deck */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>MANAGEMENT_DECK</Text>
-        </View>
-        <View style={styles.managementGrid}>
-          <ToolCard icon={<Activity size={18} color={themeColors.primary} />} label="GOOGLE_ADS" themeColors={themeColors} />
-          <ToolCard icon={<BarChart2 size={18} color={themeColors.primary} />} label="FACEBOOK" themeColors={themeColors} />
-          <ToolCard icon={<Activity size={18} color={themeColors.primary} />} label="ANALYTICS" themeColors={themeColors} />
-          <ToolCard icon={<Mail size={18} color={themeColors.primary} />} label="INBOX" themeColors={themeColors} />
-          <ToolCard icon={<CreditCard size={18} color={themeColors.primary} />} label="FINANCE" themeColors={themeColors} />
-          <ToolCard icon={<Plus size={18} color={themeColors.primary} />} label="ADD_TOOL" themeColors={themeColors} />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -179,8 +187,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
+  safeArea: {
+    flex: 1,
+  },
   scrollContent: {
-    paddingBottom: 100,
+    flexGrow: 1,
+    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
@@ -189,6 +201,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     padding: SPACING.lg,
     borderBottomWidth: 1,
     borderBottomColor: themeColors.outline + '26',
+    backgroundColor: themeColors.background,
   },
   profileSection: {
     flexDirection: 'row',
@@ -216,6 +229,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   greetingContainer: {
     padding: SPACING.lg,
     backgroundColor: themeColors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.outline + '26',
   },
   labelCaps: {
     fontFamily: FONTS.label,
@@ -232,8 +247,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   catalogGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    borderTopWidth: 1,
-    borderTopColor: themeColors.outline + '26',
+    backgroundColor: themeColors.background,
   },
   catalogCard: {
     padding: SPACING.lg,
@@ -310,9 +324,17 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     height: 4,
     backgroundColor: themeColors.outline + '1A',
   },
+  technicalBarFill: {
+    height: '100%',
+  },
   habitList: {
     marginTop: SPACING.md,
     gap: 12,
+  },
+  managementContainer: {
+    backgroundColor: themeColors.surface,
+    flex: 1,
+    paddingBottom: 40,
   },
   sectionHeader: {
     paddingHorizontal: SPACING.lg,
@@ -328,6 +350,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   managementGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: SPACING.lg / 2,
+    padding: 0,
+    borderTopWidth: 1,
+    borderTopColor: themeColors.outline + '26',
   },
 });

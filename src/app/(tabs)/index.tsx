@@ -1,22 +1,98 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, useColorScheme } from 'react-native';
+import React, { useMemo, useCallback } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Play, CheckCircle2, Plus, Activity, BarChart2, Mail, CreditCard } from 'lucide-react-native';
-import { COLORS, SPACING, FONTS } from '@/src/constants/Theme';
+import { Settings, Play, CheckCircle2, Activity, BarChart2, Mail, CreditCard, Sparkles, Plus, Globe, Trash2 } from 'lucide-react-native';
+import { SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { useData } from '@/src/hooks/useData';
+import { useTheme } from '@/src/hooks/useTheme';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useAuth } from '@/src/hooks/useAuth';
+import { performMutation } from '@/src/lib/sync';
 
 export default function DashboardScreen() {
-  const { data: habitStats, loading: habitsLoading } = useData<{count: number}>('SELECT COUNT(*) as count FROM habits WHERE is_active = 1');
+  const { colors } = useTheme();
+  const { user } = useAuth();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const router = useRouter();
+
+  const userId = user?.id || 'guest';
   const today = new Date().toISOString().split('T')[0];
-  const { data: logStats, loading: logsLoading } = useData<{count: number}>('SELECT COUNT(DISTINCT habit_id) as count FROM logs WHERE date(logged_at) = ?', [today]);
+
+  const { data: habitStats, loading: habitsLoading } = useData<{count: number}>(
+    'SELECT COUNT(*) as count FROM habits WHERE is_active = 1 AND (user_id = ? OR user_id IS NULL)', 
+    [userId]
+  );
+  
+  const { data: logStats, loading: logsLoading } = useData<{count: number}>(
+    'SELECT COUNT(DISTINCT l.habit_id) as count FROM logs l JOIN habits h ON l.habit_id = h.id WHERE date(l.logged_at) = ? AND (h.user_id = ? OR h.user_id IS NULL)', 
+    [today, userId]
+  );
+
+  const { data: habits, loading: listLoading, refresh: refreshHabits } = useData<{id: string, title: string}>(
+    'SELECT id, title FROM habits WHERE is_active = 1 AND (user_id = ? OR user_id IS NULL) LIMIT 3',
+    [userId]
+  );
+
+  const { data: shortcuts, loading: shortcutsLoading, refresh: refreshShortcuts } = useData<{id: string, title: string, url: string, icon: string}>(
+    'SELECT * FROM shortcuts WHERE user_id = ? OR user_id IS NULL',
+    [userId]
+  );
+
+  // Refresh data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      refreshHabits();
+      refreshShortcuts();
+    }, [])
+  );
 
   const activeHabits = habitStats?.[0]?.count || 0;
   const completedToday = logStats?.[0]?.count || 0;
+  const userName = user?.email ? user.email.split('@')[0] : 'Guest';
 
-  const colorScheme = useColorScheme() ?? 'light';
-  const themeColors = COLORS[colorScheme as keyof typeof COLORS];
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
 
-  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const isLoading = habitsLoading || logsLoading || listLoading || shortcutsLoading;
+
+  const handleOpenLink = async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', "Don't know how to open this URL: " + url);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred while trying to open the link');
+    }
+  };
+
+  const handleDeleteShortcut = async (id: string) => {
+    Alert.alert(
+      "Delete Shortcut",
+      "Are you sure you want to remove this shortcut?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await performMutation('shortcuts', 'DELETE', { id });
+              refreshShortcuts();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete shortcut');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -24,7 +100,7 @@ export default function DashboardScreen() {
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
-          bounces={false}
+          bounces={true}
         >
           {/* Header */}
           <View style={styles.header}>
@@ -38,87 +114,117 @@ export default function DashboardScreen() {
               </View>
               <Image 
                 source={require('@/assets/images/Artboard 1 logo.png')} 
-                style={[styles.logoImage, { tintColor: themeColors.primary }]} 
+                style={[styles.logoImage, { tintColor: colors.primary }]} 
                 resizeMode="contain" 
               />
             </View>
-            <TouchableOpacity style={styles.ghostBtn}>
-              <Settings size={20} color={themeColors.primary} strokeWidth={1.5} />
+            <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
+              <Settings size={20} color={colors.primary} strokeWidth={1.5} />
             </TouchableOpacity>
           </View>
 
           {/* Greeting */}
           <View style={styles.greetingContainer}>
-            <Text style={styles.labelCaps}>SYSTEM_STATUS / ACTIVE</Text>
-            <Text style={styles.greetingText}>ALEX_B / Welcome to the Archival Interface.</Text>
+            <Text style={styles.labelCaps}>DAILY OVERVIEW</Text>
+            <Text style={styles.greetingText}>{greeting}, {userName}. Let's find your flow today.</Text>
           </View>
 
-          {/* Grid-based Catalog Layout - Edge to Edge */}
-          <View style={styles.catalogGrid}>
-            {/* Stats Card 1 */}
-            <View style={[styles.catalogCard, styles.borderRight, styles.borderBottom]}>
-              <Text style={styles.dataLabel}>ACTIVE_HABITS</Text>
-              <Text style={styles.dataValue}>{habitsLoading ? '...' : activeHabits}</Text>
+          {/* Stats Section */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statsGrid}>
+              <TouchableOpacity 
+                style={[styles.statCard, { borderLeftColor: colors.primary, borderLeftWidth: 4 }]} 
+                onPress={() => router.push('/hh_habits')}
+              >
+                <Text style={styles.statLabel}>Active Habits</Text>
+                <Text style={styles.statValue}>{isLoading ? '...' : activeHabits}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.statCard, { borderLeftColor: colors.secondary, borderLeftWidth: 4 }]} 
+                onPress={() => router.push('/calendar')}
+              >
+                <Text style={styles.statLabel}>Done Today</Text>
+                <Text style={styles.statValue}>{isLoading ? '...' : completedToday}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Current Focus Card */}
+          <View style={styles.focusContainer}>
+            <View style={styles.focusCard}>
+              <View style={styles.focusHeader}>
+                <View style={styles.focusIconBg}>
+                  <Sparkles size={20} color={colors.onPrimary} />
+                </View>
+                <Text style={styles.focusBadge}>CURRENT FOCUS</Text>
+              </View>
+              <Text style={styles.focusTitle}>Deep Work: Design Refinement</Text>
+              <Text style={styles.focusDesc}>
+                Refining the tonal layering and typography hierarchy for a more serene experience.
+              </Text>
+              <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/sprint')}>
+                <Text style={styles.primaryBtnText}>Resume Session</Text>
+                <Play size={16} color={colors.primary} fill={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Keystone Habits */}
+          <View style={styles.section}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.sectionTitle}>Daily Rituals</Text>
+              <TouchableOpacity onPress={() => router.push('/hh_habits')}>
+                <Text style={styles.sectionSubtitle}>View All</Text>
+              </TouchableOpacity>
             </View>
             
-            {/* Stats Card 2 */}
-            <View style={[styles.catalogCard, styles.borderBottom]}>
-              <Text style={styles.dataLabel}>COMPLETED_TODAY</Text>
-              <Text style={styles.dataValue}>{logsLoading ? '...' : completedToday}</Text>
-            </View>
-
-            {/* Focus Card - Span 2 columns */}
-            <View style={[styles.catalogCard, styles.spanFull, styles.borderBottom, { backgroundColor: themeColors.primary }]}>
-              <Text style={[styles.dataLabel, { color: themeColors.onPrimary }]}>CURRENT_FOCUS</Text>
-              <Text style={[styles.catalogHeadline, { color: themeColors.onPrimary }]}>Deep Work: Interface Refinement</Text>
-              <Text style={[styles.catalogDesc, { color: themeColors.onPrimary + 'B3' }]}>
-                Typography hierarchy and tonal layering transitions for mobile navigation.
-              </Text>
-              <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.starkBtn}>
-                  <Text style={styles.starkBtnText}>RESUME_SESSION</Text>
-                  <Play size={14} color={themeColors.primary} fill={themeColors.primary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Reading Progress */}
-            <View style={[styles.catalogCard, styles.spanFull, styles.borderBottom]}>
-              <View style={styles.rowBetween}>
-                <View>
-                  <Text style={styles.dataLabel}>READING_PROGRESS</Text>
-                  <Text style={styles.catalogHeadlineSm}>Building a Second Brain</Text>
-                </View>
-                <Text style={styles.dataValueMd}>65%</Text>
-              </View>
-              <View style={styles.technicalBarBg}>
-                <View style={[styles.technicalBarFill, { width: '65%', backgroundColor: themeColors.primary }]} />
-              </View>
-            </View>
-
-            {/* Keystone Habits */}
-            <View style={[styles.catalogCard, styles.spanFull]}>
-              <Text style={styles.dataLabel}>KEYSTONE_HABITS / {completedToday} OF {activeHabits}</Text>
+            {isLoading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
+            ) : habits.length > 0 ? (
               <View style={styles.habitList}>
-                <HabitItem title="Morning Meditation" done={completedToday > 0} themeColors={themeColors} />
-                <HabitItem title="Deep Work Session" done={completedToday > 1} themeColors={themeColors} />
-                <HabitItem title="20min Evening Walk" done={false} themeColors={themeColors} />
+                {habits.map(habit => (
+                  <HabitItem key={habit.id} title={habit.title} done={false} colors={colors} />
+                ))}
               </View>
-            </View>
+            ) : (
+              <TouchableOpacity 
+                style={styles.emptyStateCard}
+                onPress={() => router.push('/hh_habits')}
+              >
+                <Plus size={24} color={colors.primary} />
+                <Text style={styles.emptyStateText}>Create your first habit to start tracking</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
-          {/* Management Deck */}
-          <View style={styles.managementContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>MANAGEMENT_DECK</Text>
+          {/* Tools / Shortcuts */}
+          <View style={styles.toolsContainer}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.sectionLabel}>ECOSYSTEM TOOLS</Text>
+              <TouchableOpacity onPress={() => router.push('/add-shortcut')}>
+                <Plus size={16} color={colors.primary} />
+              </TouchableOpacity>
             </View>
-            <View style={styles.managementGrid}>
-              <ToolCard icon={<Activity size={18} color={themeColors.primary} />} label="GOOGLE_ADS" themeColors={themeColors} />
-              <ToolCard icon={<BarChart2 size={18} color={themeColors.primary} />} label="FACEBOOK" themeColors={themeColors} />
-              <ToolCard icon={<Activity size={18} color={themeColors.primary} />} label="ANALYTICS" themeColors={themeColors} />
-              <ToolCard icon={<Mail size={18} color={themeColors.primary} />} label="INBOX" themeColors={themeColors} />
-              <ToolCard icon={<CreditCard size={18} color={themeColors.primary} />} label="FINANCE" themeColors={themeColors} />
-              <ToolCard icon={<Plus size={18} color={themeColors.primary} />} label="ADD_TOOL" themeColors={themeColors} />
+            <View style={styles.toolsGrid}>
+              {shortcuts.length > 0 ? (
+                shortcuts.map(shortcut => (
+                  <ToolCard 
+                    key={shortcut.id}
+                    icon={<Globe size={20} color={colors.primary} />} 
+                    label={shortcut.title} 
+                    colors={colors}
+                    onPress={() => handleOpenLink(shortcut.url)}
+                    onDelete={() => handleDeleteShortcut(shortcut.id)}
+                  />
+                ))
+              ) : (
+                <>
+                  <ToolCard icon={<Activity size={20} color={colors.primary} />} label="Analytics" colors={colors} />
+                  <ToolCard icon={<BarChart2 size={20} color={colors.primary} />} label="Performance" colors={colors} />
+                  <ToolCard icon={<Mail size={20} color={colors.primary} />} label="Inbox" colors={colors} />
+                  <ToolCard icon={<CreditCard size={20} color={colors.primary} />} label="Finance" colors={colors} />
+                </>
+              )}
             </View>
           </View>
         </ScrollView>
@@ -127,14 +233,15 @@ export default function DashboardScreen() {
   );
 }
 
-function HabitItem({ title, done, themeColors }: { title: string; done: boolean; themeColors: any }) {
+function HabitItem({ title, done, colors }: { title: string; done: boolean; colors: any }) {
+  const router = useRouter();
   return (
-    <View style={stylesHabit.habitItem}>
-      <View style={[stylesHabit.checkbox, { borderColor: themeColors.primary }, done && { backgroundColor: themeColors.primary }]}>
-        {done && <CheckCircle2 size={14} color={themeColors.onPrimary} />}
+    <TouchableOpacity style={stylesHabit.habitItem} onPress={() => router.push('/hh_habits')}>
+      <View style={[stylesHabit.checkbox, { borderColor: colors.primary }, done && { backgroundColor: colors.primary }]}>
+        {done && <CheckCircle2 size={14} color={colors.onPrimary} />}
       </View>
-      <Text style={[stylesHabit.habitText, { color: themeColors.primary }, done && { color: themeColors.outline, textDecorationLine: 'line-through' }]}>{title.toUpperCase()}</Text>
-    </View>
+      <Text style={[stylesHabit.habitText, { color: colors.onSurface }, done && { color: colors.onSurfaceVariant, textDecorationLine: 'line-through' }]}>{title}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -143,55 +250,82 @@ const stylesHabit = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    paddingVertical: 8,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   habitText: {
-    fontFamily: FONTS.label,
-    fontSize: 13,
+    fontFamily: FONTS.body,
+    fontSize: 16,
   },
 });
 
-function ToolCard({ icon, label, themeColors }: { icon: React.ReactNode; label: string; themeColors: any }) {
+function ToolCard({ icon, label, colors, onPress, onDelete }: { icon: React.ReactNode; label: string; colors: any; onPress?: () => void; onDelete?: () => void }) {
   return (
-    <TouchableOpacity style={[stylesTool.toolCard, { borderColor: themeColors.outline + '1A' }]}>
-      {icon}
-      <Text style={[stylesTool.toolLabel, { color: themeColors.primary }]}>{label}</Text>
-    </TouchableOpacity>
+    <View style={stylesTool.container}>
+      <TouchableOpacity 
+        style={[stylesTool.toolCard, { backgroundColor: colors.surfaceVariant }]}
+        onPress={onPress || (() => Alert.alert('External Tool', `Launching integrated ${label} dashboard.`))}
+      >
+        <View style={[stylesTool.iconContainer, { backgroundColor: colors.surface }]}>{icon}</View>
+        <Text style={[stylesTool.toolLabel, { color: colors.onSurface }]} numberOfLines={1}>{label}</Text>
+      </TouchableOpacity>
+      {onDelete && (
+        <TouchableOpacity style={[stylesTool.deleteBtn, { backgroundColor: colors.error + '1A' }]} onPress={onDelete}>
+          <Trash2 size={14} color={colors.error} />
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
 const stylesTool = StyleSheet.create({
+  container: {
+    width: '47%',
+    marginBottom: SPACING.md,
+    position: 'relative',
+  },
   toolCard: {
-    width: '33.33%',
+    width: '100%',
     padding: SPACING.md,
+    borderRadius: ROUNDNESS.lg,
     alignItems: 'center',
-    gap: 8,
-    borderWidth: 0.5,
+    justifyContent: 'center',
+    gap: 10,
+  },
+  deleteBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    padding: 6,
+    borderRadius: 12,
+  },
+  iconContainer: {
+    padding: 10,
+    borderRadius: ROUNDNESS.md,
   },
   toolLabel: {
-    fontFamily: FONTS.label,
-    fontSize: 8,
-    textAlign: 'center',
+    fontFamily: FONTS.labelSm,
+    fontSize: 12,
     letterSpacing: 0.5,
   },
 });
 
-const createStyles = (themeColors: any) => StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: themeColors.background,
+    backgroundColor: colors.background,
   },
   safeArea: {
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
     paddingBottom: 40,
   },
   header: {
@@ -199,9 +333,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.outline + '26',
-    backgroundColor: themeColors.background,
+    backgroundColor: colors.background,
   },
   profileSection: {
     flexDirection: 'row',
@@ -209,11 +341,13 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     gap: SPACING.sm,
   },
   avatarPlaceholder: {
-    width: 32,
-    height: 32,
-    backgroundColor: themeColors.primaryContainer,
+    width: 36,
+    height: 36,
+    borderRadius: ROUNDNESS.full,
+    backgroundColor: colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   avatarLogo: {
     width: 24,
@@ -227,131 +361,193 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     padding: 4,
   },
   greetingContainer: {
-    padding: SPACING.lg,
-    backgroundColor: themeColors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.outline + '26',
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.lg,
   },
   labelCaps: {
-    fontFamily: FONTS.label,
-    fontSize: 10,
-    letterSpacing: 2,
-    color: themeColors.outline,
+    fontFamily: FONTS.labelSm,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: colors.primary,
+    marginBottom: 4,
   },
   greetingText: {
     fontFamily: FONTS.headline,
-    fontSize: 24,
-    marginTop: SPACING.xs,
-    color: themeColors.primary,
-  },
-  catalogGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    backgroundColor: themeColors.background,
-  },
-  catalogCard: {
-    padding: SPACING.lg,
-    width: '50%',
-  },
-  spanFull: {
-    width: '100%',
-  },
-  borderRight: {
-    borderRightWidth: 1,
-    borderRightColor: themeColors.outline + '26',
-  },
-  borderBottom: {
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.outline + '26',
-  },
-  dataLabel: {
-    fontFamily: FONTS.label,
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: themeColors.outline,
-    marginBottom: SPACING.xs,
-  },
-  dataValue: {
-    fontSize: 36,
-    fontFamily: FONTS.labelSm,
-    color: themeColors.primary,
-  },
-  dataValueMd: {
-    fontSize: 24,
-    fontFamily: FONTS.labelSm,
-    color: themeColors.primary,
-  },
-  catalogHeadline: {
-    fontFamily: FONTS.headline,
     fontSize: 28,
-    lineHeight: 32,
-    marginBottom: SPACING.sm,
+    color: colors.onSurface,
+    lineHeight: 34,
   },
-  catalogHeadlineSm: {
-    fontFamily: FONTS.headline,
-    fontSize: 18,
-    color: themeColors.primary,
-  },
-  catalogDesc: {
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    lineHeight: 20,
+  statsContainer: {
+    paddingHorizontal: SPACING.lg,
     marginBottom: SPACING.lg,
   },
-  actionRow: {
+  statsGrid: {
     flexDirection: 'row',
+    gap: SPACING.md,
   },
-  starkBtn: {
-    backgroundColor: themeColors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    padding: SPACING.md,
+    borderRadius: ROUNDNESS.lg,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant + '4D',
+  },
+  statLabel: {
+    fontFamily: FONTS.label,
+    fontSize: 12,
+    color: colors.onSurfaceVariant,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 32,
+    fontFamily: FONTS.headline,
+    color: colors.onSurface,
+  },
+  focusContainer: {
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.xl,
+  },
+  focusCard: {
+    backgroundColor: colors.primary,
+    padding: SPACING.lg,
+    borderRadius: ROUNDNESS.xl,
+  },
+  focusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+    marginBottom: SPACING.md,
   },
-  starkBtnText: {
-    color: themeColors.primary,
+  focusIconBg: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: ROUNDNESS.md,
+  },
+  focusBadge: {
     fontFamily: FONTS.labelSm,
-    fontSize: 12,
+    fontSize: 11,
+    color: colors.onPrimary,
+    letterSpacing: 1,
+  },
+  focusTitle: {
+    fontFamily: FONTS.headline,
+    fontSize: 24,
+    color: colors.onPrimary,
+    marginBottom: 8,
+  },
+  focusDesc: {
+    fontFamily: FONTS.body,
+    fontSize: 15,
+    color: colors.onPrimary,
+    opacity: 0.8,
+    lineHeight: 22,
+    marginBottom: SPACING.lg,
+  },
+  primaryBtn: {
+    backgroundColor: colors.onPrimary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: ROUNDNESS.full,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  primaryBtnText: {
+    color: colors.primary,
+    fontFamily: FONTS.labelSm,
+    fontSize: 14,
+  },
+  section: {
+    padding: SPACING.lg,
+  },
+  sectionLabel: {
+    fontFamily: FONTS.labelSm,
+    fontSize: 11,
+    color: colors.outline,
+    letterSpacing: 1.5,
+    marginBottom: SPACING.md,
+  },
+  sectionTitle: {
+    fontFamily: FONTS.headline,
+    fontSize: 24,
+    color: colors.onSurface,
+  },
+  sectionSubtitle: {
+    fontFamily: FONTS.label,
+    fontSize: 13,
+    color: colors.primary,
   },
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: SPACING.sm,
+    alignItems: 'baseline',
+    marginBottom: SPACING.md,
   },
-  technicalBarBg: {
-    height: 4,
-    backgroundColor: themeColors.outline + '1A',
+  sliderContainer: {
+    backgroundColor: colors.surface,
+    padding: SPACING.lg,
+    borderRadius: ROUNDNESS.lg,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant + '4D',
   },
-  technicalBarFill: {
+  sliderTrack: {
+    height: 8,
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: 4,
+    position: 'relative',
+    marginBottom: 12,
+  },
+  sliderFill: {
     height: '100%',
+    borderRadius: 4,
+  },
+  sliderThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    position: 'absolute',
+    top: -6,
+    marginLeft: -10,
+    borderWidth: 2,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sliderLevel: {
+    fontFamily: FONTS.label,
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
   },
   habitList: {
-    marginTop: SPACING.md,
-    gap: 12,
+    gap: 4,
   },
-  managementContainer: {
-    backgroundColor: themeColors.surface,
-    flex: 1,
-    paddingBottom: 40,
+  toolsContainer: {
+    padding: SPACING.lg,
   },
-  sectionHeader: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
-    paddingBottom: SPACING.sm,
-  },
-  sectionTitle: {
-    fontFamily: FONTS.labelSm,
-    fontSize: 11,
-    color: themeColors.outline,
-    letterSpacing: 2,
-  },
-  managementGrid: {
+  toolsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 0,
-    borderTopWidth: 1,
-    borderTopColor: themeColors.outline + '26',
+    justifyContent: 'space-between',
+  },
+  emptyStateCard: {
+    backgroundColor: colors.surface,
+    padding: SPACING.xl,
+    borderRadius: ROUNDNESS.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 10,
+  },
+  emptyStateText: {
+    fontFamily: FONTS.body,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    textAlign: 'center',
   },
 });

@@ -10,10 +10,13 @@ export function useData<T>(query: string, params: any[] = []) {
     setLoading(true);
     try {
       const db = await getDb();
-      const result = await db.getAllAsync(query, params);
+      // Ensure all params are strings or numbers for SQLite
+      const sanitizedParams = params.map(p => p === null ? null : String(p));
+      const result = await db.getAllAsync(query, sanitizedParams);
       setData(result as T[]);
       setError(null);
     } catch (err) {
+      console.error('Database query error:', err, query, params);
       setError(err as Error);
     } finally {
       setLoading(false);

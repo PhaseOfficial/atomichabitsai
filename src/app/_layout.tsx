@@ -4,11 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
-import { Newsreader_700Bold } from '@expo-google-fonts/newsreader';
-import { Inter_400Regular } from '@expo-google-fonts/inter';
-import { SpaceGrotesk_500Medium, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import { Manrope_700Bold, Manrope_400Regular } from '@expo-google-fonts/manrope';
+import { PlusJakartaSans_500Medium, PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans';
 import { initDatabase } from '@/src/db/database';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme, BatsirThemeProvider } from '@/src/hooks/useTheme';
 import { useSync } from '@/src/hooks/useSync';
 
 export {
@@ -27,10 +26,10 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [dbLoaded, setDbLoaded] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
-    Newsreader_700Bold,
-    Inter_400Regular,
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_700Bold,
+    Manrope_700Bold,
+    Manrope_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_700Bold,
   });
 
   useSync();
@@ -45,13 +44,27 @@ export default function RootLayout() {
     if (fontError) throw fontError;
   }, [fontError]);
 
+  if (!fontsLoaded || !dbLoaded) {
+    return null;
+  }
+
+  return (
+    <BatsirThemeProvider>
+      <RootLayoutContent />
+    </BatsirThemeProvider>
+  );
+}
+
+function RootLayoutContent() {
+  const { isLoaded } = useTheme();
+
   useEffect(() => {
-    if (fontsLoaded && dbLoaded) {
+    if (isLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, dbLoaded]);
+  }, [isLoaded]);
 
-  if (!fontsLoaded || !dbLoaded) {
+  if (!isLoaded) {
     return null;
   }
 
@@ -59,16 +72,19 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useTheme();
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
+        <Stack.Screen name="add-habit" options={{ presentation: 'modal', headerShown: false }} />
+        <Stack.Screen name="add-shortcut" options={{ presentation: 'modal', headerShown: false }} />
+        <Stack.Screen name="add-task" options={{ presentation: 'modal', headerShown: false }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
   );
 }

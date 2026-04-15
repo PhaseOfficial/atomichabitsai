@@ -1,10 +1,12 @@
-import { FONTS, SPACING } from "@/src/constants/Theme";
+import { FONTS, SPACING, ROUNDNESS } from "@/src/constants/Theme";
 import { useData } from "@/src/hooks/useData";
 import { useTheme } from "@/src/hooks/useTheme";
-import { Plus, Settings } from "lucide-react-native";
+import { useAuth } from "@/src/hooks/useAuth";
+import { Plus, Settings, Moon, Zap, Target } from "lucide-react-native";
 import React, { useMemo } from "react";
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from "expo-router";
 
 type Schedule = {
   id: string;
@@ -32,7 +34,7 @@ const parseTimeString = (time: string) => {
 
 const getTimeOffset = (time: string) => {
   const { hours, minutes } = parseTimeString(time);
-  return hours * 80 + (minutes * 80) / 60;
+  return hours * 100 + (minutes * 100) / 60;
 };
 
 const getBlockHeight = (start: string, end: string) => {
@@ -40,7 +42,7 @@ const getBlockHeight = (start: string, end: string) => {
   const endTime = parseTimeString(end);
   const startMinutes = startTime.hours * 60 + startTime.minutes;
   const endMinutes = endTime.hours * 60 + endTime.minutes;
-  return Math.max(40, ((endMinutes - startMinutes) * 80) / 60);
+  return Math.max(50, ((endMinutes - startMinutes) * 100) / 60);
 };
 
 const parseTimeBlocks = (schedules: Schedule[]) => {
@@ -55,14 +57,18 @@ const parseTimeBlocks = (schedules: Schedule[]) => {
 
 export default function CalendarScreen() {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const router = useRouter();
 
-  const today = new Date().toISOString().split("T")[0];
+  const userId = user?.id || 'guest';
+  const today = new Date().toISOString().split('T')[0];
+  
   const {
     data: schedules,
     loading,
     refresh,
-  } = useData<Schedule>("SELECT * FROM schedules WHERE date = ?", [today]);
+  } = useData<Schedule>("SELECT * FROM schedules WHERE date = ? AND (user_id = ? OR user_id IS NULL)", [today, userId]);
 
   const timeBlocks = useMemo(() => parseTimeBlocks(schedules), [schedules]);
 
@@ -81,9 +87,9 @@ export default function CalendarScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
-          bounces={false}
+          bounces={true}
         >
-          {/* Top Navigation Bar */}
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.profileSection}>
               <View style={styles.avatarPlaceholder}>
@@ -99,128 +105,105 @@ export default function CalendarScreen() {
                 resizeMode="contain"
               />
             </View>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/modal')}>
               <Settings size={20} color={colors.primary} strokeWidth={1.5} />
             </TouchableOpacity>
           </View>
 
-          {/* Date Header */}
+          {/* Date & Metrics Header */}
           <View style={styles.dateHeader}>
-            <View>
+            <View style={styles.dateInfo}>
               <Text style={styles.dayLabel}>
-                SCHEDULE_LOG /{" "}
-                {new Date()
-                  .toLocaleDateString("en-US", { weekday: "long" })
-                  .toUpperCase()}
+                {new Date().toLocaleDateString("en-US", { weekday: "long" }).toUpperCase()}
               </Text>
               <Text style={styles.dateLabel}>
-                {new Date().toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
+                {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </Text>
             </View>
-            <View style={styles.toggleContainer}>
-              <TouchableOpacity style={styles.toggleButtonActive}>
-                <Text style={styles.toggleTextActive}>DAY_VIEW</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.toggleButton}>
-                <Text style={styles.toggleText}>WEEK_VIEW</Text>
-              </TouchableOpacity>
+            <View style={styles.metricsGrid}>
+              <View style={styles.metricItem}>
+                <Moon size={14} color={colors.secondary} />
+                <Text style={styles.metricValue}>7.5h</Text>
+              </View>
+              <View style={styles.metricItem}>
+                <Zap size={14} color={colors.primary} />
+                <Text style={styles.metricValue}>420</Text>
+              </View>
+              <View style={styles.metricItem}>
+                <Target size={14} color={colors.tertiary} />
+                <Text style={styles.metricValue}>85%</Text>
+              </View>
             </View>
           </View>
 
-          {/* Timeline Grid */}
-          <View style={styles.timelineContainer}>
-            {/* Time Markers */}
-            <View style={styles.timeMarkers}>
+          {/* Timeline View */}
+          <View style={styles.timelineWrapper}>
+            <View style={styles.timeColumn}>
               {TIME_MARKERS.map((time, index) => (
-                <View key={index} style={styles.timeMarkerRow}>
+                <View key={index} style={styles.timeSlot}>
                   <Text style={styles.timeText}>{time}</Text>
                 </View>
               ))}
             </View>
 
-            {/* Content Area */}
-            <View style={styles.contentArea}>
+            <View style={styles.calendarGrid}>
               <View style={styles.gridLines}>
                 {TIME_MARKERS.map((_, index) => (
                   <View key={index} style={styles.gridLine} />
                 ))}
               </View>
 
-              {timeBlocks.map((block, index) => {
-                const top = getTimeOffset(block.start);
-                const height = getBlockHeight(block.start, block.end);
+              {timeBlocks.length > 0 ? (
+                timeBlocks.map((block, index) => {
+                  const top = getTimeOffset(block.start);
+                  const height = getBlockHeight(block.start, block.end);
 
-                let blockStyle = styles.defaultBlock;
-                if (block.type === "deep-work") blockStyle = styles.deepWorkBlock;
-                if (block.type === "sleep" || block.type === "walk")
-                  blockStyle = styles.priorityBlock;
+                  let blockStyle = styles.defaultBlock;
+                  let textStyle = { color: colors.onSurface };
+                  let labelStyle = { color: colors.onSurfaceVariant };
 
-                const isDeepWork = block.type === "deep-work";
+                  if (block.type === "deep-work") {
+                    blockStyle = styles.deepWorkBlock;
+                    textStyle = { color: colors.onPrimary };
+                    labelStyle = { color: colors.onPrimary + 'B3' };
+                  } else if (block.type === "walk") {
+                    blockStyle = styles.walkBlock;
+                  }
 
-                return (
-                  <View
-                    key={index}
-                    style={[styles.taskBlock, blockStyle, { top, height }]}
-                  >
-                    <View style={styles.taskHeader}>
+                  return (
+                    <View
+                      key={index}
+                      style={[styles.taskBlock, blockStyle, { top, height }]}
+                    >
                       <View>
-                        <Text style={styles.dataLabel}>
-                          BLOCK_ID: {index.toString().padStart(2, "0")}
+                        <Text style={[styles.blockLabel, labelStyle]}>
+                          {block.type?.replace("-", " ").toUpperCase() || "EVENT"}
                         </Text>
-                        <Text
-                          style={[
-                            styles.taskTitle,
-                            isDeepWork && { color: colors.onPrimary },
-                          ]}
-                        >
-                          {block.task.toUpperCase()}
+                        <Text style={[styles.taskTitle, textStyle]}>
+                          {block.task}
                         </Text>
                       </View>
-                    </View>
-                    <View style={styles.blockFooter}>
-                      <Text
-                        style={[
-                          styles.taskTime,
-                          isDeepWork && { color: colors.onPrimary + "CC" },
-                        ]}
-                      >
-                        {block.start} {">"} {block.end}
+                      <Text style={[styles.taskTime, labelStyle]}>
+                        {block.start} — {block.end}
                       </Text>
                     </View>
-                  </View>
-                );
-              })}
-
-              {timeBlocks.length === 0 && (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>NULL_SCHEDULE_DATA</Text>
+                  );
+                })
+              ) : (
+                <View style={styles.emptyCalendar}>
+                  <Text style={styles.emptyText}>No blocks scheduled for today.</Text>
                 </View>
               )}
 
               {/* Current Time Indicator */}
               <View
                 style={[
-                  styles.currentTimeIndicator,
+                  styles.currentTimeLine,
                   { top: getTimeOffset(new Date().toTimeString().slice(0, 5)) },
                 ]}
               >
-                <View
-                  style={[
-                    styles.indicatorLine,
-                    { backgroundColor: colors.tertiary },
-                  ]}
-                />
-                <View
-                  style={[
-                    styles.indicatorLabel,
-                    { backgroundColor: colors.tertiary },
-                  ]}
-                >
-                  <Text style={styles.indicatorText}>REAL_TIME</Text>
-                </View>
+                <View style={[styles.timeDot, { backgroundColor: colors.tertiary }]} />
+                <View style={[styles.line, { backgroundColor: colors.tertiary }]} />
               </View>
             </View>
           </View>
@@ -229,7 +212,7 @@ export default function CalendarScreen() {
         {/* Floating Action Button */}
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: colors.primary }]}
-          onPress={() => refresh()}
+          onPress={() => Alert.alert('Add Block', 'Scheduling functionality coming soon.')}
         >
           <Plus size={24} color={colors.onPrimary} strokeWidth={2} />
         </TouchableOpacity>
@@ -258,8 +241,6 @@ const createStyles = (colors: any) =>
       justifyContent: "space-between",
       alignItems: "center",
       padding: SPACING.lg,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.outline + "26",
       backgroundColor: colors.background,
     },
     profileSection: {
@@ -270,9 +251,11 @@ const createStyles = (colors: any) =>
     avatarPlaceholder: {
       width: 32,
       height: 32,
+      borderRadius: ROUNDNESS.full,
       backgroundColor: colors.primaryContainer,
       alignItems: "center",
       justifyContent: "center",
+      overflow: "hidden",
     },
     avatarLogo: {
       width: 24,
@@ -286,104 +269,100 @@ const createStyles = (colors: any) =>
       padding: 4,
     },
     dateHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-end",
       padding: SPACING.lg,
       backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.outline + "26",
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    dateInfo: {
+      flex: 1,
     },
     dayLabel: {
-      fontFamily: FONTS.label,
-      fontSize: 9,
-      color: colors.outline,
+      fontFamily: FONTS.labelSm,
+      fontSize: 12,
+      color: colors.primary,
       letterSpacing: 1.5,
-      marginBottom: 4,
+      marginBottom: 2,
     },
     dateLabel: {
       fontFamily: FONTS.headline,
-      fontSize: 48,
-      color: colors.primary,
+      fontSize: 32,
+      color: colors.onSurface,
     },
-    toggleContainer: {
-      flexDirection: "row",
-      borderWidth: 1,
-      borderColor: colors.outline + "26",
-      padding: 2,
+    metricsGrid: {
+      flexDirection: 'row',
+      gap: 12,
     },
-    toggleButton: {
-      paddingHorizontal: 12,
+    metricItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.surfaceVariant + '80',
+      paddingHorizontal: 8,
       paddingVertical: 6,
+      borderRadius: ROUNDNESS.sm,
     },
-    toggleButtonActive: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      backgroundColor: colors.primary,
+    metricValue: {
+      fontFamily: FONTS.labelSm,
+      fontSize: 12,
+      color: colors.onSurface,
     },
-    toggleText: {
-      fontFamily: FONTS.label,
-      fontSize: 9,
-      color: colors.outline,
-    },
-    toggleTextActive: {
-      fontFamily: FONTS.label,
-      fontSize: 9,
-      color: colors.onPrimary,
-    },
-    timelineContainer: {
+    timelineWrapper: {
       flexDirection: "row",
-      paddingRight: 0,
+      paddingRight: SPACING.lg,
     },
-    timeMarkers: {
-      width: 60,
-      borderRightWidth: 1,
-      borderRightColor: colors.outline + "26",
+    timeColumn: {
+      width: 70,
     },
-    timeMarkerRow: {
-      height: 80,
+    timeSlot: {
+      height: 100,
       alignItems: "center",
       justifyContent: "flex-start",
-      paddingTop: 8,
+      paddingTop: 10,
     },
     timeText: {
       fontFamily: FONTS.label,
-      fontSize: 10,
-      color: colors.outline,
+      fontSize: 11,
+      color: colors.onSurfaceVariant,
     },
-    contentArea: {
+    calendarGrid: {
       flex: 1,
       position: "relative",
-      minHeight: 1920, // 24 hours * 80px
+      minHeight: 2400,
     },
     gridLines: {
       ...StyleSheet.absoluteFillObject,
     },
     gridLine: {
-      height: 80,
+      height: 100,
       borderBottomWidth: 1,
-      borderBottomColor: colors.outline + "0D",
+      borderBottomColor: colors.outlineVariant + '33',
     },
     taskBlock: {
       position: "absolute",
       left: 0,
       right: 0,
       padding: 12,
-      borderWidth: 1,
-      borderColor: colors.outline + "1A",
+      borderRadius: ROUNDNESS.md,
       justifyContent: "space-between",
+      borderWidth: 1,
+      borderColor: colors.outlineVariant + '4D',
+      marginRight: 4,
     },
-    dataLabel: {
-      fontFamily: FONTS.label,
-      fontSize: 7,
+    blockLabel: {
+      fontFamily: FONTS.labelSm,
+      fontSize: 9,
       letterSpacing: 1,
-      color: colors.outline,
       marginBottom: 2,
     },
     taskTitle: {
-      fontFamily: FONTS.labelSm,
-      fontSize: 14,
-      color: colors.primary,
+      fontFamily: FONTS.headline,
+      fontSize: 16,
+    },
+    taskTime: {
+      fontFamily: FONTS.label,
+      fontSize: 11,
     },
     defaultBlock: {
       backgroundColor: colors.surface,
@@ -392,42 +371,27 @@ const createStyles = (colors: any) =>
       backgroundColor: colors.primary,
       borderColor: colors.primary,
     },
-    priorityBlock: {
-      backgroundColor: colors.surface,
+    walkBlock: {
+      backgroundColor: colors.secondaryContainer,
       borderLeftWidth: 4,
-      borderLeftColor: colors.tertiary,
+      borderLeftColor: colors.secondary,
     },
-    blockFooter: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    taskTime: {
-      fontFamily: FONTS.label,
-      fontSize: 9,
-      color: colors.outline,
-    },
-    currentTimeIndicator: {
+    currentTimeLine: {
       position: "absolute",
-      left: 0,
+      left: -5,
       right: 0,
-      height: 1,
+      height: 2,
       flexDirection: "row",
       alignItems: "center",
       zIndex: 10,
     },
-    indicatorLine: {
+    timeDot: {
+      width: 10, height: 10,
+      borderRadius: 5,
+    },
+    line: {
       flex: 1,
-      height: 1,
-    },
-    indicatorLabel: {
-      paddingHorizontal: 4,
-      paddingVertical: 1,
-    },
-    indicatorText: {
-      color: "#fff",
-      fontFamily: FONTS.label,
-      fontSize: 7,
+      height: 2,
     },
     fab: {
       position: "absolute",
@@ -435,26 +399,28 @@ const createStyles = (colors: any) =>
       right: 24,
       width: 56,
       height: 56,
+      borderRadius: 28,
       alignItems: "center",
       justifyContent: "center",
       elevation: 4,
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
     },
     center: {
       justifyContent: "center",
       alignItems: "center",
     },
-    emptyContainer: {
-      padding: SPACING.xl,
-      alignItems: "center",
+    emptyCalendar: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: 100,
     },
     emptyText: {
-      color: colors.outline,
-      fontFamily: FONTS.label,
-      fontSize: 10,
-      letterSpacing: 2,
+      fontFamily: FONTS.body,
+      fontSize: 14,
+      color: colors.onSurfaceVariant,
     },
   });

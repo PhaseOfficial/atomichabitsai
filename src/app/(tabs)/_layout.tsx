@@ -27,49 +27,48 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontFamily: FONTS.label,
           fontSize: 10,
-          textTransform: 'uppercase',
-          letterSpacing: 1,
+          letterSpacing: 0.5,
         },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'DASHBOARD',
+          title: 'Day',
           tabBarIcon: ({ color }) => <LayoutDashboard size={20} color={color} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen
         name="sprint"
         options={{
-          title: 'SPRINT',
+          title: 'Sprint',
           tabBarIcon: ({ color }) => <Timer size={20} color={color} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'PLAN',
+          title: 'Schedule',
           tabBarIcon: ({ color }) => <Calendar size={20} color={color} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen
         name="aa_ai"
         options={{
-          title: 'BATSIR AI',
+          title: 'Assistant',
           tabBarIcon: ({ color }) => <Sparkles size={20} color={color} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen
         name="hh_habits"
         options={{
-          title: 'HABITS',
+          title: 'Habits',
           tabBarIcon: ({ color }) => <Activity size={20} color={color} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen
         name="library"
         options={{
-          title: 'INDEX',
+          title: 'Library',
           tabBarIcon: ({ color }) => <Library size={20} color={color} strokeWidth={1.5} />,
         }}
       />

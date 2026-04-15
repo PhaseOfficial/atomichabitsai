@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Send, Terminal, Sparkles } from 'lucide-react-native';
-import { COLORS, SPACING, FONTS } from '@/src/constants/Theme';
+import { Settings, Send, Sparkles, User } from 'lucide-react-native';
+import { COLORS, SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { callAiAssistant } from '@/src/lib/ai';
 import { useTheme } from '@/src/hooks/useTheme';
+import { useAuth } from '@/src/hooks/useAuth';
+import { useRouter } from 'expo-router';
 
 interface Message {
   id: string;
@@ -15,25 +17,31 @@ interface Message {
 
 export default function AIScreen() {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const userId = user?.id || 'guest';
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       sender: 'ai',
-      time: '10:02 AM',
-      text: "SYSTEM_INITIALIZED. Analyzing biometric and schedule data... Optimization window identified between 10:00 and 12:00. Recommendation: Execute DEEP_WORK protocol."
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      text: "Good morning. I've analyzed your schedule for today. You have a peak focus window starting in 15 minutes. Would you like to prepare for a Deep Work session?"
     }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = async () => {
-    if (!inputText.trim()) return;
+  const handleSend = async (text: string = inputText) => {
+    const messageText = text.trim();
+    if (!messageText) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputText,
+      text: messageText,
       sender: 'user',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
@@ -42,19 +50,30 @@ export default function AIScreen() {
     setInputText('');
     setIsLoading(true);
 
+    // Scroll to bottom
+    setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+
     try {
-      const response = await callAiAssistant(inputText, 'user-123');
+      const response = await callAiAssistant(messageText, userId);
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: typeof response === 'string' ? response : JSON.stringify(response),
+        text: typeof response === 'string' ? response : response.message || "I'm processing that request now.",
         sender: 'ai',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error('AI Error:', error);
+      console.error('AI Assistant Error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "I'm sorry, I'm having trouble connecting to the system. Please try again in a moment.",
+        sender: 'ai',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
     }
   };
 
@@ -82,19 +101,20 @@ export default function AIScreen() {
                 resizeMode="contain" 
               />
             </View>
-            <TouchableOpacity style={styles.ghostBtn}>
+            <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
               <Settings size={20} color={colors.primary} strokeWidth={1.5} />
             </TouchableOpacity>
           </View>
 
           <ScrollView 
+            ref={scrollViewRef}
             style={styles.chatContainer} 
             contentContainerStyle={styles.chatContent}
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.systemStatus}>
-              <Terminal size={14} color={colors.outline} />
-              <Text style={styles.systemStatusText}>CONNECTION_SECURE // BATSIR_AI_NODE_01</Text>
+            <View style={styles.assistantStatus}>
+              <Sparkles size={16} color={colors.primary} />
+              <Text style={styles.statusText}>BatsirAI Assistant Active</Text>
             </View>
 
             {messages.map((message) => (
@@ -107,11 +127,11 @@ export default function AIScreen() {
               >
                 <View style={[
                   styles.messageBubble,
-                  message.sender === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.aiBubble, { borderColor: colors.outline + '26', backgroundColor: colors.surface }]
+                  message.sender === 'user' ? styles.userBubble : styles.aiBubble
                 ]}>
                   <Text style={[
                     styles.messageText,
-                    message.sender === 'user' ? { color: colors.onPrimary } : { color: colors.primary }
+                    message.sender === 'user' ? { color: colors.onPrimary } : { color: colors.onSurface }
                   ]}>
                     {message.text}
                   </Text>
@@ -123,7 +143,7 @@ export default function AIScreen() {
             {isLoading && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={styles.loadingText}>PROCESSING_QUERY...</Text>
+                <Text style={styles.loadingText}>Thinking...</Text>
               </View>
             )}
           </ScrollView>
@@ -136,29 +156,35 @@ export default function AIScreen() {
               style={styles.suggestionsScroll}
               contentContainerStyle={styles.suggestionsContent}
             >
-              {['OPTIMIZE_SCHEDULE', 'REINFORCE_HABITS', 'EXECUTE_SPRINT', 'IDENTITY_AUDIT'].map((suggestion) => (
+              {[
+                'Optimize my schedule', 
+                'Start focus session', 
+                'Analyze my habits', 
+                'How is my progress?'
+              ].map((suggestion) => (
                 <TouchableOpacity 
                   key={suggestion} 
-                  style={[styles.suggestionButton, { borderColor: colors.outline + '26' }]}
-                  onPress={() => setInputText(suggestion)}
+                  style={styles.suggestionButton}
+                  onPress={() => handleSend(suggestion)}
                 >
                   <Text style={styles.suggestionText}>{suggestion}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            <View style={[styles.inputBarContainer, { borderColor: colors.primary }]}>
+            <View style={styles.inputBarContainer}>
               <TextInput
-                style={[styles.input, { color: colors.primary }]}
-                placeholder="ENTER_COMMAND..."
-                placeholderTextColor={colors.outline + '80'}
+                style={styles.input}
+                placeholder="Message BatsirAI Assistant..."
+                placeholderTextColor={colors.onSurfaceVariant + '80'}
                 value={inputText}
                 onChangeText={setInputText}
-                onSubmitEditing={handleSend}
+                onSubmitEditing={() => handleSend()}
+                multiline={false}
               />
               <TouchableOpacity 
                 style={[styles.sendButton, { backgroundColor: colors.primary }]} 
-                onPress={handleSend}
+                onPress={() => handleSend()}
               >
                 <Send size={18} color={colors.onPrimary} />
               </TouchableOpacity>
@@ -186,8 +212,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.outline + '26',
     backgroundColor: colors.background,
   },
   profileSection: {
@@ -198,9 +222,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   avatarPlaceholder: {
     width: 32,
     height: 32,
+    borderRadius: ROUNDNESS.full,
     backgroundColor: colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   avatarLogo: {
     width: 24,
@@ -220,18 +246,22 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: SPACING.lg,
     paddingBottom: 20,
   },
-  systemStatus: {
+  assistantStatus: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginBottom: SPACING.xl,
     justifyContent: 'center',
+    backgroundColor: colors.primary + '1A',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: ROUNDNESS.full,
+    alignSelf: 'center',
   },
-  systemStatusText: {
-    fontFamily: FONTS.label,
-    fontSize: 9,
-    color: colors.outline,
-    letterSpacing: 1,
+  statusText: {
+    fontFamily: FONTS.labelSm,
+    fontSize: 11,
+    color: colors.primary,
   },
   messageWrapper: {
     marginBottom: SPACING.lg,
@@ -245,43 +275,44 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'flex-end',
   },
   messageBubble: {
-    padding: 16,
-    borderWidth: 1,
+    padding: 14,
+    borderRadius: ROUNDNESS.lg,
   },
   aiBubble: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant + '4D',
+    borderTopLeftRadius: 4,
   },
   userBubble: {
-    borderWidth: 0,
+    backgroundColor: colors.primary,
+    borderTopRightRadius: 4,
   },
   messageText: {
-    fontFamily: FONTS.label,
+    fontFamily: FONTS.body,
     fontSize: 15,
     lineHeight: 22,
   },
   messageTime: {
     fontFamily: FONTS.label,
-    fontSize: 8,
-    color: colors.outline,
-    marginTop: 4,
-    letterSpacing: 0.5,
+    fontSize: 9,
+    color: colors.onSurfaceVariant,
+    marginTop: 6,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: SPACING.lg,
+    paddingVertical: SPACING.md,
   },
   loadingText: {
     fontFamily: FONTS.label,
-    fontSize: 10,
-    color: colors.outline,
-    letterSpacing: 1,
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
   },
   inputSection: {
     backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.outline + '26',
-    paddingBottom: 20, 
+    paddingBottom: Platform.OS === 'ios' ? 10 : 20,
   },
   suggestionsScroll: {
     paddingVertical: SPACING.md,
@@ -291,35 +322,41 @@ const createStyles = (colors: any) => StyleSheet.create({
     gap: 8,
   },
   suggestionButton: {
-    borderWidth: 1,
+    backgroundColor: colors.surfaceVariant + '80',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
+    borderRadius: ROUNDNESS.md,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant + '33',
   },
   suggestionText: {
-    fontFamily: FONTS.label,
-    fontSize: 10,
-    color: colors.outline,
-    letterSpacing: 0.5,
+    fontFamily: FONTS.labelSm,
+    fontSize: 11,
+    color: colors.onSurface,
   },
   inputBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
     marginHorizontal: SPACING.lg,
+    borderRadius: ROUNDNESS.xl,
     borderWidth: 1,
+    borderColor: colors.outlineVariant + '80',
     padding: 4,
     marginBottom: 10,
   },
   input: {
     flex: 1,
-    fontFamily: FONTS.label,
-    fontSize: 14,
-    paddingHorizontal: 12,
+    fontFamily: FONTS.body,
+    fontSize: 15,
+    paddingHorizontal: 16,
     height: 48,
+    color: colors.onSurface,
   },
   sendButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },

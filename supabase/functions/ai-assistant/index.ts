@@ -26,7 +26,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4",
         messages: [
-          { role: "system", content: "You are a productivity assistant for the Zenith app. Parse natural language into structured actions: CREATE_HABIT, UPDATE_HABIT, ADD_LOG, UPDATE_SCHEDULE. Return only JSON." },
+          { role: "system", content: "You are a productivity assistant for the Batsir app. Parse natural language into structured actions: CREATE_HABIT, UPDATE_HABIT, ADD_LOG, UPDATE_SCHEDULE. Return only JSON." },
           { role: "user", content: prompt }
         ]
       })

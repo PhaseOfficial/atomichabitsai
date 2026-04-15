@@ -1,16 +1,50 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Play, Pause, SkipForward, SkipBack, Zap } from 'lucide-react-native';
-import { COLORS, SPACING, FONTS } from '@/src/constants/Theme';
+import { Settings, Play, Pause, RotateCcw, Zap, CheckCircle2, Plus } from 'lucide-react-native';
+import { SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { useTheme } from '@/src/hooks/useTheme';
+import { useAuth } from '@/src/hooks/useAuth';
+import { useData } from '@/src/hooks/useData';
+import { performMutation } from '@/src/lib/sync';
+import { useRouter, useFocusEffect } from 'expo-router';
+
+interface Task {
+  id: string;
+  title: string;
+  status: 'todo' | 'doing' | 'done';
+  estimated_sessions: number;
+  completed_sessions: number;
+  tag: string;
+}
 
 export default function SprintScreen() {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const router = useRouter();
+
+  const userId = user?.id || 'guest';
+
+  const { data: tasks, loading, refresh } = useData<Task>(
+    "SELECT * FROM tasks WHERE (user_id = ? OR user_id IS NULL) AND status != 'done' ORDER BY created_at DESC",
+    [userId]
+  );
+
+  const { data: completedToday } = useData<{count: number}>(
+    "SELECT COUNT(*) as count FROM tasks WHERE (user_id = ? OR user_id IS NULL) AND status = 'done' AND date(updated_at) = date('now')",
+    [userId]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [])
+  );
 
   const [isActive, setIsActive] = useState(false);
-  const [seconds, setSeconds] = useState(1499); // 24:59
+  const [seconds, setSeconds] = useState(1500); // 25:00
+  const activeTask = tasks.find(t => t.status === 'doing') || tasks[0];
 
   useEffect(() => {
     let interval: any = null;
@@ -18,11 +52,32 @@ export default function SprintScreen() {
       interval = setInterval(() => {
         setSeconds((prev) => prev - 1);
       }, 1000);
+    } else if (seconds === 0 && isActive) {
+      handleSessionComplete();
     } else {
       clearInterval(interval);
     }
     return () => clearInterval(interval);
   }, [isActive, seconds]);
+
+  const handleSessionComplete = async () => {
+    setIsActive(false);
+    setSeconds(1500);
+    
+    if (activeTask) {
+      try {
+        await performMutation('tasks', 'UPDATE', {
+          id: activeTask.id,
+          completed_sessions: activeTask.completed_sessions + 1,
+          updated_at: new Date().toISOString()
+        });
+        refresh();
+        Alert.alert('Session Complete', `Great work on "${activeTask.title}"! Take a short break.`);
+      } catch (e) {
+        console.error('Failed to update task progress', e);
+      }
+    }
+  };
 
   const formatTime = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -30,13 +85,43 @@ export default function SprintScreen() {
     return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const handleReset = () => {
+    setIsActive(false);
+    setSeconds(1500);
+  };
+
+  const handleToggleTaskStatus = async (task: Task) => {
+    const newStatus = task.status === 'todo' ? 'doing' : 'done';
+    try {
+      await performMutation('tasks', 'UPDATE', {
+        id: task.id,
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      });
+      refresh();
+    } catch (e) {
+      console.error('Failed to update task status', e);
+    }
+  };
+
+  const sessionsDone = completedToday?.[0]?.count || 0;
+  const sessionGoal = 8;
+
+  if (loading && tasks.length === 0) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
-          bounces={false}
+          bounces={true}
         >
           {/* Header */}
           <View style={styles.header}>
@@ -54,19 +139,21 @@ export default function SprintScreen() {
                 resizeMode="contain" 
               />
             </View>
-            <TouchableOpacity style={styles.ghostBtn}>
+            <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
               <Settings size={20} color={colors.primary} strokeWidth={1.5} />
             </TouchableOpacity>
           </View>
 
-          {/* Sprint Timer Section */}
+          {/* Timer Section */}
           <View style={styles.timerSection}>
-            <Text style={styles.labelCaps}>CURRENT_SPRINT / ACTIVE</Text>
-            <Text style={styles.timerDisplay}>{formatTime(seconds)}</Text>
+            <Text style={styles.labelCaps}>FOCUSED SPRINT</Text>
+            <View style={styles.timerDisplayContainer}>
+              <Text style={styles.timerDisplay}>{formatTime(seconds)}</Text>
+            </View>
             
             <View style={styles.timerControls}>
-              <TouchableOpacity style={styles.controlBtn}>
-                <SkipBack size={24} color={colors.primary} strokeWidth={1.5} />
+              <TouchableOpacity style={styles.controlBtn} onPress={handleReset}>
+                <RotateCcw size={24} color={colors.onSurfaceVariant} strokeWidth={1.5} />
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -80,66 +167,89 @@ export default function SprintScreen() {
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.controlBtn}>
-                <SkipForward size={24} color={colors.primary} strokeWidth={1.5} />
-              </TouchableOpacity>
+              <View style={styles.controlBtnPlaceholder} />
             </View>
           </View>
 
           {/* Session Progress */}
-          <View style={styles.progressSection}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.dataLabel}>DAILY_SPRINT_GOAL</Text>
-              <Text style={styles.dataValueSmall}>3 / 8</Text>
-            </View>
-            <View style={styles.technicalBarBg}>
-              <View style={[styles.technicalBarFill, { width: '37.5%', backgroundColor: colors.primary }]} />
-            </View>
-          </View>
-
-          {/* Sprint Strategy */}
-          <View style={styles.strategyGrid}>
-            <View style={[styles.strategyCard, styles.borderRight]}>
-              <Text style={styles.dataLabel}>WORK_INTERVAL</Text>
-              <Text style={styles.dataValueMd}>25:00</Text>
-            </View>
-            <View style={styles.strategyCard}>
-              <Text style={styles.dataLabel}>BREAK_INTERVAL</Text>
-              <Text style={styles.dataValueMd}>05:00</Text>
+          <View style={styles.section}>
+            <View style={styles.progressCard}>
+              <View style={styles.rowBetween}>
+                <Text style={styles.dataLabel}>DAILY FOCUS GOAL</Text>
+                <Text style={styles.dataValueSmall}>{sessionsDone} / {sessionGoal}</Text>
+              </View>
+              <View style={styles.technicalBarBg}>
+                <View style={[styles.technicalBarFill, { width: `${Math.min((sessionsDone / sessionGoal) * 100, 100)}%`, backgroundColor: colors.primary }]} />
+              </View>
+              <Text style={styles.progressHint}>
+                {sessionsDone >= sessionGoal 
+                  ? "Daily goal achieved! You're in peak flow." 
+                  : `Complete ${sessionGoal - sessionsDone} more sessions to reach your daily target.`}
+              </Text>
             </View>
           </View>
 
           {/* Task Queue */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>SPRINT_TASK_QUEUE</Text>
-          </View>
-          <View style={styles.taskQueue}>
-            <View style={[styles.activeTask, { borderColor: colors.primary, backgroundColor: colors.surface }]}>
-              <View style={styles.taskHeader}>
-                <Zap size={14} color={colors.primary} />
-                <Text style={[styles.activeLabel, { color: colors.primary }]}>CURRENTLY_PROCESSING</Text>
-              </View>
-              <Text style={[styles.activeTaskTitle, { color: colors.primary }]}>Interface Refinement: Tonal Layering</Text>
-              <Text style={styles.taskSubtitle}>ESTIMATED_REMAINING: 12:40</Text>
+          <View style={styles.section}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.sectionTitle}>Up Next</Text>
+              <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/add-task')}>
+                <Plus size={18} color={colors.primary} />
+                <Text style={styles.addBtnText}>ADD TASK</Text>
+              </TouchableOpacity>
             </View>
 
-            <View style={[styles.taskItem, { borderColor: colors.outline + '1A', backgroundColor: colors.surface }]}>
-              <View style={[styles.checkbox, { borderColor: colors.outlineVariant }]} />
-              <View style={{ marginLeft: 12, flex: 1 }}>
-                <Text style={[styles.taskTitle, { color: colors.primary }]}>TYPOGRAPHY_HIERARCHY_AUDIT</Text>
-                <View style={[styles.tagContainer, { backgroundColor: colors.outline + '1A' }]}>
-                  <Text style={styles.tagText}>HIGH_PRIORITY</Text>
-                </View>
-              </View>
+            <View style={styles.taskQueue}>
+              {tasks.length > 0 ? (
+                tasks.map((task) => (
+                  <TouchableOpacity 
+                    key={task.id} 
+                    style={[
+                      styles.taskItem, 
+                      task.status === 'doing' && { backgroundColor: colors.primary + '1A', borderColor: colors.primary }
+                    ]}
+                    onPress={() => handleToggleTaskStatus(task)}
+                  >
+                    <View style={[
+                      styles.checkbox, 
+                      { borderColor: colors.outlineVariant },
+                      task.status === 'doing' && { borderColor: colors.primary, backgroundColor: colors.primary + '33' }
+                    ]}>
+                      {task.status === 'doing' && <Zap size={14} color={colors.primary} fill={colors.primary} />}
+                    </View>
+                    <View style={styles.taskInfo}>
+                      <Text style={[
+                        styles.taskTitle,
+                        task.status === 'doing' && { fontFamily: FONTS.labelSm, color: colors.primary }
+                      ]}>
+                        {task.title}
+                      </Text>
+                      <View style={styles.taskMeta}>
+                        <View style={styles.tag}>
+                          <Text style={styles.tagText}>{task.tag}</Text>
+                        </View>
+                        <Text style={styles.sessionCount}>
+                          {task.completed_sessions}/{task.estimated_sessions} sessions
+                        </Text>
+                      </View>
+                    </View>
+                    {task.status === 'doing' && (
+                      <View style={styles.activeBadge}>
+                        <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <TouchableOpacity 
+                  style={styles.emptyStateCard}
+                  onPress={() => router.push('/add-task')}
+                >
+                  <Plus size={24} color={colors.primary} />
+                  <Text style={styles.emptyStateText}>No tasks in your queue. Add something to focus on.</Text>
+                </TouchableOpacity>
+              )}
             </View>
-          </View>
-
-          {/* Deep Work Insight */}
-          <View style={[styles.insightCard, { backgroundColor: colors.primary }]}>
-            <Text style={styles.labelCapsLight}>DEEP_WORK_INSIGHT</Text>
-            <Text style={[styles.insightQuote, { color: colors.onPrimary }]}>
-              {"\""}The ability to perform deep work is becoming increasingly rare at exactly the same time it is becoming increasingly valuable in our economy.{"\""}
-            </Text>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -163,8 +273,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.outline + '26',
     backgroundColor: colors.background,
   },
   profileSection: {
@@ -175,9 +283,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   avatarPlaceholder: {
     width: 32,
     height: 32,
+    borderRadius: ROUNDNESS.full,
     backgroundColor: colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   avatarLogo: {
     width: 24,
@@ -194,21 +304,28 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: SPACING.xl,
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.outline + '26',
   },
   labelCaps: {
-    fontFamily: FONTS.label,
-    fontSize: 10,
-    letterSpacing: 2,
-    color: colors.outline,
-    marginBottom: SPACING.lg,
+    fontFamily: FONTS.labelSm,
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: colors.primary,
+    marginBottom: SPACING.xl,
+  },
+  timerDisplayContainer: {
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    borderWidth: 8,
+    borderColor: colors.primary + '1A',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   timerDisplay: {
-    fontSize: 84,
+    fontSize: 72,
     fontFamily: FONTS.labelSm,
-    color: colors.primary,
-    letterSpacing: -2,
+    color: colors.onSurface,
+    letterSpacing: -1,
   },
   timerControls: {
     flexDirection: 'row',
@@ -217,146 +334,163 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: SPACING.xl,
   },
   controlBtn: {
-    padding: 10,
+    padding: 12,
+    borderRadius: ROUNDNESS.full,
+    backgroundColor: colors.surfaceVariant,
+  },
+  controlBtnPlaceholder: {
+    width: 48,
   },
   playBtn: {
-    width: 80,
-    height: 80,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  progressSection: {
+  section: {
     padding: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.outline + '26',
-    backgroundColor: colors.background,
+  },
+  progressCard: {
+    backgroundColor: colors.surface,
+    padding: SPACING.lg,
+    borderRadius: ROUNDNESS.lg,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant + '4D',
   },
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: SPACING.sm,
+    alignItems: 'baseline',
+    marginBottom: SPACING.md,
   },
   dataLabel: {
-    fontFamily: FONTS.label,
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: colors.outline,
+    fontFamily: FONTS.labelSm,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.onSurfaceVariant,
   },
   dataValueSmall: {
-    fontFamily: FONTS.labelSm,
-    fontSize: 14,
+    fontFamily: FONTS.headline,
+    fontSize: 18,
     color: colors.primary,
   },
   technicalBarBg: {
-    height: 4,
-    backgroundColor: colors.outline + '1A',
+    height: 8,
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   technicalBarFill: {
     height: '100%',
+    borderRadius: 4,
   },
-  strategyGrid: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.outline + '26',
-    backgroundColor: colors.surface,
-  },
-  strategyCard: {
-    padding: SPACING.lg,
-    flex: 1,
-  },
-  borderRight: {
-    borderRightWidth: 1,
-    borderRightColor: colors.outline + '26',
-  },
-  dataValueMd: {
-    fontSize: 24,
-    fontFamily: FONTS.labelSm,
-    color: colors.primary,
-    marginTop: 4,
-  },
-  sectionHeader: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
-    paddingBottom: SPACING.sm,
+  progressHint: {
+    marginTop: SPACING.md,
+    fontFamily: FONTS.body,
+    fontSize: 13,
+    color: colors.onSurfaceVariant,
   },
   sectionTitle: {
-    fontFamily: FONTS.labelSm,
-    fontSize: 11,
-    color: colors.outline,
-    letterSpacing: 2,
+    fontFamily: FONTS.headline,
+    fontSize: 24,
+    color: colors.onSurface,
   },
-  taskQueue: {
-    paddingHorizontal: SPACING.lg,
-    gap: 12,
-  },
-  activeTask: {
-    padding: SPACING.lg,
-    borderWidth: 1,
-  },
-  taskHeader: {
+  addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: 6,
   },
-  activeLabel: {
+  addBtnText: {
     fontFamily: FONTS.labelSm,
-    fontSize: 9,
-    letterSpacing: 1,
+    fontSize: 11,
+    color: colors.primary,
+    letterSpacing: 0.5,
   },
-  activeTaskTitle: {
-    fontFamily: FONTS.headline,
-    fontSize: 18,
-    marginBottom: 4,
-  },
-  taskSubtitle: {
-    fontFamily: FONTS.label,
-    fontSize: 9,
-    color: colors.outline,
-    marginTop: 2,
+  taskQueue: {
+    gap: 12,
+    marginTop: 16,
   },
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.md,
+    backgroundColor: colors.surface,
+    borderRadius: ROUNDNESS.lg,
     borderWidth: 1,
+    borderColor: colors.outlineVariant + '4D',
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskInfo: {
+    marginLeft: 12,
+    flex: 1,
   },
   taskTitle: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: 16,
+    color: colors.onSurface,
   },
-  tagContainer: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+  taskMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginTop: 4,
   },
+  tag: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.secondaryContainer,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
   tagText: {
-    fontFamily: FONTS.label,
-    fontSize: 8,
-    color: colors.outline,
-    letterSpacing: 0.5,
+    fontFamily: FONTS.labelSm,
+    fontSize: 10,
+    color: colors.onSecondaryContainer,
   },
-  insightCard: {
-    margin: SPACING.lg,
-    padding: SPACING.xl,
-  },
-  labelCapsLight: {
+  sessionCount: {
     fontFamily: FONTS.label,
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
+  },
+  activeBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  activeBadgeText: {
+    color: colors.onPrimary,
+    fontFamily: FONTS.labelSm,
     fontSize: 9,
-    letterSpacing: 2,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: SPACING.sm,
   },
-  insightQuote: {
-    fontFamily: FONTS.headline,
-    fontSize: 18,
-    lineHeight: 24,
+  emptyStateCard: {
+    backgroundColor: colors.surface,
+    padding: SPACING.xl,
+    borderRadius: ROUNDNESS.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  emptyStateText: {
+    fontFamily: FONTS.body,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    textAlign: 'center',
   },
 });

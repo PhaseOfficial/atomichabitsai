@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, Calendar, Sparkles, Activity, Library, Timer } from 'lucide-react-native';
+import { LayoutDashboard, Library, Calendar } from 'lucide-react-native';
 import { COLORS, FONTS } from '@/src/constants/Theme';
 import { useTheme } from '@/src/hooks/useTheme';
 
@@ -38,13 +38,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="sprint"
-        options={{
-          title: 'Sprint',
-          tabBarIcon: ({ color }) => <Timer size={20} color={color} strokeWidth={1.5} />,
-        }}
-      />
-      <Tabs.Screen
         name="calendar"
         options={{
           title: 'Schedule',
@@ -52,17 +45,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="sprint"
+        options={{
+          title: 'Sprint',
+          href: null, // Hide from bottom bar
+        }}
+      />
+      <Tabs.Screen
         name="aa_ai"
         options={{
           title: 'Assistant',
-          tabBarIcon: ({ color }) => <Sparkles size={20} color={color} strokeWidth={1.5} />,
+          href: null, // Hide from bottom bar
         }}
       />
       <Tabs.Screen
         name="hh_habits"
         options={{
           title: 'Habits',
-          tabBarIcon: ({ color }) => <Activity size={20} color={color} strokeWidth={1.5} />,
+          href: null, // Hide from bottom bar
         }}
       />
       <Tabs.Screen

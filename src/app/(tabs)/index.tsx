@@ -1,16 +1,17 @@
 import React, { useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Play, CheckCircle2, Activity, BarChart2, Mail, CreditCard, Sparkles, Plus, Globe, Trash2 } from 'lucide-react-native';
+import { Settings, Play, CheckCircle2, Activity, BarChart2, Mail, CreditCard, Sparkles, Plus, Globe, Trash2, Menu } from 'lucide-react-native';
 import { SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { useData } from '@/src/hooks/useData';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/src/hooks/useAuth';
 import { performMutation } from '@/src/lib/sync';
+import * as Haptics from 'expo-haptics';
 
 export default function DashboardScreen() {
-  const { colors } = useTheme();
+  const { colors, focusGoal } = useTheme();
   const { user } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
@@ -28,8 +29,16 @@ export default function DashboardScreen() {
     [today, userId]
   );
 
-  const { data: habits, loading: listLoading, refresh: refreshHabits } = useData<{id: string, title: string}>(
-    'SELECT id, title FROM habits WHERE is_active = 1 AND (user_id = ? OR user_id IS NULL) LIMIT 3',
+  const { data: sessionStats } = useData<{count: number}>(
+    "SELECT SUM(completed_sessions) as count FROM tasks WHERE (user_id = ? OR user_id IS NULL) AND date(updated_at) = date('now')",
+    [userId]
+  );
+
+  const { data: habits, loading: listLoading, refresh: refreshHabits } = useData<{id: string, title: string, is_done_today: number}>(
+    `SELECT h.id, h.title, 
+     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at) = date('now')) as is_done_today
+     FROM habits h 
+     WHERE h.is_active = 1 AND (h.user_id = ? OR h.user_id IS NULL) LIMIT 3`,
     [userId]
   );
 
@@ -37,6 +46,19 @@ export default function DashboardScreen() {
     'SELECT * FROM shortcuts WHERE user_id = ? OR user_id IS NULL',
     [userId]
   );
+
+  const { data: identitySettings } = useData<{value: string}>(
+    "SELECT value FROM settings WHERE key = 'identity_anchor'",
+    []
+  );
+
+  const { data: latestTask } = useData<{title: string}>(
+    "SELECT title FROM tasks WHERE (user_id = ? OR user_id IS NULL) AND status != 'done' ORDER BY updated_at DESC LIMIT 1",
+    [userId]
+  );
+
+  const identityAnchor = identitySettings?.[0]?.value || 'The Disciplined Creator';
+  const currentFocus = latestTask?.[0]?.title || 'Daily Discipline';
 
   // Refresh data when screen is focused
   useFocusEffect(
@@ -46,8 +68,25 @@ export default function DashboardScreen() {
     }, [])
   );
 
+  const handleToggleHabit = async (habitId: string, isDone: boolean) => {
+    if (isDone) return;
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await performMutation("logs", "INSERT", {
+        id: Math.random().toString(36).substring(7),
+        habit_id: habitId,
+        status: "completed",
+        logged_at: new Date().toISOString(),
+      });
+      refreshHabits();
+    } catch (err) {
+      console.error("Failed to log habit:", err);
+    }
+  };
+
   const activeHabits = habitStats?.[0]?.count || 0;
   const completedToday = logStats?.[0]?.count || 0;
+  const sessionsDone = sessionStats?.[0]?.count || 0;
   const userName = user?.email ? user.email.split('@')[0] : 'Guest';
 
   const greeting = useMemo(() => {
@@ -60,6 +99,7 @@ export default function DashboardScreen() {
   const isLoading = habitsLoading || logsLoading || listLoading || shortcutsLoading;
 
   const handleOpenLink = async (url: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) {
@@ -73,6 +113,7 @@ export default function DashboardScreen() {
   };
 
   const handleDeleteShortcut = async (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       "Delete Shortcut",
       "Are you sure you want to remove this shortcut?",
@@ -85,6 +126,7 @@ export default function DashboardScreen() {
             try {
               await performMutation('shortcuts', 'DELETE', { id });
               refreshShortcuts();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (error) {
               Alert.alert('Error', 'Failed to delete shortcut');
             }
@@ -97,32 +139,42 @@ export default function DashboardScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.menuBtn} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/menu');
+            }}
+          >
+            <Menu size={24} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+          
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('@/assets/images/Artboard 1 logo.png')} 
+              style={[styles.logoImage, { tintColor: colors.primary }]} 
+              resizeMode="contain" 
+            />
+          </View>
+
+          <TouchableOpacity 
+            style={styles.ghostBtn} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/modal');
+            }}
+          >
+            <Settings size={20} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+        </View>
+
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.profileSection}>
-              <View style={styles.avatarPlaceholder}>
-                <Image 
-                  source={require('@/assets/images/icon.png')} 
-                  style={styles.avatarLogo} 
-                  resizeMode="contain"
-                />
-              </View>
-              <Image 
-                source={require('@/assets/images/Artboard 1 logo.png')} 
-                style={[styles.logoImage, { tintColor: colors.primary }]} 
-                resizeMode="contain" 
-              />
-            </View>
-            <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
-              <Settings size={20} color={colors.primary} strokeWidth={1.5} />
-            </TouchableOpacity>
-          </View>
-
           {/* Greeting */}
           <View style={styles.greetingContainer}>
             <Text style={styles.labelCaps}>DAILY OVERVIEW</Text>
@@ -134,14 +186,20 @@ export default function DashboardScreen() {
             <View style={styles.statsGrid}>
               <TouchableOpacity 
                 style={[styles.statCard, { borderLeftColor: colors.primary, borderLeftWidth: 4 }]} 
-                onPress={() => router.push('/hh_habits')}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/hh_habits');
+                }}
               >
                 <Text style={styles.statLabel}>Active Habits</Text>
                 <Text style={styles.statValue}>{isLoading ? '...' : activeHabits}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.statCard, { borderLeftColor: colors.secondary, borderLeftWidth: 4 }]} 
-                onPress={() => router.push('/calendar')}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/calendar');
+                }}
               >
                 <Text style={styles.statLabel}>Done Today</Text>
                 <Text style={styles.statValue}>{isLoading ? '...' : completedToday}</Text>
@@ -156,26 +214,63 @@ export default function DashboardScreen() {
                 <View style={styles.focusIconBg}>
                   <Sparkles size={20} color={colors.onPrimary} />
                 </View>
-                <Text style={styles.focusBadge}>CURRENT FOCUS</Text>
+                <Text style={styles.focusBadge}>{identityAnchor.toUpperCase()}</Text>
               </View>
-              <Text style={styles.focusTitle}>Deep Work: Design Refinement</Text>
+              <Text style={styles.focusTitle}>{currentFocus}</Text>
               <Text style={styles.focusDesc}>
-                Refining the tonal layering and typography hierarchy for a more serene experience.
+                Refining your presence through focused intention and consistent action.
               </Text>
-              <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/sprint')}>
+              <TouchableOpacity 
+                style={styles.primaryBtn} 
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  router.push('/sprint');
+                }}
+              >
                 <Text style={styles.primaryBtnText}>Resume Session</Text>
                 <Play size={16} color={colors.primary} fill={colors.primary} />
               </TouchableOpacity>
             </View>
           </View>
 
+          {/* Focus Capacity Slider */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>FOCUS CAPACITY</Text>
+            <View style={styles.sliderContainer}>
+              <View style={styles.sliderTrack}>
+                <View style={[styles.sliderFill, { width: `${Math.min((sessionsDone / focusGoal) * 100, 100)}%`, backgroundColor: colors.primary }]} />
+                <View style={[styles.sliderThumb, { left: `${Math.min((sessionsDone / focusGoal) * 100, 100)}%`, borderColor: colors.primary, backgroundColor: colors.surface }]} />
+              </View>
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLevel}>{sessionsDone} sessions done</Text>
+                <Text style={styles.sliderLevel}>Goal: {focusGoal}</Text>
+              </View>
+            </View>
+          </View>
+
           {/* Keystone Habits */}
           <View style={styles.section}>
             <View style={styles.rowBetween}>
-              <Text style={styles.sectionTitle}>Daily Rituals</Text>
-              <TouchableOpacity onPress={() => router.push('/hh_habits')}>
-                <Text style={styles.sectionSubtitle}>View All</Text>
-              </TouchableOpacity>
+              <Text style={styles.sectionTitle}>Daily Habits</Text>
+              <View style={styles.rowAlign}>
+                <TouchableOpacity 
+                  style={{ marginRight: 16 }} 
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/add-habit');
+                  }}
+                >
+                  <Plus size={20} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/hh_habits');
+                  }}
+                >
+                  <Text style={styles.sectionSubtitle}>View All</Text>
+                </TouchableOpacity>
+              </View>
             </View>
             
             {isLoading ? (
@@ -183,13 +278,22 @@ export default function DashboardScreen() {
             ) : habits.length > 0 ? (
               <View style={styles.habitList}>
                 {habits.map(habit => (
-                  <HabitItem key={habit.id} title={habit.title} done={false} colors={colors} />
+                  <HabitItem 
+                    key={habit.id} 
+                    title={habit.title} 
+                    done={habit.is_done_today > 0} 
+                    colors={colors} 
+                    onToggle={() => handleToggleHabit(habit.id, habit.is_done_today > 0)}
+                  />
                 ))}
               </View>
             ) : (
               <TouchableOpacity 
                 style={styles.emptyStateCard}
-                onPress={() => router.push('/hh_habits')}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/add-habit');
+                }}
               >
                 <Plus size={24} color={colors.primary} />
                 <Text style={styles.emptyStateText}>Create your first habit to start tracking</Text>
@@ -201,7 +305,12 @@ export default function DashboardScreen() {
           <View style={styles.toolsContainer}>
             <View style={styles.rowBetween}>
               <Text style={styles.sectionLabel}>ECOSYSTEM TOOLS</Text>
-              <TouchableOpacity onPress={() => router.push('/add-shortcut')}>
+              <TouchableOpacity 
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/add-shortcut');
+                }}
+              >
                 <Plus size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
@@ -218,12 +327,9 @@ export default function DashboardScreen() {
                   />
                 ))
               ) : (
-                <>
-                  <ToolCard icon={<Activity size={20} color={colors.primary} />} label="Analytics" colors={colors} />
-                  <ToolCard icon={<BarChart2 size={20} color={colors.primary} />} label="Performance" colors={colors} />
-                  <ToolCard icon={<Mail size={20} color={colors.primary} />} label="Inbox" colors={colors} />
-                  <ToolCard icon={<CreditCard size={20} color={colors.primary} />} label="Finance" colors={colors} />
-                </>
+                <View style={styles.emptyStateContainer}>
+                  <Text style={styles.emptyStateTextSmall}>No shortcuts added yet.</Text>
+                </View>
               )}
             </View>
           </View>
@@ -233,10 +339,11 @@ export default function DashboardScreen() {
   );
 }
 
-function HabitItem({ title, done, colors }: { title: string; done: boolean; colors: any }) {
+
+function HabitItem({ title, done, colors, onToggle }: { title: string; done: boolean; colors: any; onToggle: () => void }) {
   const router = useRouter();
   return (
-    <TouchableOpacity style={stylesHabit.habitItem} onPress={() => router.push('/hh_habits')}>
+    <TouchableOpacity style={stylesHabit.habitItem} onPress={onToggle}>
       <View style={[stylesHabit.checkbox, { borderColor: colors.primary }, done && { backgroundColor: colors.primary }]}>
         {done && <CheckCircle2 size={14} color={colors.onPrimary} />}
       </View>
@@ -332,37 +439,33 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
     backgroundColor: colors.background,
+    height: 60,
   },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  avatarPlaceholder: {
-    width: 36,
-    height: 36,
-    borderRadius: ROUNDNESS.full,
-    backgroundColor: colors.primaryContainer,
+  logoContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    zIndex: -1,
   },
-  avatarLogo: {
-    width: 24,
-    height: 24,
+  menuBtn: {
+    padding: 8,
   },
   logoImage: {
-    height: 32,
-    width: 120,
+    height: 40,
+    width: 160,
   },
   ghostBtn: {
-    padding: 4,
+    padding: 8,
   },
   greetingContainer: {
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.lg,
+    paddingTop: SPACING.md,
   },
   labelCaps: {
     fontFamily: FONTS.labelSm,
@@ -485,6 +588,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'baseline',
     marginBottom: SPACING.md,
   },
+  rowAlign: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   sliderContainer: {
     backgroundColor: colors.surface,
     padding: SPACING.lg,
@@ -504,8 +611,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 4,
   },
   sliderThumb: {
-    width: 20,
-    height: 20,
+    width: 20, height: 20,
     borderRadius: 10,
     position: 'absolute',
     top: -6,
@@ -532,8 +638,22 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  emptyStateCard: {
-    backgroundColor: colors.surface,
+  emptyStateContainer: {
+    width: '100%',
+    padding: SPACING.lg,
+    backgroundColor: colors.surfaceVariant + '4D',
+    borderRadius: ROUNDNESS.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.outlineVariant,
+    alignItems: 'center',
+  },
+  emptyStateTextSmall: {
+    fontFamily: FONTS.body,
+    fontSize: 12,
+    color: colors.onSurfaceVariant,
+  },
+  emptyStateCard: {    backgroundColor: colors.surface,
     padding: SPACING.xl,
     borderRadius: ROUNDNESS.lg,
     borderWidth: 1,

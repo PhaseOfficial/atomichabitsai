@@ -6,26 +6,41 @@ export function useData<T>(query: string, params: any[] = []) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isCancelled: () => boolean) => {
     setLoading(true);
     try {
       const db = await getDb();
-      // Ensure all params are strings or numbers for SQLite
-      const sanitizedParams = params.map(p => p === null ? null : String(p));
+      // Ensure all params are strings or numbers for SQLite, handle undefined as null
+      const sanitizedParams = params.map(p => (p === null || p === undefined) ? null : String(p));
+      
       const result = await db.getAllAsync(query, sanitizedParams);
-      setData(result as T[]);
-      setError(null);
+      
+      if (!isCancelled()) {
+        setData(result as T[]);
+        setError(null);
+      }
     } catch (err) {
-      console.error('Database query error:', err, query, params);
-      setError(err as Error);
+      if (!isCancelled()) {
+        console.error('Database query error:', err, query, params);
+        setError(err as Error);
+      }
     } finally {
-      setLoading(false);
+      if (!isCancelled()) {
+        setLoading(false);
+      }
     }
   }, [query, JSON.stringify(params)]);
 
   useEffect(() => {
-    fetchData();
+    let cancelled = false;
+    const isCancelled = () => cancelled;
+
+    fetchData(isCancelled);
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchData]);
 
-  return { data, loading, error, refresh: fetchData };
+  return { data, loading, error, refresh: () => fetchData(() => false) };
 }

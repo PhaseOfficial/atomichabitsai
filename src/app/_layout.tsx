@@ -9,6 +9,7 @@ import { PlusJakartaSans_500Medium, PlusJakartaSans_700Bold } from '@expo-google
 import { initDatabase } from '@/src/db/database';
 import { useTheme, BatsirThemeProvider } from '@/src/hooks/useTheme';
 import { useSync } from '@/src/hooks/useSync';
+import { AnimatedSplashScreen } from '@/src/components/animated-splash-screen';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -21,7 +22,9 @@ export const unstable_settings = {
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* Reloading in development can sometimes cause this to fail, ignore it */
+});
 
 export default function RootLayout() {
   const [dbLoaded, setDbLoaded] = useState(false);
@@ -56,11 +59,18 @@ export default function RootLayout() {
 }
 
 function RootLayoutContent() {
-  const { isLoaded } = useTheme();
+  const { isLoaded, colors } = useTheme();
+  const [animationFinished, setAnimationFinished] = useState(false);
 
   useEffect(() => {
     if (isLoaded) {
-      SplashScreen.hideAsync();
+      // Small delay to ensure the native splash screen is ready to be hidden
+      const timer = setTimeout(() => {
+        SplashScreen.hideAsync().catch((err) => {
+          console.warn('SplashScreen.hideAsync failed:', err.message);
+        });
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isLoaded]);
 
@@ -68,7 +78,17 @@ function RootLayoutContent() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <>
+      <RootLayoutNav />
+      {!animationFinished && (
+        <AnimatedSplashScreen 
+          onAnimationFinish={() => setAnimationFinished(true)} 
+          backgroundColor={colors.background}
+        />
+      )}
+    </>
+  );
 }
 
 function RootLayoutNav() {
@@ -80,6 +100,7 @@ function RootLayoutNav() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
+        <Stack.Screen name="menu" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="add-habit" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="add-shortcut" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="add-task" options={{ presentation: 'modal', headerShown: false }} />

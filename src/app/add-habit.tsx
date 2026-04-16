@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Save, Sparkles, Calendar, Repeat } from 'lucide-react-native';
+import { X, Save, Sparkles, Calendar, Repeat, Clock } from 'lucide-react-native';
 import { SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { useTheme } from '@/src/hooks/useTheme';
 import { performMutation } from '@/src/lib/sync';
@@ -14,6 +14,13 @@ const FREQUENCIES = [
   { label: 'Monthly', value: 'monthly' },
 ];
 
+const TIME_PRESETS = [
+  { label: 'Morning', time: '08:00' },
+  { label: 'Noon', time: '12:00' },
+  { label: 'Evening', time: '18:00' },
+  { label: 'Night', time: '22:00' },
+];
+
 export default function AddHabitScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
@@ -22,6 +29,7 @@ export default function AddHabitScreen() {
 
   const [title, setTitle] = useState('');
   const [frequency, setFrequency] = useState('daily');
+  const [preferredTime, setPreferredTime] = useState('08:00');
   const [weekendFlexibility, setWeekendFlexibility] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -38,6 +46,7 @@ export default function AddHabitScreen() {
         user_id: user?.id || 'guest',
         title,
         frequency,
+        preferred_time: preferredTime,
         weekend_flexibility: weekendFlexibility ? 1 : 0,
         is_active: 1,
       });
@@ -57,7 +66,7 @@ export default function AddHabitScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <X size={24} color={colors.onSurface} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>New Ritual</Text>
+          <Text style={styles.headerTitle}>New Habit</Text>
           <TouchableOpacity onPress={handleSave} disabled={loading}>
             {loading ? (
               <ActivityIndicator size="small" color={colors.primary} />
@@ -82,6 +91,39 @@ export default function AddHabitScreen() {
                   value={title}
                   onChangeText={setTitle}
                 />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>WHEN SHOULD THIS HAPPEN?</Text>
+              <View style={styles.inputWrapper}>
+                <Clock size={20} color={colors.outline} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="08:00"
+                  placeholderTextColor={colors.outline}
+                  value={preferredTime}
+                  onChangeText={setPreferredTime}
+                />
+              </View>
+              <View style={styles.presetsGrid}>
+                {TIME_PRESETS.map((p) => (
+                  <TouchableOpacity
+                    key={p.time}
+                    style={[
+                      styles.presetBtn,
+                      preferredTime === p.time && { backgroundColor: colors.primaryContainer }
+                    ]}
+                    onPress={() => setPreferredTime(p.time)}
+                  >
+                    <Text style={[
+                      styles.presetText,
+                      preferredTime === p.time && { color: colors.primary, fontFamily: FONTS.labelSm }
+                    ]}>
+                      {p.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
@@ -172,7 +214,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 4,
   },
   inputGroup: {
-    gap: 12,
+    gap: 8,
   },
   label: {
     fontFamily: FONTS.labelSm,
@@ -197,6 +239,25 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 16,
     color: colors.onSurface,
+  },
+  presetsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  presetBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: ROUNDNESS.sm,
+    backgroundColor: colors.surfaceVariant + '4D',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.outlineVariant + '33',
+  },
+  presetText: {
+    fontFamily: FONTS.label,
+    fontSize: 10,
+    color: colors.onSurfaceVariant,
   },
   frequencyGrid: {
     flexDirection: 'row',

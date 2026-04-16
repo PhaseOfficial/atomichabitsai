@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Search, BookOpen, Bookmark, Clock, ArrowRight, Star } from 'lucide-react-native';
+import { Settings, Search, BookOpen, Bookmark, Clock, ArrowRight, Star, Menu } from 'lucide-react-native';
 import { COLORS, SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useRouter } from 'expo-router';
@@ -18,32 +18,30 @@ export default function LibraryScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.menuBtn} onPress={() => router.push('/menu')}>
+            <Menu size={24} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+          
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('@/assets/images/Artboard 1 logo.png')} 
+              style={[styles.logoImage, { tintColor: colors.primary }]} 
+              resizeMode="contain" 
+            />
+          </View>
+
+          <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
+            <Settings size={20} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+        </View>
+
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.profileSection}>
-              <View style={styles.avatarPlaceholder}>
-                <Image 
-                  source={require('@/assets/images/icon.png')} 
-                  style={styles.avatarLogo} 
-                  resizeMode="contain"
-                />
-              </View>
-              <Image 
-                source={require('@/assets/images/Artboard 1 logo.png')} 
-                style={[styles.logoImage, { tintColor: colors.primary }]} 
-                resizeMode="contain" 
-              />
-            </View>
-            <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
-              <Settings size={20} color={colors.primary} strokeWidth={1.5} />
-            </TouchableOpacity>
-          </View>
-
           {/* Library Intro */}
           <View style={styles.introSection}>
             <Text style={styles.labelCaps}>KNOWLEDGE INDEX</Text>
@@ -262,33 +260,28 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
     backgroundColor: colors.background,
+    height: 60,
   },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  avatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: ROUNDNESS.full,
-    backgroundColor: colors.primaryContainer,
+  logoContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    zIndex: -1,
   },
-  avatarLogo: {
-    width: 24,
-    height: 24,
+  menuBtn: {
+    padding: 8,
   },
   logoImage: {
-    height: 32,
-    width: 120,
+    height: 40,
+    width: 160,
   },
   ghostBtn: {
-    padding: 4,
+    padding: 8,
   },
   introSection: {
     padding: SPACING.lg,

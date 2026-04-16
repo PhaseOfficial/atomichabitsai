@@ -13,8 +13,11 @@ export const initDatabase = async () => {
       user_id TEXT, -- Supabase user ID
       title TEXT NOT NULL,
       frequency TEXT NOT NULL DEFAULT 'daily',
+      preferred_time TEXT, -- e.g. "08:00"
       weekend_flexibility INTEGER DEFAULT 0,
       is_active INTEGER DEFAULT 1,
+      current_streak INTEGER DEFAULT 0,
+      max_streak INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
@@ -72,6 +75,27 @@ export const initDatabase = async () => {
       updated_at TEXT DEFAULT (datetime('now'))
     );
   `);
+
+  // Simple migration to add missing columns if they don't exist
+  try {
+    const tableInfo = await db.getAllAsync(`PRAGMA table_info(habits)`);
+    const columnNames = (tableInfo as any[]).map(c => c.name);
+    
+    if (!columnNames.includes('preferred_time')) {
+      await db.execAsync(`ALTER TABLE habits ADD COLUMN preferred_time TEXT;`);
+    }
+    if (!columnNames.includes('weekend_flexibility')) {
+      await db.execAsync(`ALTER TABLE habits ADD COLUMN weekend_flexibility INTEGER DEFAULT 0;`);
+    }
+    if (!columnNames.includes('current_streak')) {
+      await db.execAsync(`ALTER TABLE habits ADD COLUMN current_streak INTEGER DEFAULT 0;`);
+    }
+    if (!columnNames.includes('max_streak')) {
+      await db.execAsync(`ALTER TABLE habits ADD COLUMN max_streak INTEGER DEFAULT 0;`);
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
   
   return db;
 };

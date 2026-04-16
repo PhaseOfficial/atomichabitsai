@@ -1,18 +1,26 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, ThemeMode } from '@/src/hooks/useTheme';
 import { AccentKey } from '@/src/constants/Theme';
-import { Check, X, Moon, Sun, Monitor, LogOut } from 'lucide-react-native';
+import { Check, X, Moon, Sun, Monitor, LogOut, Target, Clock, RefreshCw } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { useAuth } from '../hooks/useAuth';
+import { syncWithSupabase, pullFromServer } from '../lib/sync';
 
 export default function SettingsModal() {
-  const { colors, accentKey, updateAccent, availableAccents, themeMode, updateThemeMode } = useTheme();
+  const { 
+    colors, accentKey, updateAccent, availableAccents, 
+    themeMode, updateThemeMode, 
+    focusGoal, updateFocusGoal,
+    sprintDuration, updateSprintDuration
+  } = useTheme();
+  
   const { signOut, user } = useAuth();
   const router = useRouter();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const [syncing, setSyncing] = useState(false);
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -30,6 +38,20 @@ export default function SettingsModal() {
         }
       ]
     );
+  };
+
+  const handleManualSync = async () => {
+    setSyncing(true);
+    try {
+      await syncWithSupabase();
+      await pullFromServer();
+      Alert.alert("Sync Complete", "All data and preferences are up to date.");
+    } catch (e) {
+      console.error("Manual sync failed", e);
+      Alert.alert("Sync Error", "Could not reach the cloud. Check your connection.");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -51,6 +73,40 @@ export default function SettingsModal() {
                 <LogOut size={18} color={colors.error} />
                 <Text style={[styles.menuItemValue, { color: colors.error }]}>Sign Out</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>PRODUCTIVITY GOALS</Text>
+            <View style={styles.goalRow}>
+               <View style={styles.goalInfo}>
+                  <Target size={20} color={colors.primary} />
+                  <View>
+                    <Text style={styles.goalTitle}>Daily Focus Goal</Text>
+                    <Text style={styles.goalDesc}>Number of sessions per day</Text>
+                  </View>
+               </View>
+               <TextInput 
+                 style={styles.goalInput}
+                 value={focusGoal.toString()}
+                 onChangeText={(v) => updateFocusGoal(parseInt(v) || 0)}
+                 keyboardType="number-pad"
+               />
+            </View>
+            <View style={styles.goalRow}>
+               <View style={styles.goalInfo}>
+                  <Clock size={20} color={colors.primary} />
+                  <View>
+                    <Text style={styles.goalTitle}>Sprint Duration</Text>
+                    <Text style={styles.goalDesc}>Minutes per session</Text>
+                  </View>
+               </View>
+               <TextInput 
+                 style={styles.goalInput}
+                 value={sprintDuration.toString()}
+                 onChangeText={(v) => updateSprintDuration(parseInt(v) || 0)}
+                 keyboardType="number-pad"
+               />
             </View>
           </View>
 
@@ -122,9 +178,13 @@ export default function SettingsModal() {
 
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>SYSTEM</Text>
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleManualSync} disabled={syncing}>
               <Text style={styles.menuItemText}>Cloud Sync Status</Text>
-              <Text style={styles.menuItemValue}>Connected</Text>
+              <View style={styles.syncRow}>
+                {syncing && <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 8 }} />}
+                <Text style={styles.menuItemValue}>{syncing ? "Syncing..." : "Connected"}</Text>
+                {!syncing && <RefreshCw size={14} color={colors.outline} style={{ marginLeft: 8 }} />}
+              </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem}>
               <Text style={styles.menuItemText}>Reset Database</Text>
@@ -234,7 +294,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 11,
     color: colors.primary,
     letterSpacing: 1.5,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontFamily: FONTS.headline,
@@ -247,6 +307,42 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 14,
     color: colors.onSurfaceVariant,
     marginBottom: SPACING.lg,
+  },
+  goalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    padding: 12,
+    borderRadius: ROUNDNESS.md,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant + '33',
+  },
+  goalInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  goalTitle: {
+    fontFamily: FONTS.headline,
+    fontSize: 14,
+    color: colors.onSurface,
+  },
+  goalDesc: {
+    fontFamily: FONTS.body,
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
+  },
+  goalInput: {
+    width: 50,
+    height: 40,
+    backgroundColor: colors.surfaceVariant + '4D',
+    borderRadius: ROUNDNESS.sm,
+    textAlign: 'center',
+    fontFamily: FONTS.labelSm,
+    color: colors.primary,
+    fontSize: 16,
   },
   themeToggleGrid: {
     flexDirection: 'row',
@@ -298,6 +394,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontFamily: FONTS.label,
     fontSize: 14,
     color: colors.onSurfaceVariant,
+  },
+  syncRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   footer: {
     alignItems: 'center',

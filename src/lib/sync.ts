@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { getDb } from '../db/database';
+import { updateHabitStreak } from './habit-logic';
 
 export interface SyncOperation {
   id?: number;
@@ -26,6 +27,25 @@ export const addToSyncQueue = async (
   );
 };
 
+/**
+ * Updates pending payloads in the sync queue when a temporary ID is replaced by a real UUID
+ */
+const updateQueuePayloads = async (oldId: string, newId: string) => {
+  const db = await getDb();
+  const queue: SyncOperation[] = await db.getAllAsync('SELECT * FROM sync_queue');
+  
+  for (const item of queue) {
+    if (item.payload.includes(oldId)) {
+      // Use more careful replacement for IDs to avoid partial matches
+      // but IDs here are usually unique strings like "8zztim"
+      const updatedPayload = item.payload.replace(new RegExp(`"${oldId}"`, 'g'), `"${newId}"`);
+      if (updatedPayload !== item.payload) {
+        await db.runAsync('UPDATE sync_queue SET payload = ? WHERE id = ?', [updatedPayload, item.id]);
+      }
+    }
+  }
+};
+
 export const syncWithSupabase = async () => {
   const db = await getDb();
   const queue: SyncOperation[] = await db.getAllAsync('SELECT * FROM sync_queue ORDER BY id ASC');
@@ -39,14 +59,18 @@ export const syncWithSupabase = async () => {
 
   for (const item of queue) {
     try {
-      const payload = JSON.parse(item.payload);
+      // Re-fetch item from DB to get latest payload (might have been updated by previous iteration)
+      const currentItem = await db.getFirstAsync<SyncOperation>('SELECT * FROM sync_queue WHERE id = ?', [item.id]);
+      if (!currentItem) continue;
+      
+      const payload = JSON.parse(currentItem.payload);
       
       if (!user) continue; 
       
-      if (payload.user_id && !isUUID(payload.user_id) && payload.user_id !== 'guest') {
-        console.warn(`Skipping sync for item ${item.id}: Invalid user_id UUID "${payload.user_id}"`);
-        await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [item.id]);
-        continue;
+      // Validation for habit_id in logs - if it's not a UUID, we can't sync it yet
+      if (item.table_name === 'logs' && payload.habit_id && !isUUID(payload.habit_id)) {
+        console.warn(`Postponing sync for log ${item.id}: habit_id "${payload.habit_id}" is still a temporary ID`);
+        continue; 
       }
 
       let error;
@@ -56,9 +80,9 @@ export const syncWithSupabase = async () => {
 
       switch (item.operation) {
         case 'INSERT':
+          // ALWAYS remove the local temp ID for INSERTs so Supabase can generate a valid UUID
           const { id: localId, ...insertPayload } = payload;
           
-          // Only add user_id if the table expects it
           if (tablesWithUserId.includes(item.table_name)) {
             if (insertPayload.user_id === 'guest' || !insertPayload.user_id) {
               insertPayload.user_id = user.id;
@@ -75,22 +99,29 @@ export const syncWithSupabase = async () => {
           remoteData = insertedData;
 
           if (!error && remoteData) {
-            // Update local ID and user_id (if applicable)
-            if (tablesWithUserId.includes(item.table_name)) {
-              await db.runAsync(
-                `UPDATE ${item.table_name} SET id = ?, user_id = ? WHERE id = ?`,
-                [remoteData.id, user.id, localId]
-              );
-            } else {
-              await db.runAsync(
-                `UPDATE ${item.table_name} SET id = ? WHERE id = ?`,
-                [remoteData.id, localId]
-              );
-            }
-            
-            if (item.table_name === 'habits') {
-              await db.runAsync('UPDATE logs SET habit_id = ? WHERE habit_id = ?', [remoteData.id, localId]);
-            }
+            // Re-fetch item to ensure we haven't lost it in a concurrent run
+            await db.withTransactionAsync(async () => {
+              // 1. Update foreign keys in other local tables first
+              if (item.table_name === 'habits') {
+                await db.runAsync('UPDATE logs SET habit_id = ? WHERE habit_id = ?', [remoteData.id, localId]);
+              }
+
+              // 2. Update the actual table locally
+              if (tablesWithUserId.includes(item.table_name)) {
+                await db.runAsync(
+                  `UPDATE ${item.table_name} SET id = ?, user_id = ? WHERE id = ?`,
+                  [remoteData.id, user.id, localId]
+                );
+              } else {
+                await db.runAsync(
+                  `UPDATE ${item.table_name} SET id = ? WHERE id = ?`,
+                  [remoteData.id, localId]
+                );
+              }
+
+              // 3. Update other items in the sync queue that might use this old ID
+              await updateQueuePayloads(localId, remoteData.id);
+            });
           }
           break;
           
@@ -110,8 +141,8 @@ export const syncWithSupabase = async () => {
         await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [item.id]);
       } else {
         console.error(`Sync error for item ${item.id} (${item.table_name}):`, error.message);
-        // Clean up unrecoverable errors
-        if (error.code === '42P01' || error.code === '23503' || error.message.includes('row-level security') || error.message.includes('column')) {
+        // If it's an RLS or invalid input error that won't be fixed by retrying, remove it
+        if (error.code === '42P01' || error.code === '23503' || error.code === '22P02' || error.message.includes('row-level security')) {
            await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [item.id]);
         }
       }
@@ -136,8 +167,6 @@ export const pullFromServer = async () => {
       const tablesWithUserId = ['habits', 'schedules', 'shortcuts', 'tasks'];
       if (tablesWithUserId.includes(table)) {
         query = query.eq('user_id', user.id);
-      } else if (table === 'profiles') {
-        query = query.eq('id', user.id);
       }
 
       const { data, error } = await query;
@@ -203,6 +232,16 @@ export const performMutation = async (
     case 'DELETE':
       await db.runAsync(`DELETE FROM ${table_name} WHERE id = ?`, [payload.id]);
       break;
+  }
+
+  // Handle streak maintenance
+  if (table_name === 'logs') {
+    if (payload.habit_id) {
+      await updateHabitStreak(payload.habit_id);
+    }
+  } else if (table_name === 'habits' && (operation === 'UPDATE' || operation === 'INSERT')) {
+    // If weekend_flexibility changed or new habit added, recalculate/init
+    await updateHabitStreak(payload.id);
   }
 
   await addToSyncQueue(table_name, operation, payload);

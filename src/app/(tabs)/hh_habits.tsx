@@ -3,7 +3,7 @@ import { useData } from "@/src/hooks/useData";
 import { useTheme } from "@/src/hooks/useTheme";
 import { useAuth } from "@/src/hooks/useAuth";
 import { performMutation } from "@/src/lib/sync";
-import { Heart, PlusCircle, Settings, Sparkles } from "lucide-react-native";
+import { Heart, PlusCircle, Settings, Sparkles, Menu, Trash2 } from "lucide-react-native";
 import React, { useMemo, useCallback } from "react";
 import {
     ActivityIndicator,
@@ -13,6 +13,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Alert
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -22,6 +23,9 @@ interface Habit {
   title: string;
   frequency: string;
   is_active: number;
+  is_done_today: number;
+  current_streak: number;
+  max_streak: number;
 }
 
 export default function HabitsScreen() {
@@ -37,7 +41,18 @@ export default function HabitsScreen() {
     loading,
     error,
     refresh,
-  } = useData<Habit>("SELECT * FROM habits WHERE is_active = 1 AND (user_id = ? OR user_id IS NULL)", [userId]);
+  } = useData<Habit>(
+    `SELECT h.*, 
+     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at) = date('now')) as is_done_today
+     FROM habits h 
+     WHERE h.is_active = 1 AND (h.user_id = ? OR h.user_id IS NULL)`, 
+    [userId]
+  );
+
+  const globalStreak = useMemo(() => {
+    if (!habits || habits.length === 0) return 0;
+    return Math.max(...habits.map(h => h.current_streak || 0));
+  }, [habits]);
 
   // Refresh data when screen is focused
   useFocusEffect(
@@ -46,11 +61,16 @@ export default function HabitsScreen() {
     }, [])
   );
 
-  const handleToggleHabit = async (habitId: string) => {
+  const handleToggleHabit = async (habit: Habit) => {
     try {
+      if (habit.is_done_today > 0) {
+        // Already done, maybe delete the log? For now let's just avoid duplicates
+        return;
+      }
+
       await performMutation("logs", "INSERT", {
         id: Math.random().toString(36).substring(7),
-        habit_id: habitId,
+        habit_id: habit.id,
         status: "completed",
         logged_at: new Date().toISOString(),
       });
@@ -64,7 +84,29 @@ export default function HabitsScreen() {
     router.push('/add-habit');
   };
 
-  if (loading) {
+  const handleDeleteHabit = async (id: string) => {
+    Alert.alert(
+      "Delete Habit",
+      "Are you sure you want to remove this habit and all its history?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await performMutation('habits', 'DELETE', { id });
+              refresh();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete habit');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  if (loading && habits.length === 0) {
     return (
       <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -75,43 +117,38 @@ export default function HabitsScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.menuBtn} onPress={() => router.push('/menu')}>
+            <Menu size={24} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+          
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('@/assets/images/Artboard 1 logo.png')} 
+              style={[styles.logoImage, { tintColor: colors.primary }]} 
+              resizeMode="contain" 
+            />
+          </View>
+
+          <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
+            <Settings size={20} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+        </View>
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.profileSection}>
-              <View style={styles.avatarPlaceholder}>
-                <Image
-                  source={require("@/assets/images/icon.png")}
-                  style={styles.avatarLogo}
-                  resizeMode="contain"
-                />
-              </View>
-              <Image
-                source={require("@/assets/images/Artboard 1 logo.png")}
-                style={[styles.logoImage, { tintColor: colors.primary }]}
-                resizeMode="contain"
-              />
-            </View>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => router.push("/modal")}
-            >
-              <Settings size={20} color={colors.primary} strokeWidth={1.5} />
-            </TouchableOpacity>
-          </View>
-
           {/* Identity Header */}
           <View style={styles.identityHeader}>
             <Text style={styles.label}>BATSIR / CORE PRINCIPLES</Text>
             <Text style={styles.headline}>Personal Evolution</Text>
             <Text style={styles.subheadline}>
               Cultivating lasting growth through identity-based habits and daily
-              rituals.
+              habits.
             </Text>
 
             <View style={styles.focusCard}>
@@ -146,7 +183,7 @@ export default function HabitsScreen() {
               </Text>
               <View style={styles.identityFooter}>
                 <Text style={styles.identityFooterText}>
-                  CONSISTENCY STREAK: 12 DAYS
+                  CONSISTENCY STREAK: {globalStreak} DAYS
                 </Text>
               </View>
             </View>
@@ -221,13 +258,13 @@ export default function HabitsScreen() {
           {/* Habit Inventory */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Daily Rituals</Text>
+              <Text style={styles.sectionTitle}>Daily Habits</Text>
               <TouchableOpacity
                 style={styles.addButton}
                 onPress={handleAddHabit}
               >
                 <PlusCircle size={16} color={colors.primary} />
-                <Text style={styles.addButtonText}>NEW RITUAL</Text>
+                <Text style={styles.addButtonText}>NEW HABIT</Text>
               </TouchableOpacity>
             </View>
 
@@ -238,13 +275,15 @@ export default function HabitsScreen() {
                     <TouchableOpacity
                       style={[
                         styles.habitCheck,
-                        habit.is_active === 0 && {
+                        habit.is_done_today > 0 && {
                           backgroundColor: colors.primary,
                         },
                       ]}
-                      onPress={() => handleToggleHabit(habit.id)}
+                      onPress={() => handleToggleHabit(habit)}
                     >
-                      <View style={styles.innerCheck} />
+                      {habit.is_done_today > 0 && (
+                        <View style={[styles.innerCheck, { backgroundColor: colors.onPrimary }]} />
+                      )}
                     </TouchableOpacity>
                     <View style={styles.habitContent}>
                       <View style={styles.habitTitleRow}>
@@ -259,9 +298,17 @@ export default function HabitsScreen() {
                         Building a resilient mind.
                       </Text>
                     </View>
+                    
+                    <TouchableOpacity 
+                      style={styles.deleteBtn} 
+                      onPress={() => handleDeleteHabit(habit.id)}
+                    >
+                      <Trash2 size={16} color={colors.error} />
+                    </TouchableOpacity>
+
                     <View style={styles.streakContainer}>
                       <Text style={styles.streakLabel}>STREAK</Text>
-                      <Text style={styles.streakValue}>12</Text>
+                      <Text style={styles.streakValue}>{habit.current_streak || 0}</Text>
                     </View>
                   </View>
                 ))
@@ -271,7 +318,7 @@ export default function HabitsScreen() {
                   onPress={handleAddHabit}
                 >
                   <PlusCircle size={24} color={colors.primary} />
-                  <Text style={styles.emptyStateText}>No rituals found. Tap to add your first one.</Text>
+                  <Text style={styles.emptyStateText}>No habits found. Tap to add your first one.</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -298,33 +345,31 @@ const createStyles = (colors: any) =>
       paddingBottom: 40,
     },
     header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: SPACING.lg,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
       backgroundColor: colors.background,
+      height: 60,
     },
-    profileSection: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
+    logoContainer: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: -1,
     },
-    avatarPlaceholder: {
-      width: 32,
-      height: 32,
-      borderRadius: ROUNDNESS.full,
-      backgroundColor: colors.primaryContainer,
-      alignItems: "center",
-      justifyContent: "center",
-      overflow: "hidden",
-    },
-    avatarLogo: {
-      width: 24,
-      height: 24,
+    menuBtn: {
+      padding: 8,
     },
     logoImage: {
-      height: 32,
-      width: 120,
+      height: 40,
+      width: 160,
+    },
+    ghostBtn: {
+      padding: 8,
     },
     iconButton: {
       padding: 4,
@@ -609,6 +654,9 @@ const createStyles = (colors: any) =>
       fontFamily: FONTS.body,
       fontSize: 12,
       color: colors.onSurfaceVariant,
+    },
+    deleteBtn: {
+      padding: 8,
     },
     streakContainer: {
       alignItems: "flex-end",

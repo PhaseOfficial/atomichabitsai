@@ -2,7 +2,7 @@ import { FONTS, SPACING, ROUNDNESS } from "@/src/constants/Theme";
 import { useData } from "@/src/hooks/useData";
 import { useTheme } from "@/src/hooks/useTheme";
 import { useAuth } from "@/src/hooks/useAuth";
-import { Plus, Settings, Moon, Zap, Target } from "lucide-react-native";
+import { Plus, Settings, Moon, Zap, Target, Menu } from "lucide-react-native";
 import React, { useMemo } from "react";
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -83,33 +83,31 @@ export default function CalendarScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.menuBtn} onPress={() => router.push('/menu')}>
+            <Menu size={24} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+          
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('@/assets/images/Artboard 1 logo.png')} 
+              style={[styles.logoImage, { tintColor: colors.primary }]} 
+              resizeMode="contain" 
+            />
+          </View>
+
+          <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
+            <Settings size={20} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+        </View>
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.profileSection}>
-              <View style={styles.avatarPlaceholder}>
-                <Image
-                  source={require("@/assets/images/icon.png")}
-                  style={styles.avatarLogo}
-                  resizeMode="contain"
-                />
-              </View>
-              <Image
-                source={require("@/assets/images/Artboard 1 logo.png")}
-                style={[styles.logoImage, { tintColor: colors.primary }]}
-                resizeMode="contain"
-              />
-            </View>
-            <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/modal')}>
-              <Settings size={20} color={colors.primary} strokeWidth={1.5} />
-            </TouchableOpacity>
-          </View>
-
           {/* Date & Metrics Header */}
           <View style={styles.dateHeader}>
             <View style={styles.dateInfo}>
@@ -237,33 +235,31 @@ const createStyles = (colors: any) =>
       paddingBottom: 100,
     },
     header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: SPACING.lg,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
       backgroundColor: colors.background,
+      height: 60,
     },
-    profileSection: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
+    logoContainer: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: -1,
     },
-    avatarPlaceholder: {
-      width: 32,
-      height: 32,
-      borderRadius: ROUNDNESS.full,
-      backgroundColor: colors.primaryContainer,
-      alignItems: "center",
-      justifyContent: "center",
-      overflow: "hidden",
-    },
-    avatarLogo: {
-      width: 24,
-      height: 24,
+    menuBtn: {
+      padding: 8,
     },
     logoImage: {
-      height: 32,
-      width: 120,
+      height: 40,
+      width: 160,
+    },
+    ghostBtn: {
+      padding: 8,
     },
     iconButton: {
       padding: 4,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Play, Pause, RotateCcw, Zap, CheckCircle2, Plus } from 'lucide-react-native';
+import { Settings, Play, Pause, RotateCcw, Zap, CheckCircle2, Plus, Menu } from 'lucide-react-native';
 import { SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useAuth } from '@/src/hooks/useAuth';
@@ -19,7 +19,7 @@ interface Task {
 }
 
 export default function SprintScreen() {
-  const { colors } = useTheme();
+  const { colors, focusGoal, sprintDuration } = useTheme();
   const { user } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
@@ -43,8 +43,14 @@ export default function SprintScreen() {
   );
 
   const [isActive, setIsActive] = useState(false);
-  const [seconds, setSeconds] = useState(1500); // 25:00
+  const [seconds, setSeconds] = useState(sprintDuration * 60); 
   const activeTask = tasks.find(t => t.status === 'doing') || tasks[0];
+
+  useEffect(() => {
+    if (!isActive) {
+      setSeconds(sprintDuration * 60);
+    }
+  }, [sprintDuration, isActive]);
 
   useEffect(() => {
     let interval: any = null;
@@ -62,13 +68,13 @@ export default function SprintScreen() {
 
   const handleSessionComplete = async () => {
     setIsActive(false);
-    setSeconds(1500);
+    setSeconds(sprintDuration * 60);
     
     if (activeTask) {
       try {
         await performMutation('tasks', 'UPDATE', {
           id: activeTask.id,
-          completed_sessions: activeTask.completed_sessions + 1,
+          completed_sessions: (activeTask.completed_sessions || 0) + 1,
           updated_at: new Date().toISOString()
         });
         refresh();
@@ -87,7 +93,7 @@ export default function SprintScreen() {
 
   const handleReset = () => {
     setIsActive(false);
-    setSeconds(1500);
+    setSeconds(sprintDuration * 60);
   };
 
   const handleToggleTaskStatus = async (task: Task) => {
@@ -105,7 +111,7 @@ export default function SprintScreen() {
   };
 
   const sessionsDone = completedToday?.[0]?.count || 0;
-  const sessionGoal = 8;
+  const sessionGoal = focusGoal;
 
   if (loading && tasks.length === 0) {
     return (
@@ -118,32 +124,30 @@ export default function SprintScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.menuBtn} onPress={() => router.push('/menu')}>
+            <Menu size={24} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+          
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('@/assets/images/Artboard 1 logo.png')} 
+              style={[styles.logoImage, { tintColor: colors.primary }]} 
+              resizeMode="contain" 
+            />
+          </View>
+
+          <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
+            <Settings size={20} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+        </View>
+
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.profileSection}>
-              <View style={styles.avatarPlaceholder}>
-                <Image 
-                  source={require('@/assets/images/icon.png')} 
-                  style={styles.avatarLogo} 
-                  resizeMode="contain"
-                />
-              </View>
-              <Image 
-                source={require('@/assets/images/Artboard 1 logo.png')} 
-                style={[styles.logoImage, { tintColor: colors.primary }]} 
-                resizeMode="contain" 
-              />
-            </View>
-            <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
-              <Settings size={20} color={colors.primary} strokeWidth={1.5} />
-            </TouchableOpacity>
-          </View>
-
           {/* Timer Section */}
           <View style={styles.timerSection}>
             <Text style={styles.labelCaps}>FOCUSED SPRINT</Text>
@@ -272,33 +276,28 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
     backgroundColor: colors.background,
+    height: 60,
   },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  avatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: ROUNDNESS.full,
-    backgroundColor: colors.primaryContainer,
+  logoContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    zIndex: -1,
   },
-  avatarLogo: {
-    width: 24,
-    height: 24,
+  menuBtn: {
+    padding: 8,
   },
   logoImage: {
-    height: 32,
-    width: 120,
+    height: 40,
+    width: 160,
   },
   ghostBtn: {
-    padding: 4,
+    padding: 8,
   },
   timerSection: {
     padding: SPACING.xl,

@@ -8,6 +8,8 @@ const ACCENT_STORAGE_KEY = 'accent_key';
 const THEME_MODE_STORAGE_KEY = 'theme_mode';
 const FOCUS_GOAL_KEY = 'daily_focus_goal';
 const SPRINT_DURATION_KEY = 'sprint_duration';
+const IDENTITY_ANCHOR_KEY = 'identity_anchor';
+const DISPLAY_NAME_KEY = 'display_name';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -24,6 +26,10 @@ interface ThemeContextType {
   updateFocusGoal: (goal: number) => Promise<void>;
   sprintDuration: number;
   updateSprintDuration: (mins: number) => Promise<void>;
+  identityAnchor: string;
+  updateIdentityAnchor: (anchor: string) => Promise<void>;
+  displayName: string;
+  updateDisplayName: (name: string) => Promise<void>;
   isLoaded: boolean;
 }
 
@@ -64,6 +70,8 @@ export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
   const [themeMode, setThemeMode] = useState<ThemeMode>('system');
   const [focusGoal, setFocusGoal] = useState(8);
   const [sprintDuration, setSprintDuration] = useState(25);
+  const [identityAnchor, setIdentityAnchor] = useState('The Disciplined Creator');
+  const [displayName, setDisplayName] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -73,11 +81,15 @@ export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
         const storedMode = await getSetting(THEME_MODE_STORAGE_KEY, 'system');
         const storedGoal = await getSetting(FOCUS_GOAL_KEY, '8');
         const storedDuration = await getSetting(SPRINT_DURATION_KEY, '25');
+        const storedAnchor = await getSetting(IDENTITY_ANCHOR_KEY, 'The Disciplined Creator');
+        const storedName = await getSetting(DISPLAY_NAME_KEY, '');
 
         setAccentKey(storedAccent as AccentKey);
         setThemeMode(storedMode as ThemeMode);
         setFocusGoal(parseInt(storedGoal));
         setSprintDuration(parseInt(storedDuration));
+        setIdentityAnchor(storedAnchor);
+        setDisplayName(storedName);
       } catch (e) {
         console.error('Failed to load theme settings', e);
       } finally {
@@ -107,6 +119,26 @@ export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
     await saveSetting(SPRINT_DURATION_KEY, mins.toString());
   }, []);
 
+  const updateIdentityAnchor = useCallback(async (anchor: string) => {
+    setIdentityAnchor(anchor);
+    await saveSetting(IDENTITY_ANCHOR_KEY, anchor);
+  }, []);
+
+  const updateDisplayName = useCallback(async (name: string) => {
+    setDisplayName(name);
+    await saveSetting(DISPLAY_NAME_KEY, name);
+    
+    // Also update public.profiles table directly for display_name column
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').update({ display_name: name }).eq('id', user.id);
+      }
+    } catch (e) {
+      console.error('Failed to update display_name in profiles', e);
+    }
+  }, []);
+
   const colorScheme = themeMode === 'system' ? systemColorScheme : themeMode;
   const isDark = colorScheme === 'dark';
   const baseColors = COLORS[colorScheme as keyof typeof COLORS];
@@ -133,6 +165,10 @@ export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
     updateFocusGoal,
     sprintDuration,
     updateSprintDuration,
+    identityAnchor,
+    updateIdentityAnchor,
+    displayName,
+    updateDisplayName,
     isLoaded,
   };
 

@@ -28,3 +28,8 @@ export const performMutation = async (
   await addToSyncQueue(table_name, operation, payload);
   await syncWithSupabase();
 };
+
+export const subscribeToDatabaseChanges = (callback: () => void) => {
+  // No-op on web for now as local database isn't persistent
+  return () => {};
+};

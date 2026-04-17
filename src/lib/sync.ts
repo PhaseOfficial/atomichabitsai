@@ -1,29 +1,69 @@
-import { supabase } from './supabase';
-import { getDb } from '../db/database';
-import { updateHabitStreak } from './habit-logic';
+import { getDb } from "../db/database";
+import { updateHabitStreak } from "./habit-logic";
+import { supabase } from "./supabase";
 
 export interface SyncOperation {
   id?: number;
   table_name: string;
-  operation: 'INSERT' | 'UPDATE' | 'DELETE';
+  operation: "INSERT" | "UPDATE" | "DELETE";
   payload: string; // JSON string
   created_at?: string;
 }
 
+let currentSyncPromise: Promise<void> | null = null;
+const databaseChangeListeners = new Set<() => void>();
+
+export const subscribeToDatabaseChanges = (listener: () => void) => {
+  databaseChangeListeners.add(listener);
+  return () => databaseChangeListeners.delete(listener);
+};
+
+const emitDatabaseChange = () => {
+  for (const listener of databaseChangeListeners) {
+    try {
+      listener();
+    } catch (err) {
+      console.error("Database change listener error:", err);
+    }
+  }
+};
+
 const isUUID = (str: string) => {
-  const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const regex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return regex.test(str);
+};
+
+const replaceIdsInPayload = (value: any, oldId: string, newId: string): any => {
+  if (value === oldId) {
+    return newId;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceIdsInPayload(item, oldId, newId));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        replaceIdsInPayload(entry, oldId, newId),
+      ]),
+    );
+  }
+
+  return value;
 };
 
 export const addToSyncQueue = async (
   table_name: string,
-  operation: 'INSERT' | 'UPDATE' | 'DELETE',
-  payload: any
+  operation: "INSERT" | "UPDATE" | "DELETE",
+  payload: any,
 ) => {
   const db = await getDb();
   await db.runAsync(
-    'INSERT INTO sync_queue (table_name, operation, payload) VALUES (?, ?, ?)',
-    [table_name, operation, JSON.stringify(payload)]
+    "INSERT INTO sync_queue (table_name, operation, payload) VALUES (?, ?, ?)",
+    [table_name, operation, JSON.stringify(payload)],
   );
 };
 
@@ -32,214 +72,406 @@ export const addToSyncQueue = async (
  */
 const updateQueuePayloads = async (oldId: string, newId: string) => {
   const db = await getDb();
-  const queue: SyncOperation[] = await db.getAllAsync('SELECT * FROM sync_queue');
-  
+  const queue: SyncOperation[] = await db.getAllAsync(
+    "SELECT * FROM sync_queue",
+  );
+
   for (const item of queue) {
-    if (item.payload.includes(oldId)) {
-      // Use more careful replacement for IDs to avoid partial matches
-      // but IDs here are usually unique strings like "8zztim"
-      const updatedPayload = item.payload.replace(new RegExp(`"${oldId}"`, 'g'), `"${newId}"`);
+    try {
+      const parsedPayload = JSON.parse(item.payload);
+      const replacedPayload = replaceIdsInPayload(parsedPayload, oldId, newId);
+      const updatedPayload = JSON.stringify(replacedPayload);
       if (updatedPayload !== item.payload) {
-        await db.runAsync('UPDATE sync_queue SET payload = ? WHERE id = ?', [updatedPayload, item.id]);
+        await db.runAsync("UPDATE sync_queue SET payload = ? WHERE id = ?", [
+          updatedPayload,
+          item.id,
+        ]);
+      }
+    } catch {
+      // Keep the original payload if parsing fails
+    }
+  }
+};
+
+const migrateGuestDataToUser = async (userId: string) => {
+  const db = await getDb();
+  const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks"];
+
+  for (const table of tablesWithUserId) {
+    await db.runAsync(`UPDATE ${table} SET user_id = ? WHERE user_id = ?`, [
+      userId,
+      "guest",
+    ]);
+  }
+
+  const queue: SyncOperation[] = await db.getAllAsync(
+    "SELECT * FROM sync_queue",
+  );
+
+  for (const item of queue) {
+    if (item.payload.includes('"user_id":"guest"')) {
+      const updatedPayload = item.payload.replace(
+        /"user_id":"guest"/g,
+        `"user_id":"${userId}"`,
+      );
+      if (updatedPayload !== item.payload) {
+        await db.runAsync("UPDATE sync_queue SET payload = ? WHERE id = ?", [
+          updatedPayload,
+          item.id,
+        ]);
       }
     }
   }
+};
+
+const hasPendingHabitInsert = (queue: SyncOperation[], habitId: string) => {
+  return queue.some((item) => {
+    if (item.table_name !== "habits" || item.operation !== "INSERT") {
+      return false;
+    }
+    try {
+      const payload = JSON.parse(item.payload);
+      return payload.id === habitId;
+    } catch {
+      return false;
+    }
+  });
+};
+
+const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
+  const payload = JSON.parse(item.payload);
+  const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks"];
+
+  if (
+    item.table_name === "logs" &&
+    payload.habit_id &&
+    !isUUID(payload.habit_id)
+  ) {
+    console.warn(
+      `Postponing sync for log ${item.id}: habit_id "${payload.habit_id}" is still a temporary ID`,
+    );
+    return false;
+  }
+
+  let error;
+  let remoteData;
+
+  switch (item.operation) {
+    case "INSERT": {
+      const { id: localId, ...insertPayload } = payload;
+
+      if (tablesWithUserId.includes(item.table_name)) {
+        if (insertPayload.user_id === "guest" || !insertPayload.user_id) {
+          insertPayload.user_id = user.id;
+        }
+      }
+
+      const { data: insertedData, error: insertError } = await supabase
+        .from(item.table_name)
+        .insert(insertPayload)
+        .select()
+        .single();
+
+      error = insertError;
+      remoteData = insertedData;
+
+      if (!error && remoteData) {
+        await db.withTransactionAsync(async () => {
+          if (item.table_name === "habits") {
+            await db.runAsync(
+              "UPDATE logs SET habit_id = ? WHERE habit_id = ?",
+              [remoteData.id, localId],
+            );
+          }
+
+          if (tablesWithUserId.includes(item.table_name)) {
+            await db.runAsync(
+              `UPDATE ${item.table_name} SET id = ?, user_id = ? WHERE id = ?`,
+              [remoteData.id, user.id, localId],
+            );
+          } else {
+            await db.runAsync(
+              `UPDATE ${item.table_name} SET id = ? WHERE id = ?`,
+              [remoteData.id, localId],
+            );
+          }
+
+          await updateQueuePayloads(localId, remoteData.id);
+        });
+
+        emitDatabaseChange();
+      }
+      break;
+    }
+
+    case "UPDATE": {
+      if (
+        tablesWithUserId.includes(item.table_name) &&
+        payload.user_id === "guest"
+      ) {
+        payload.user_id = user.id;
+      }
+      ({ error } = await supabase
+        .from(item.table_name)
+        .update(payload)
+        .eq("id", payload.id));
+      break;
+    }
+
+    case "DELETE": {
+      ({ error } = await supabase
+        .from(item.table_name)
+        .delete()
+        .eq("id", payload.id));
+      break;
+    }
+  }
+
+  if (!error) {
+    await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
+    emitDatabaseChange();
+  } else {
+    console.error(
+      `Sync error for item ${item.id} (${item.table_name}):`,
+      error.message,
+    );
+    if (
+      error.code === "42P01" ||
+      error.code === "23503" ||
+      error.code === "22P02" ||
+      error.message.includes("row-level security")
+    ) {
+      await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
+      emitDatabaseChange();
+    }
+  }
+
+  return true;
 };
 
 export const syncWithSupabase = async () => {
-  const db = await getDb();
-  const queue: SyncOperation[] = await db.getAllAsync('SELECT * FROM sync_queue ORDER BY id ASC');
-
-  if (queue.length === 0) {
-    await pullFromServer();
-    return;
+  if (currentSyncPromise) {
+    return currentSyncPromise;
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
+  currentSyncPromise = (async () => {
+    const db = await getDb();
+    const queue: SyncOperation[] = await db.getAllAsync(
+      "SELECT * FROM sync_queue ORDER BY id ASC",
+    );
 
-  for (const item of queue) {
-    try {
-      // Re-fetch item from DB to get latest payload (might have been updated by previous iteration)
-      const currentItem = await db.getFirstAsync<SyncOperation>('SELECT * FROM sync_queue WHERE id = ?', [item.id]);
-      if (!currentItem) continue;
-      
-      const payload = JSON.parse(currentItem.payload);
-      
-      if (!user) continue; 
-      
-      // Validation for habit_id in logs - if it's not a UUID, we can't sync it yet
-      if (item.table_name === 'logs' && payload.habit_id && !isUUID(payload.habit_id)) {
-        console.warn(`Postponing sync for log ${item.id}: habit_id "${payload.habit_id}" is still a temporary ID`);
-        continue; 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      if (queue.length === 0) {
+        await pullFromServer();
       }
+      return;
+    }
 
-      let error;
-      let remoteData;
+    await migrateGuestDataToUser(user.id);
 
-      const tablesWithUserId = ['habits', 'schedules', 'shortcuts', 'tasks'];
+    if (queue.length === 0) {
+      await pullFromServer();
+      return;
+    }
 
-      switch (item.operation) {
-        case 'INSERT':
-          // ALWAYS remove the local temp ID for INSERTs so Supabase can generate a valid UUID
-          const { id: localId, ...insertPayload } = payload;
-          
-          if (tablesWithUserId.includes(item.table_name)) {
-            if (insertPayload.user_id === 'guest' || !insertPayload.user_id) {
-              insertPayload.user_id = user.id;
-            }
-          }
+    let remainingItems = queue;
+    let iteration = 0;
 
-          const { data: insertedData, error: insertError } = await supabase
-            .from(item.table_name)
-            .insert(insertPayload)
-            .select()
-            .single();
-          
-          error = insertError;
-          remoteData = insertedData;
+    while (remainingItems.length > 0 && iteration < 4) {
+      const nextItems: SyncOperation[] = [];
+      let anyAttempted = false;
 
-          if (!error && remoteData) {
-            // Re-fetch item to ensure we haven't lost it in a concurrent run
-            await db.withTransactionAsync(async () => {
-              // 1. Update foreign keys in other local tables first
-              if (item.table_name === 'habits') {
-                await db.runAsync('UPDATE logs SET habit_id = ? WHERE habit_id = ?', [remoteData.id, localId]);
-              }
+      for (const item of remainingItems) {
+        const currentItem = await db.getFirstAsync<SyncOperation>(
+          "SELECT * FROM sync_queue WHERE id = ?",
+          [item.id],
+        );
+        if (!currentItem) {
+          anyAttempted = true;
+          continue;
+        }
 
-              // 2. Update the actual table locally
-              if (tablesWithUserId.includes(item.table_name)) {
-                await db.runAsync(
-                  `UPDATE ${item.table_name} SET id = ?, user_id = ? WHERE id = ?`,
-                  [remoteData.id, user.id, localId]
-                );
-              } else {
-                await db.runAsync(
-                  `UPDATE ${item.table_name} SET id = ? WHERE id = ?`,
-                  [remoteData.id, localId]
-                );
-              }
+        const payload = JSON.parse(currentItem.payload);
 
-              // 3. Update other items in the sync queue that might use this old ID
-              await updateQueuePayloads(localId, remoteData.id);
-            });
-          }
-          break;
-          
-        case 'UPDATE':
-          if (tablesWithUserId.includes(item.table_name) && payload.user_id === 'guest') {
-            payload.user_id = user.id;
-          }
-          ({ error } = await supabase.from(item.table_name).update(payload).eq('id', payload.id));
-          break;
-          
-        case 'DELETE':
-          ({ error } = await supabase.from(item.table_name).delete().eq('id', payload.id));
-          break;
-      }
+        if (
+          item.table_name === "logs" &&
+          payload.habit_id &&
+          !isUUID(payload.habit_id) &&
+          hasPendingHabitInsert(remainingItems, payload.habit_id)
+        ) {
+          nextItems.push(item);
+          continue;
+        }
 
-      if (!error) {
-        await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [item.id]);
-      } else {
-        console.error(`Sync error for item ${item.id} (${item.table_name}):`, error.message);
-        // If it's an RLS or invalid input error that won't be fixed by retrying, remove it
-        if (error.code === '42P01' || error.code === '23503' || error.code === '22P02' || error.message.includes('row-level security')) {
-           await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [item.id]);
+        const attempted = await processSyncItem(currentItem, user, db);
+        if (attempted) {
+          anyAttempted = true;
+        } else {
+          nextItems.push(item);
         }
       }
-    } catch (err) {
-      console.error('Failed to parse sync item payload:', item.id, err);
-      await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [item.id]);
+
+      if (!anyAttempted) {
+        break;
+      }
+
+      remainingItems = nextItems;
+      iteration += 1;
     }
-  }
+  })().finally(() => {
+    currentSyncPromise = null;
+  });
+
+  return currentSyncPromise;
 };
 
 export const pullFromServer = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return;
 
   const db = await getDb();
-  const tables = ['habits', 'schedules', 'logs', 'shortcuts', 'tasks'];
+  
+  // Get last sync time
+  const lastSyncResult = await db.getFirstAsync<{value: string}>(
+    "SELECT value FROM settings WHERE key = 'last_pulled_at'"
+  );
+  const lastPulledAt = lastSyncResult?.value;
+
+  const tables = ["habits", "schedules", "logs", "shortcuts", "tasks"];
 
   for (const table of tables) {
     try {
-      let query = supabase.from(table).select('*');
-      
-      const tablesWithUserId = ['habits', 'schedules', 'shortcuts', 'tasks'];
+      let syncTouchedLocalRows = false;
+      let query = supabase.from(table).select("*");
+
+      const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks"];
       if (tablesWithUserId.includes(table)) {
-        query = query.eq('user_id', user.id);
+        query = query.eq("user_id", user.id);
+      }
+
+      // Incremental sync logic
+      if (lastPulledAt) {
+        const timeColumn = table === 'logs' ? 'created_at' : 'updated_at';
+        query = query.gt(timeColumn, lastPulledAt);
       }
 
       const { data, error } = await query;
 
       if (!error && data) {
         for (const remoteItem of data) {
-          const localItem = await db.getFirstAsync(`SELECT id FROM ${table} WHERE id = ?`, [remoteItem.id]);
-          
+          const localItem = await db.getFirstAsync(
+            `SELECT id FROM ${table} WHERE id = ?`,
+            [remoteItem.id],
+          );
+
           if (localItem) {
-            const keys = Object.keys(remoteItem).filter(k => k !== 'id');
-            const setClause = keys.map(k => `${k} = ?`).join(',');
-            const values = [...keys.map(k => {
-              const val = remoteItem[k];
-              return typeof val === 'object' ? JSON.stringify(val) : val;
-            }), remoteItem.id];
-            
-            await db.runAsync(`UPDATE ${table} SET ${setClause} WHERE id = ?`, values as any);
+            const keys = Object.keys(remoteItem).filter((k) => k !== "id");
+            const setClause = keys.map((k) => `${k} = ?`).join(",");
+            const values = [
+              ...keys.map((k) => {
+                const val = remoteItem[k];
+                return typeof val === "object" ? JSON.stringify(val) : val;
+              }),
+              remoteItem.id,
+            ];
+
+            await db.runAsync(
+              `UPDATE ${table} SET ${setClause} WHERE id = ?`,
+              values as any,
+            );
+            syncTouchedLocalRows = true;
           } else {
             const keys = Object.keys(remoteItem);
-            const placeholders = keys.map(() => '?').join(',');
-            const values = keys.map(k => {
+            const placeholders = keys.map(() => "?").join(",");
+            const values = keys.map((k) => {
               const val = remoteItem[k];
-              return typeof val === 'object' ? JSON.stringify(val) : val;
+              return typeof val === "object" ? JSON.stringify(val) : val;
             });
-            
-            await db.runAsync(`INSERT OR IGNORE INTO ${table} (${keys.join(',')}) VALUES (${placeholders})`, values as any);
+
+            await db.runAsync(
+              `INSERT OR IGNORE INTO ${table} (${keys.join(",")}) VALUES (${placeholders})`,
+              values as any,
+            );
+            syncTouchedLocalRows = true;
           }
         }
+      }
+
+      if (syncTouchedLocalRows) {
+        emitDatabaseChange();
       }
     } catch (err) {
       console.error(`Failed to pull table ${table}:`, err);
     }
   }
+
+  // Update last sync time
+  const now = new Date().toISOString();
+  await db.runAsync(
+    "INSERT OR REPLACE INTO settings (key, value) VALUES ('last_pulled_at', ?)",
+    [now]
+  );
 };
 
 export const performMutation = async (
   table_name: string,
-  operation: 'INSERT' | 'UPDATE' | 'DELETE',
-  payload: any
+  operation: "INSERT" | "UPDATE" | "DELETE",
+  payload: any,
 ) => {
   const db = await getDb();
-  
+
   switch (operation) {
-    case 'INSERT':
-      const keys = Object.keys(payload).join(',');
-      const placeholders = Object.keys(payload).map(() => '?').join(',');
-      const values = Object.values(payload).map(v => typeof v === 'object' ? JSON.stringify(v) : v);
-      await db.runAsync(`INSERT INTO ${table_name} (${keys}) VALUES (${placeholders})`, values as any);
+    case "INSERT":
+      const keys = Object.keys(payload).join(",");
+      const placeholders = Object.keys(payload)
+        .map(() => "?")
+        .join(",");
+      const values = Object.values(payload).map((v) =>
+        typeof v === "object" ? JSON.stringify(v) : v,
+      );
+      await db.runAsync(
+        `INSERT INTO ${table_name} (${keys}) VALUES (${placeholders})`,
+        values as any,
+      );
       break;
-    case 'UPDATE':
+    case "UPDATE":
       const setClause = Object.keys(payload)
-        .filter(k => k !== 'id')
-        .map(k => `${k} = ?`)
-        .join(',');
+        .filter((k) => k !== "id")
+        .map((k) => `${k} = ?`)
+        .join(",");
       const updateValues = [
         ...Object.entries(payload)
-          .filter(([k]) => k !== 'id')
-          .map(([, v]) => typeof v === 'object' ? JSON.stringify(v) : v), 
-        payload.id
+          .filter(([k]) => k !== "id")
+          .map(([, v]) => (typeof v === "object" ? JSON.stringify(v) : v)),
+        payload.id,
       ];
-      await db.runAsync(`UPDATE ${table_name} SET ${setClause} WHERE id = ?`, updateValues as any);
+      await db.runAsync(
+        `UPDATE ${table_name} SET ${setClause} WHERE id = ?`,
+        updateValues as any,
+      );
       break;
-    case 'DELETE':
+    case "DELETE":
       await db.runAsync(`DELETE FROM ${table_name} WHERE id = ?`, [payload.id]);
       break;
   }
 
+  emitDatabaseChange();
+
   // Handle streak maintenance
-  if (table_name === 'logs') {
+  if (table_name === "logs") {
     if (payload.habit_id) {
       await updateHabitStreak(payload.habit_id);
     }
-  } else if (table_name === 'habits' && (operation === 'UPDATE' || operation === 'INSERT')) {
+  } else if (
+    table_name === "habits" &&
+    (operation === "UPDATE" || operation === "INSERT")
+  ) {
     // If weekend_flexibility changed or new habit added, recalculate/init
     await updateHabitStreak(payload.id);
   }

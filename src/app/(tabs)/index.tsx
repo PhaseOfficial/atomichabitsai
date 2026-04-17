@@ -11,7 +11,7 @@ import { performMutation } from '@/src/lib/sync';
 import * as Haptics from 'expo-haptics';
 
 export default function DashboardScreen() {
-  const { colors, focusGoal } = useTheme();
+  const { colors, focusGoal, displayName } = useTheme();
   const { user } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
@@ -87,7 +87,12 @@ export default function DashboardScreen() {
   const activeHabits = habitStats?.[0]?.count || 0;
   const completedToday = logStats?.[0]?.count || 0;
   const sessionsDone = sessionStats?.[0]?.count || 0;
-  const userName = user?.email ? user.email.split('@')[0] : 'Guest';
+  
+  const userName = useMemo(() => {
+    if (displayName) return displayName;
+    if (user?.email) return user.email.split('@')[0];
+    return 'Guest';
+  }, [displayName, user]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -154,7 +159,8 @@ export default function DashboardScreen() {
           <View style={styles.logoContainer}>
             <Image 
               source={require('@/assets/images/Artboard 1 logo.png')} 
-              style={[styles.logoImage, { tintColor: colors.primary }]} 
+              style={styles.logoImage} 
+              tintColor={colors.primary}
               resizeMode="contain" 
             />
           </View>

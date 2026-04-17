@@ -11,6 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT,
+  display_name TEXT,
   preferences JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -18,6 +19,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- Ensure columns exist (for updates later)
 ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS display_name TEXT,
 ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'::jsonb,
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
@@ -31,6 +33,9 @@ CREATE TABLE IF NOT EXISTS public.habits (
   title TEXT NOT NULL,
   frequency TEXT DEFAULT 'daily',
   preferred_time TIME,
+  location TEXT,
+  two_minute_version TEXT,
+  anchor_habit_id UUID REFERENCES public.habits(id) ON DELETE SET NULL,
   weekend_flexibility BOOLEAN DEFAULT FALSE,
   is_active BOOLEAN DEFAULT TRUE,
   current_streak INTEGER DEFAULT 0,
@@ -41,6 +46,9 @@ CREATE TABLE IF NOT EXISTS public.habits (
 
 ALTER TABLE public.habits 
 ADD COLUMN IF NOT EXISTS preferred_time TIME,
+ADD COLUMN IF NOT EXISTS location TEXT,
+ADD COLUMN IF NOT EXISTS two_minute_version TEXT,
+ADD COLUMN IF NOT EXISTS anchor_habit_id UUID REFERENCES public.habits(id) ON DELETE SET NULL,
 ADD COLUMN IF NOT EXISTS weekend_flexibility BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
 ADD COLUMN IF NOT EXISTS current_streak INTEGER DEFAULT 0,

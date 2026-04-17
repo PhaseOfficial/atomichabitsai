@@ -18,6 +18,9 @@ export const initDatabase = async () => {
       is_active INTEGER DEFAULT 1,
       current_streak INTEGER DEFAULT 0,
       max_streak INTEGER DEFAULT 0,
+      two_minute_version TEXT, -- Gateway version (Make it Easy)
+      location TEXT, -- For Implementation Intentions
+      anchor_habit_id TEXT, -- For Habit Stacking
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
@@ -92,6 +95,15 @@ export const initDatabase = async () => {
     }
     if (!columnNames.includes('max_streak')) {
       await db.execAsync(`ALTER TABLE habits ADD COLUMN max_streak INTEGER DEFAULT 0;`);
+    }
+    if (!columnNames.includes('two_minute_version')) {
+      await db.execAsync(`ALTER TABLE habits ADD COLUMN two_minute_version TEXT;`);
+    }
+    if (!columnNames.includes('location')) {
+      await db.execAsync(`ALTER TABLE habits ADD COLUMN location TEXT;`);
+    }
+    if (!columnNames.includes('anchor_habit_id')) {
+      await db.execAsync(`ALTER TABLE habits ADD COLUMN anchor_habit_id TEXT;`);
     }
   } catch (error) {
     console.error('Migration error:', error);

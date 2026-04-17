@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { useTheme, ThemeMode } from '@/src/hooks/useTheme';
 import { AccentKey } from '@/src/constants/Theme';
-import { Check, X, Moon, Sun, Monitor, LogOut, Target, Clock, RefreshCw } from 'lucide-react-native';
+import { Check, X, Moon, Sun, Monitor, LogOut, Target, Clock, RefreshCw, Save, Edit3 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { useAuth } from '../hooks/useAuth';
@@ -14,9 +15,44 @@ export default function SettingsModal() {
     colors, accentKey, updateAccent, availableAccents, 
     themeMode, updateThemeMode, 
     focusGoal, updateFocusGoal,
-    sprintDuration, updateSprintDuration
+    sprintDuration, updateSprintDuration,
+    displayName, updateDisplayName,
   } = useTheme();
-  
+
+  const [newName, setNewName] = useState(displayName);
+  const [newGoal, setNewGoal] = useState(focusGoal.toString());
+  const [newSprintDuration, setNewSprintDuration] = useState(sprintDuration.toString());
+  const [isEditingAccount, setIsEditingAccount] = useState(false);
+  const [isEditingGoals, setIsEditingGoals] = useState(false);
+
+  const accountDirty = newName.trim() !== displayName.trim();
+  const goalsDirty =
+    newGoal.trim() !== focusGoal.toString() ||
+    newSprintDuration.trim() !== sprintDuration.toString();
+
+  useEffect(() => {
+    setNewName(displayName);
+    if (!isEditingAccount) setIsEditingAccount(false);
+  }, [displayName]);
+
+  useEffect(() => {
+    setNewGoal(focusGoal.toString());
+    if (!isEditingGoals) setIsEditingGoals(false);
+  }, [focusGoal]);
+
+  useEffect(() => {
+    setNewSprintDuration(sprintDuration.toString());
+    if (!isEditingGoals) setIsEditingGoals(false);
+  }, [sprintDuration]);
+
+  const handleEditAccount = () => {
+    setIsEditingAccount(true);
+  };
+
+  const handleEditGoals = () => {
+    setIsEditingGoals(true);
+  };
+
   const { signOut, user } = useAuth();
   const router = useRouter();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -38,6 +74,39 @@ export default function SettingsModal() {
         }
       ]
     );
+  };
+
+  const handleSaveAccount = async () => {
+    if (!accountDirty) return;
+    try {
+      await updateDisplayName(newName);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Saved", "Display name updated.");
+    } catch (e) {
+      console.error("Save account failed", e);
+      Alert.alert("Save Error", "Unable to save your display name.");
+    }
+  };
+
+  const handleSaveGoals = async () => {
+    if (!goalsDirty) return;
+    const goalNum = parseInt(newGoal, 10);
+    const sprintNum = parseInt(newSprintDuration, 10);
+
+    if (isNaN(goalNum) || isNaN(sprintNum)) {
+      Alert.alert("Invalid input", "Please enter valid numbers for your productivity goals.");
+      return;
+    }
+
+    try {
+      await updateFocusGoal(goalNum);
+      await updateSprintDuration(sprintNum);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Saved", "Productivity goals updated.");
+    } catch (e) {
+      console.error("Save goals failed", e);
+      Alert.alert("Save Error", "Unable to save your productivity goals.");
+    }
   };
 
   const handleManualSync = async () => {
@@ -68,10 +137,55 @@ export default function SettingsModal() {
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>ACCOUNT</Text>
             <View style={styles.accountInfo}>
-              <Text style={styles.menuItemText}>{user?.email || 'Guest User'}</Text>
+              <View style={styles.accountDetails}>
+                <Text style={styles.menuItemText}>{user?.email || 'Guest User'}</Text>
+                <Text style={styles.menuItemValue}>{displayName || 'No display name set'}</Text>
+              </View>
               <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
                 <LogOut size={18} color={colors.error} />
                 <Text style={[styles.menuItemValue, { color: colors.error }]}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inputGroup}> 
+              <Text style={styles.inputLabel}>DISPLAY NAME</Text>
+              <TextInput
+                style={[styles.input, !isEditingAccount && styles.inputDisabled]}
+                value={newName}
+                onChangeText={(text) => setNewName(text)}
+                placeholder="e.g. James Clear"
+                placeholderTextColor={colors.outline}
+                editable={isEditingAccount}
+              />
+            </View>
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={handleEditAccount}
+                disabled={isEditingAccount}
+              >
+                <Edit3 size={16} color={colors.onSurface} />
+                <Text style={styles.actionBtnText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  accountDirty && isEditingAccount && styles.actionBtnActive,
+                ]}
+                onPress={handleSaveAccount}
+                disabled={!accountDirty || !isEditingAccount}
+              >
+                <Save
+                  size={16}
+                  color={accountDirty && isEditingAccount ? colors.onPrimary : colors.outline}
+                />
+                <Text
+                  style={[
+                    styles.actionBtnText,
+                    accountDirty && isEditingAccount && styles.actionBtnTextActive,
+                  ]}
+                >
+                  Save
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -87,10 +201,11 @@ export default function SettingsModal() {
                   </View>
                </View>
                <TextInput 
-                 style={styles.goalInput}
-                 value={focusGoal.toString()}
-                 onChangeText={(v) => updateFocusGoal(parseInt(v) || 0)}
+                 style={[styles.goalInput, !isEditingGoals && styles.inputDisabled]}
+                 value={newGoal}
+                 onChangeText={setNewGoal}
                  keyboardType="number-pad"
+                 editable={isEditingGoals}
                />
             </View>
             <View style={styles.goalRow}>
@@ -102,11 +217,43 @@ export default function SettingsModal() {
                   </View>
                </View>
                <TextInput 
-                 style={styles.goalInput}
-                 value={sprintDuration.toString()}
-                 onChangeText={(v) => updateSprintDuration(parseInt(v) || 0)}
+                 style={[styles.goalInput, !isEditingGoals && styles.inputDisabled]}
+                 value={newSprintDuration}
+                 onChangeText={setNewSprintDuration}
                  keyboardType="number-pad"
+                 editable={isEditingGoals}
                />
+            </View>
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={handleEditGoals}
+                disabled={isEditingGoals}
+              >
+                <Edit3 size={16} color={colors.onSurface} />
+                <Text style={styles.actionBtnText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  goalsDirty && isEditingGoals && styles.actionBtnActive,
+                ]}
+                onPress={handleSaveGoals}
+                disabled={!goalsDirty || !isEditingGoals}
+              >
+                <Save
+                  size={16}
+                  color={goalsDirty && isEditingGoals ? colors.onPrimary : colors.outline}
+                />
+                <Text
+                  style={[
+                    styles.actionBtnText,
+                    goalsDirty && isEditingGoals && styles.actionBtnTextActive,
+                  ]}
+                >
+                  Save
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -343,6 +490,59 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontFamily: FONTS.labelSm,
     color: colors.primary,
     fontSize: 16,
+  },
+  accountDetails: {
+    flex: 1,
+  },
+  inputGroup: {
+    marginTop: SPACING.md,
+    gap: 8,
+  },
+  inputLabel: {
+    fontFamily: FONTS.labelSm,
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
+    letterSpacing: 1.2,
+  },
+  input: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant + '33',
+    borderRadius: ROUNDNESS.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 10,
+    fontFamily: FONTS.body,
+    color: colors.onSurface,
+  },
+  actionRow: {
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: ROUNDNESS.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant + '33',
+  },
+  inputDisabled: {
+    opacity: 0.5,
+  },
+  actionBtnActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  actionBtnText: {
+    fontFamily: FONTS.label,
+    color: colors.onSurface,
+    fontSize: 14,
+  },
+  actionBtnTextActive: {
+    color: colors.onPrimary,
   },
   themeToggleGrid: {
     flexDirection: 'row',

@@ -8,6 +8,26 @@ export interface HabitStreakInfo {
 }
 
 /**
+ * Helper to get local YYYY-MM-DD string
+ */
+function getLocalDayString(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Helper to check if a local date string is a weekend
+ */
+function isWeekend(dateStr: string): boolean {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const d = new Date(year, month - 1, day);
+  const dayOfWeek = d.getDay();
+  return dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+}
+
+/**
  * Calculates streak info for a habit based on its logs
  */
 export function calculateStreak(
@@ -18,68 +38,66 @@ export function calculateStreak(
     return { currentStreak: 0, maxStreak: 0, isDoneToday: false, lastLoggedDate: null };
   }
 
-  // Normalize dates to YYYY-MM-DD and sort descending
-  const uniqueDates = [...new Set(logDates.map(d => d.split('T')[0]))].sort((a, b) => b.localeCompare(a));
+  // Normalize dates to local YYYY-MM-DD and sort descending
+  // We handle both full ISO strings and YYYY-MM-DD strings
+  const uniqueDates = [...new Set(logDates.map(d => {
+    if (d.includes('T')) {
+      // If it's a full ISO string from the DB/API, we need to convert it to LOCAL YYYY-MM-DD
+      const dateObj = new Date(d);
+      return getLocalDayString(dateObj);
+    }
+    return d;
+  }))].sort((a, b) => b.localeCompare(a));
   
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDayString();
   const yesterdayDate = new Date();
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+  const yesterdayStr = getLocalDayString(yesterdayDate);
 
   const isDoneToday = uniqueDates.includes(todayStr);
   const lastLoggedDate = uniqueDates[0];
 
-  const isWeekend = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const day = d.getDay();
-    return day === 0 || day === 6;
-  };
-
   // Calculate Current Streak
   let currentStreak = 0;
-  let checkDate = new Date();
-  checkDate.setHours(0, 0, 0, 0);
-
-  // If not done today, start checking from yesterday
-  if (!isDoneToday) {
-    checkDate.setDate(checkDate.getDate() - 1);
-  }
-
-  let dateIdx = isDoneToday ? 0 : (uniqueDates[0] === yesterdayStr ? 0 : -1);
   
-  // If the last log is older than yesterday, the streak might be broken
-  if (!isDoneToday && uniqueDates[0] !== yesterdayStr) {
-    if (weekendFlexibility) {
-      // Check if all days between last log and today were weekends
-      let tempDate = new Date();
-      tempDate.setDate(tempDate.getDate() - 1);
-      let broken = false;
-      while (tempDate.toISOString().split('T')[0] > uniqueDates[0]) {
-        if (!isWeekend(tempDate.toISOString().split('T')[0])) {
-          broken = true;
-          break;
-        }
-        tempDate.setDate(tempDate.getDate() - 1);
-      }
-      if (broken) {
-        currentStreak = 0;
-      } else {
-        // Not broken, but we start counting from the last log
-        dateIdx = 0;
-      }
-    } else {
+  // Start checking from today (if done) or the last log date (if not done)
+  let checkDateStr = isDoneToday ? todayStr : uniqueDates[0];
+  
+  // If not done today, check if the streak is already broken
+  if (!isDoneToday) {
+    let gapDate = new Date();
+    gapDate.setDate(gapDate.getDate() - 1);
+    
+    // Move back through weekends if flexibility is on
+    while (weekendFlexibility && isWeekend(getLocalDayString(gapDate))) {
+      gapDate.setDate(gapDate.getDate() - 1);
+    }
+    
+    const latestAllowedDate = getLocalDayString(gapDate);
+    if (uniqueDates[0] < latestAllowedDate) {
+      // Streak is broken
       currentStreak = 0;
+      checkDateStr = null;
     }
   }
 
-  if (dateIdx !== -1) {
-    let curr = isDoneToday ? new Date() : new Date(uniqueDates[0]);
-    curr.setHours(0, 0, 0, 0);
+  if (checkDateStr) {
+    let curr = new Date(); // Start from today
+    // If we're starting from a previous log, sync curr to that
+    if (!isDoneToday) {
+      const [y, m, d] = uniqueDates[0].split('-').map(Number);
+      curr = new Date(y, m - 1, d);
+    }
     
     let logPtr = 0;
+    // Fast forward logPtr to match checkDateStr
+    while (logPtr < uniqueDates.length && uniqueDates[logPtr] > checkDateStr) {
+      logPtr++;
+    }
+
     while (logPtr < uniqueDates.length) {
+      const currDateStr = getLocalDayString(curr);
       const logDateStr = uniqueDates[logPtr];
-      const currDateStr = curr.toISOString().split('T')[0];
 
       if (logDateStr === currDateStr) {
         currentStreak++;
@@ -96,15 +114,17 @@ export function calculateStreak(
   // Calculate Max Streak
   let maxStreak = 0;
   let tempStreak = 0;
-  let curr = new Date(uniqueDates[uniqueDates.length - 1]);
-  curr.setHours(0, 0, 0, 0);
   
-  const lastDate = new Date(uniqueDates[0]);
-  lastDate.setHours(0, 0, 0, 0);
+  // To calculate max streak, we iterate from the earliest log to the latest
+  const earliestDateParts = uniqueDates[uniqueDates.length - 1].split('-').map(Number);
+  let curr = new Date(earliestDateParts[0], earliestDateParts[1] - 1, earliestDateParts[2]);
+  
+  const latestDateParts = uniqueDates[0].split('-').map(Number);
+  const lastDate = new Date(latestDateParts[0], latestDateParts[1] - 1, latestDateParts[2]);
 
   let logPtr = uniqueDates.length - 1;
   while (curr <= lastDate) {
-    const currDateStr = curr.toISOString().split('T')[0];
+    const currDateStr = getLocalDayString(curr);
     const logDateStr = uniqueDates[logPtr];
 
     if (logDateStr === currDateStr) {
@@ -134,26 +154,22 @@ export function calculateStreak(
 export async function updateHabitStreak(habitId: string) {
   const db = await getDb();
   
-  // 1. Get habit info
   const habit = await db.getFirstAsync<{weekend_flexibility: number}>(
     'SELECT weekend_flexibility FROM habits WHERE id = ?', 
     [habitId]
   );
   if (!habit) return;
 
-  // 2. Get all logs for this habit
   const logs = await db.getAllAsync<{logged_at: string}>(
     'SELECT logged_at FROM logs WHERE habit_id = ? ORDER BY logged_at DESC',
     [habitId]
   );
 
-  // 3. Calculate new streak
   const streakInfo = calculateStreak(
     logs.map(l => l.logged_at),
     habit.weekend_flexibility === 1
   );
 
-  // 4. Update habit record
   await db.runAsync(
     'UPDATE habits SET current_streak = ?, max_streak = ?, updated_at = ? WHERE id = ?',
     [streakInfo.currentStreak, streakInfo.maxStreak, new Date().toISOString(), habitId]

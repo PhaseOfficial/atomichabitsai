@@ -1,22 +1,26 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Send, Sparkles, User, Menu } from 'lucide-react-native';
+import { Settings, Send, Sparkles, User, Menu, CheckCircle2, RefreshCcw } from 'lucide-react-native';
 import { COLORS, SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { callAiAssistant } from '@/src/lib/ai';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useAuth } from '@/src/hooks/useAuth';
+import { useData } from '@/src/hooks/useData';
+import { syncWithSupabase } from '@/src/lib/sync';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 interface Message {
   id: string;
   text: string;
   sender: 'ai' | 'user';
   time: string;
+  action?: string;
 }
 
 export default function AIScreen() {
-  const { colors } = useTheme();
+  const { colors, identityAnchor } = useTheme();
   const { user } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
@@ -24,12 +28,23 @@ export default function AIScreen() {
 
   const userId = user?.id || 'guest';
 
+  // Fetch context to pass to AI
+  const { data: habits } = useData<{title: string, current_streak: number, two_minute_version: string}>(
+    'SELECT title, current_streak, two_minute_version FROM habits WHERE is_active = 1 AND (user_id = ? OR user_id IS NULL)',
+    [userId]
+  );
+
+  const habitContext = useMemo(() => {
+    if (habits.length === 0) return "User has no active habits yet.";
+    return "Current Habits:\n" + habits.map(h => `- ${h.title} (Streak: ${h.current_streak}, 2-min: ${h.two_minute_version})`).join('\n');
+  }, [habits]);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       sender: 'ai',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      text: "Good morning. I've analyzed your schedule for today. You have a peak focus window starting in 15 minutes. Would you like to prepare for a Deep Work session?"
+      text: "I'm Batsirai, your Habit Architect. I can help you build consistency, audit your schedule, or refine your 'Two-Minute' versions. How can we find your flow today?"
     }
   ]);
   const [inputText, setInputText] = useState('');
@@ -54,12 +69,41 @@ export default function AIScreen() {
     setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
-      const response = await callAiAssistant(messageText, userId);
+      // Include context in the prompt for the AI assistant
+      const contextualPrompt = `Context: I am ${identityAnchor}. ${habitContext}\n\nUser Message: ${messageText}`;
+      
+      const response = await callAiAssistant(contextualPrompt, userId);
+      
+      let aiText = "I've processed your request.";
+      let actionExecuted = undefined;
+
+      if (response && typeof response === 'object') {
+        if (response.success) {
+          actionExecuted = response.action;
+          if (actionExecuted === 'CREATE_HABIT') {
+             aiText = `I've architected a new habit for you: "${response.data?.[0]?.title || 'New Habit'}". It's been added to your dashboard.`;
+             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+             syncWithSupabase();
+          } else if (actionExecuted === 'ADD_LOG') {
+             aiText = "Success. I've logged that session for you. Every vote counts.";
+             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+             syncWithSupabase();
+          } else {
+             aiText = response.message || "Action executed successfully.";
+          }
+        } else {
+          aiText = response.error || "I encountered an issue executing that action.";
+        }
+      } else if (typeof response === 'string') {
+        aiText = response;
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: typeof response === 'string' ? response : response.message || "I'm processing that request now.",
+        text: aiText,
         sender: 'ai',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        action: actionExecuted
       };
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
@@ -82,7 +126,10 @@ export default function AIScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.menuBtn} onPress={() => router.push('/menu')}>
+          <TouchableOpacity style={styles.menuBtn} onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/menu');
+          }}>
             <Menu size={24} color={colors.primary} strokeWidth={1.5} />
           </TouchableOpacity>
           
@@ -94,7 +141,10 @@ export default function AIScreen() {
             />
           </View>
 
-          <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
+          <TouchableOpacity style={styles.ghostBtn} onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/modal');
+          }}>
             <Settings size={20} color={colors.primary} strokeWidth={1.5} />
           </TouchableOpacity>
         </View>
@@ -112,7 +162,7 @@ export default function AIScreen() {
           >
             <View style={styles.assistantStatus}>
               <Sparkles size={16} color={colors.primary} />
-              <Text style={styles.statusText}>Batsirai Assistant Active</Text>
+              <Text style={styles.statusText}>Architect Mode Active</Text>
             </View>
 
             {messages.map((message) => (
@@ -133,6 +183,14 @@ export default function AIScreen() {
                   ]}>
                     {message.text}
                   </Text>
+                  {message.action && (
+                    <View style={styles.actionBadge}>
+                      <CheckCircle2 size={12} color={message.sender === 'user' ? colors.onPrimary : colors.primary} />
+                      <Text style={[styles.actionText, { color: message.sender === 'user' ? colors.onPrimary : colors.primary }]}>
+                        {message.action.replace('_', ' ')}
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 <Text style={styles.messageTime}>{message.time}</Text>
               </View>
@@ -141,7 +199,7 @@ export default function AIScreen() {
             {isLoading && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={styles.loadingText}>Thinking...</Text>
+                <Text style={styles.loadingText}>Architecting response...</Text>
               </View>
             )}
           </ScrollView>
@@ -155,10 +213,10 @@ export default function AIScreen() {
               contentContainerStyle={styles.suggestionsContent}
             >
               {[
-                'Optimize my schedule', 
-                'Start focus session', 
-                'Analyze my habits', 
-                'How is my progress?'
+                'Audit my habits', 
+                'Suggest a 2-min version', 
+                'Log my workout', 
+                'Help me build a morning routine'
               ].map((suggestion) => (
                 <TouchableOpacity 
                   key={suggestion} 
@@ -173,7 +231,7 @@ export default function AIScreen() {
             <View style={styles.inputBarContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="Message Batsirai Assistant..."
+                placeholder="Message your Architect..."
                 placeholderTextColor={colors.onSurfaceVariant + '80'}
                 value={inputText}
                 onChangeText={setInputText}
@@ -285,6 +343,23 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 15,
     lineHeight: 22,
+  },
+  actionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  actionText: {
+    fontFamily: FONTS.label,
+    fontSize: 9,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   messageTime: {
     fontFamily: FONTS.label,

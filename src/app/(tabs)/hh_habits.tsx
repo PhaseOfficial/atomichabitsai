@@ -3,7 +3,7 @@ import { useData } from "@/src/hooks/useData";
 import { useTheme } from "@/src/hooks/useTheme";
 import { useAuth } from "@/src/hooks/useAuth";
 import { performMutation } from "@/src/lib/sync";
-import { Heart, PlusCircle, Settings, Sparkles, Menu, Trash2 } from "lucide-react-native";
+import { Heart, PlusCircle, Settings, Sparkles, Menu, Trash2, Zap, RotateCcw } from "lucide-react-native";
 import React, { useMemo, useCallback } from "react";
 import {
     ActivityIndicator,
@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
+import * as Haptics from 'expo-haptics';
 
 interface Habit {
   id: string;
@@ -24,12 +25,16 @@ interface Habit {
   frequency: string;
   is_active: number;
   is_done_today: number;
+  is_done_yesterday: number;
   current_streak: number;
   max_streak: number;
+  preferred_time: string;
+  location: string;
+  two_minute_version: string;
 }
 
 export default function HabitsScreen() {
-  const { colors } = useTheme();
+  const { colors, identityAnchor } = useTheme();
   const { user } = useAuth();
   const router = useRouter();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -43,11 +48,34 @@ export default function HabitsScreen() {
     refresh,
   } = useData<Habit>(
     `SELECT h.*, 
-     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at) = date('now')) as is_done_today
+     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at) = date('now')) as is_done_today,
+     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at) = date('now', '-1 day')) as is_done_yesterday
      FROM habits h 
      WHERE h.is_active = 1 AND (h.user_id = ? OR h.user_id IS NULL)`, 
     [userId]
   );
+
+  const { data: matrixLogs } = useData<{date: string}>(
+    "SELECT date(logged_at) as date FROM logs l JOIN habits h ON l.habit_id = h.id WHERE (h.user_id = ? OR h.user_id IS NULL) AND date(logged_at) > date('now', '-28 days')",
+    [userId]
+  );
+
+  const votesToday = useMemo(() => {
+    return habits.filter(h => h.is_done_today > 0).length;
+  }, [habits]);
+
+  const matrixCells = useMemo(() => {
+    const cells = [];
+    const today = new Date();
+    for (let i = 27; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const hasLog = matrixLogs.some(l => l.date === dateStr);
+      cells.push({ date: dateStr, active: hasLog });
+    }
+    return cells;
+  }, [matrixLogs]);
 
   const globalStreak = useMemo(() => {
     if (!habits || habits.length === 0) return 0;
@@ -63,11 +91,9 @@ export default function HabitsScreen() {
 
   const handleToggleHabit = async (habit: Habit) => {
     try {
-      if (habit.is_done_today > 0) {
-        // Already done, maybe delete the log? For now let's just avoid duplicates
-        return;
-      }
+      if (habit.is_done_today > 0) return;
 
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await performMutation("logs", "INSERT", {
         id: Math.random().toString(36).substring(7),
         habit_id: habit.id,
@@ -81,10 +107,12 @@ export default function HabitsScreen() {
   };
 
   const handleAddHabit = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/add-habit');
   };
 
   const handleDeleteHabit = async (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       "Delete Habit",
       "Are you sure you want to remove this habit and all its history?",
@@ -119,19 +147,26 @@ export default function HabitsScreen() {
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.menuBtn} onPress={() => router.push('/menu')}>
+          <TouchableOpacity style={styles.menuBtn} onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/menu');
+          }}>
             <Menu size={24} color={colors.primary} strokeWidth={1.5} />
           </TouchableOpacity>
           
           <View style={styles.logoContainer}>
             <Image 
               source={require('@/assets/images/Artboard 1 logo.png')} 
-              style={[styles.logoImage, { tintColor: colors.primary }]} 
+              style={styles.logoImage} 
+              tintColor={colors.primary}
               resizeMode="contain" 
             />
           </View>
 
-          <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/modal')}>
+          <TouchableOpacity style={styles.ghostBtn} onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/modal');
+          }}>
             <Settings size={20} color={colors.primary} strokeWidth={1.5} />
           </TouchableOpacity>
         </View>
@@ -144,121 +179,58 @@ export default function HabitsScreen() {
         >
           {/* Identity Header */}
           <View style={styles.identityHeader}>
-            <Text style={styles.label}>BATSIR / CORE PRINCIPLES</Text>
-            <Text style={styles.headline}>Personal Evolution</Text>
+            <Text style={styles.label}>ATOMIC PRINCIPLES / IDENTITY</Text>
+            <Text style={styles.headline}>{identityAnchor}</Text>
             <Text style={styles.subheadline}>
-              Cultivating lasting growth through identity-based habits and daily
-              habits.
+              "Every action you take is a vote for the type of person you wish to become."
             </Text>
 
             <View style={styles.focusCard}>
               <View style={styles.focusIconContainer}>
-                <Sparkles size={20} color={colors.onPrimary} />
+                <Zap size={20} color={colors.onPrimary} />
               </View>
-              <View>
-                <Text
-                  style={[
-                    styles.focusLabel,
-                    { color: colors.onPrimary + "B3" },
-                  ]}
-                >
-                  CURRENT IDENTITY ANCHOR
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.focusLabel, { color: colors.onPrimary + "B3" }]}>
+                  VOTES CAST TODAY
                 </Text>
-                <Text style={[styles.focusValue, { color: colors.onPrimary }]}>
-                  The Disciplined Creator
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Identity Cards */}
-          <View style={styles.gridContainer}>
-            <View style={styles.primaryIdentityCard}>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>CORE VALUE</Text>
-              </View>
-              <Text style={styles.identityQuote}>
-                {'"'}I prioritize focused work over superficial distractions.
-                {'"'}
-              </Text>
-              <View style={styles.identityFooter}>
-                <Text style={styles.identityFooterText}>
-                  CONSISTENCY STREAK: {globalStreak} DAYS
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.secondaryIdentityCard}>
-              <View>
-                <Text style={styles.cardTitle}>PHYSICAL WELL-BEING</Text>
-                <Text style={styles.cardQuote}>
-                  {'"'}I nurture my body with care and precision.{'"'}
-                </Text>
-              </View>
-              <View style={styles.cardFooter}>
-                <View style={styles.rhythmGrid}>
-                  {[1, 1, 1, 0, 0].map((active, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.rhythmDot,
-                        active && styles.rhythmDotActive,
-                      ]}
-                    />
-                  ))}
+                <View style={styles.voteBarContainer}>
+                   <View style={[styles.voteBarFill, { width: habits.length > 0 ? `${(votesToday / habits.length) * 100}%` : '0%', backgroundColor: colors.onPrimary }]} />
                 </View>
-                <Text style={styles.activeStatus}>STATUS: ACTIVE</Text>
               </View>
+              <Text style={[styles.voteCount, { color: colors.onPrimary }]}>{votesToday}/{habits.length}</Text>
             </View>
           </View>
 
           {/* Consistency Matrix */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>CONSISTENCY MATRIX</Text>
+            <Text style={styles.sectionLabel}>CONSISTENCY MATRIX (28 DAYS)</Text>
             <View style={styles.matrixContainer}>
-              <View style={styles.matrixHeader}>
-                <Text style={styles.matrixTitle}>Last 28 Days</Text>
-                <Text style={styles.matrixSubtitle}>86% Adherence</Text>
-              </View>
               <View style={styles.matrixGrid}>
-                {Array.from({ length: 28 }).map((_, i) => (
+                {matrixCells.map((cell, i) => (
                   <View
                     key={i}
                     style={[
                       styles.matrixCell,
                       {
-                        backgroundColor:
-                          i % 4 === 0
-                            ? colors.primaryContainer
-                            : i % 7 === 1
-                              ? colors.primary + "33"
-                              : colors.surfaceVariant,
+                        backgroundColor: cell.active 
+                          ? colors.primary 
+                          : colors.surfaceVariant,
+                        opacity: cell.active ? 0.8 : 1
                       },
                     ]}
                   />
                 ))}
               </View>
-            </View>
-          </View>
-
-          {/* Wellbeing Check */}
-          <View style={styles.wellbeingCard}>
-            <View style={styles.wellbeingIcon}>
-              <Heart size={20} color={colors.tertiary} />
-            </View>
-            <View style={styles.wellbeingContent}>
-              <Text style={styles.wellbeingTitle}>Well-being Pulse</Text>
-              <Text style={styles.wellbeingText}>
-                Your energy levels are steady. Focus on restorative sleep
-                tonight.
-              </Text>
+              <View style={styles.matrixFooter}>
+                 <Text style={styles.matrixSubtitle}>Current Streak: {globalStreak} days</Text>
+              </View>
             </View>
           </View>
 
           {/* Habit Inventory */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Daily Habits</Text>
+              <Text style={styles.sectionTitle}>Daily Votes</Text>
               <TouchableOpacity
                 style={styles.addButton}
                 onPress={handleAddHabit}
@@ -270,55 +242,65 @@ export default function HabitsScreen() {
 
             <View style={styles.habitList}>
               {habits.length > 0 ? (
-                habits.map((habit) => (
-                  <View key={habit.id} style={styles.habitItem}>
-                    <TouchableOpacity
-                      style={[
-                        styles.habitCheck,
-                        habit.is_done_today > 0 && {
-                          backgroundColor: colors.primary,
-                        },
-                      ]}
-                      onPress={() => handleToggleHabit(habit)}
-                    >
-                      {habit.is_done_today > 0 && (
-                        <View style={[styles.innerCheck, { backgroundColor: colors.onPrimary }]} />
-                      )}
-                    </TouchableOpacity>
-                    <View style={styles.habitContent}>
-                      <View style={styles.habitTitleRow}>
-                        <Text style={styles.habitName}>{habit.title}</Text>
-                        <View style={styles.tag}>
-                          <Text style={styles.tagText}>
-                            {habit.frequency.toUpperCase()}
-                          </Text>
+                habits.map((habit) => {
+                  const isRecovery = habit.is_done_yesterday === 0 && habit.is_done_today === 0;
+                  return (
+                    <View key={habit.id} style={styles.habitItem}>
+                      <TouchableOpacity
+                        style={[
+                          styles.habitCheck,
+                          habit.is_done_today > 0 && {
+                            backgroundColor: colors.primary,
+                          },
+                        ]}
+                        onPress={() => handleToggleHabit(habit)}
+                      >
+                        {habit.is_done_today > 0 && (
+                          <View style={[styles.innerCheck, { backgroundColor: colors.onPrimary }]} />
+                        )}
+                      </TouchableOpacity>
+                      <View style={styles.habitContent}>
+                        <View style={styles.habitTitleRow}>
+                          <Text style={styles.habitName}>{habit.title}</Text>
+                          {isRecovery && (
+                            <View style={[styles.tag, { backgroundColor: colors.error + '1A' }]}>
+                              <Text style={[styles.tagText, { color: colors.error }]}>
+                                NEVER MISS TWICE
+                              </Text>
+                            </View>
+                          )}
                         </View>
+                        <Text style={styles.habitDescription}>
+                          I will {habit.title.toLowerCase()} at {habit.preferred_time || 'any time'} in {habit.location || 'my usual spot'}.
+                        </Text>
+                        {habit.two_minute_version && (
+                          <Text style={styles.twoMinText}>
+                            2-min version: {habit.two_minute_version}
+                          </Text>
+                        )}
                       </View>
-                      <Text style={styles.habitDescription}>
-                        Building a resilient mind.
-                      </Text>
-                    </View>
-                    
-                    <TouchableOpacity 
-                      style={styles.deleteBtn} 
-                      onPress={() => handleDeleteHabit(habit.id)}
-                    >
-                      <Trash2 size={16} color={colors.error} />
-                    </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={styles.deleteBtn} 
+                        onPress={() => handleDeleteHabit(habit.id)}
+                      >
+                        <Trash2 size={16} color={colors.error} opacity={0.5} />
+                      </TouchableOpacity>
 
-                    <View style={styles.streakContainer}>
-                      <Text style={styles.streakLabel}>STREAK</Text>
-                      <Text style={styles.streakValue}>{habit.current_streak || 0}</Text>
+                      <View style={styles.streakContainer}>
+                        <Text style={styles.streakLabel}>STREAK</Text>
+                        <Text style={styles.streakValue}>{habit.current_streak || 0}</Text>
+                      </View>
                     </View>
-                  </View>
-                ))
+                  );
+                })
               ) : (
                 <TouchableOpacity 
                   style={styles.emptyStateCard}
                   onPress={handleAddHabit}
                 >
                   <PlusCircle size={24} color={colors.primary} />
-                  <Text style={styles.emptyStateText}>No habits found. Tap to add your first one.</Text>
+                  <Text style={styles.emptyStateText}>No habits found. Cast your first vote today.</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -328,6 +310,7 @@ export default function HabitsScreen() {
     </View>
   );
 }
+
 
 const createStyles = (colors: any) =>
   StyleSheet.create({
@@ -419,88 +402,20 @@ const createStyles = (colors: any) =>
       fontSize: 9,
       letterSpacing: 1,
     },
-    focusValue: {
-      fontFamily: FONTS.headline,
-      fontSize: 18,
+    voteBarContainer: {
+      height: 4,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      borderRadius: 2,
+      marginTop: 6,
+      overflow: 'hidden',
     },
-    gridContainer: {
-      padding: SPACING.lg,
-      gap: SPACING.md,
+    voteBarFill: {
+      height: '100%',
+      borderRadius: 2,
     },
-    primaryIdentityCard: {
-      backgroundColor: colors.secondary,
-      padding: SPACING.lg,
-      borderRadius: ROUNDNESS.lg,
-    },
-    badge: {
-      backgroundColor: "rgba(255,255,255,0.15)",
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: ROUNDNESS.sm,
-      alignSelf: "flex-start",
-      marginBottom: SPACING.md,
-    },
-    badgeText: {
-      color: "#fff",
-      fontSize: 9,
-      fontFamily: FONTS.labelSm,
-      letterSpacing: 0.5,
-    },
-    identityQuote: {
-      color: "#fff",
-      fontSize: 24,
-      fontFamily: FONTS.headline,
-      lineHeight: 30,
-    },
-    identityFooter: {
-      marginTop: SPACING.lg,
-    },
-    identityFooterText: {
-      color: "rgba(255,255,255,0.6)",
-      fontSize: 10,
-      fontFamily: FONTS.label,
-      letterSpacing: 0.5,
-    },
-    secondaryIdentityCard: {
-      backgroundColor: colors.surfaceVariant,
-      padding: SPACING.lg,
-      borderRadius: ROUNDNESS.lg,
-    },
-    cardTitle: {
-      fontFamily: FONTS.labelSm,
-      fontSize: 11,
-      letterSpacing: 1,
-      color: colors.onSurfaceVariant,
-      marginBottom: SPACING.xs,
-    },
-    cardQuote: {
+    voteCount: {
       fontFamily: FONTS.headline,
       fontSize: 20,
-      color: colors.onSurface,
-    },
-    cardFooter: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginTop: SPACING.md,
-    },
-    rhythmGrid: {
-      flexDirection: "row",
-      gap: 6,
-    },
-    rhythmDot: {
-      width: 8,
-      height: 8,
-      borderRadius: ROUNDNESS.full,
-      backgroundColor: colors.outlineVariant,
-    },
-    rhythmDotActive: {
-      backgroundColor: colors.secondary,
-    },
-    activeStatus: {
-      color: colors.secondary,
-      fontFamily: FONTS.labelSm,
-      fontSize: 10,
     },
     section: {
       padding: SPACING.lg,
@@ -519,63 +434,25 @@ const createStyles = (colors: any) =>
       borderWidth: 1,
       borderColor: colors.outlineVariant + "4D",
     },
-    matrixHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: SPACING.md,
-    },
-    matrixTitle: {
-      fontFamily: FONTS.labelSm,
-      fontSize: 13,
-      color: colors.onSurface,
-    },
-    matrixSubtitle: {
-      fontFamily: FONTS.label,
-      fontSize: 12,
-      color: colors.primary,
-    },
     matrixGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
       gap: 6,
+      justifyContent: 'center',
     },
     matrixCell: {
       width: 14,
       height: 14,
       borderRadius: 3,
     },
-    wellbeingCard: {
-      marginHorizontal: SPACING.lg,
-      padding: SPACING.md,
-      backgroundColor: colors.tertiary + "0D",
-      borderRadius: ROUNDNESS.md,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.md,
-      borderWidth: 1,
-      borderColor: colors.tertiary + "26",
+    matrixFooter: {
+      marginTop: SPACING.md,
+      alignItems: 'center',
     },
-    wellbeingIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: ROUNDNESS.md,
-      backgroundColor: colors.tertiary + "1A",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    wellbeingContent: {
-      flex: 1,
-    },
-    wellbeingTitle: {
-      fontFamily: FONTS.labelSm,
-      fontSize: 13,
-      color: colors.tertiary,
-    },
-    wellbeingText: {
-      fontFamily: FONTS.body,
+    matrixSubtitle: {
+      fontFamily: FONTS.label,
       fontSize: 12,
-      color: colors.onSurfaceVariant,
+      color: colors.primary,
     },
     sectionHeader: {
       flexDirection: "row",
@@ -640,7 +517,6 @@ const createStyles = (colors: any) =>
       color: colors.onSurface,
     },
     tag: {
-      backgroundColor: colors.surfaceVariant,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,
@@ -648,12 +524,18 @@ const createStyles = (colors: any) =>
     tagText: {
       fontSize: 8,
       fontFamily: FONTS.labelSm,
-      color: colors.onSurfaceVariant,
     },
     habitDescription: {
       fontFamily: FONTS.body,
       fontSize: 12,
       color: colors.onSurfaceVariant,
+    },
+    twoMinText: {
+      fontFamily: FONTS.body,
+      fontSize: 11,
+      color: colors.primary,
+      marginTop: 2,
+      fontStyle: 'italic',
     },
     deleteBtn: {
       padding: 8,

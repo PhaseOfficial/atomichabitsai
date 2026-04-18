@@ -1,11 +1,11 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, Library, Calendar } from 'lucide-react-native';
+import { LayoutDashboard, Library, Calendar, History } from 'lucide-react-native';
 import { COLORS, FONTS } from '@/src/constants/Theme';
 import { useTheme } from '@/src/hooks/useTheme';
 
 export default function TabLayout() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return (
     <Tabs
@@ -14,15 +14,18 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.outline,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopColor: colors.outline + '26',
-          borderTopWidth: 1,
+          backgroundColor: isDark ? 'rgba(10, 10, 10, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+          borderTopColor: colors.outline + '1A',
+          borderTopWidth: 0.5,
           height: 64,
           paddingBottom: 12,
           paddingTop: 8,
-          borderRadius: 0,
           elevation: 0,
           shadowOpacity: 0,
+          position: 'absolute', // Needed for blur effect
+          left: 0,
+          right: 0,
+          bottom: 0,
         },
         tabBarLabelStyle: {
           fontFamily: FONTS.label,
@@ -45,24 +48,31 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="sprint"
         options={{
           title: 'Sprint',
-          href: null, // Hide from bottom bar
+          href: null,
         }}
       />
       <Tabs.Screen
         name="aa_ai"
         options={{
           title: 'Assistant',
-          href: null, // Hide from bottom bar
+          href: null,
         }}
       />
       <Tabs.Screen
         name="hh_habits"
         options={{
           title: 'Habits',
-          href: null, // Hide from bottom bar
+          href: null,
         }}
       />
       <Tabs.Screen

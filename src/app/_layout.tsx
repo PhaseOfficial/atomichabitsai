@@ -1,7 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { Manrope_700Bold, Manrope_400Regular } from '@expo-google-fonts/manrope';
@@ -61,9 +61,11 @@ export default function RootLayout() {
 function RootLayoutContent() {
   const { isLoaded, colors } = useTheme();
   const [animationFinished, setAnimationFinished] = useState(false);
+  const splashHidden = useRef(false);
 
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && !splashHidden.current) {
+      splashHidden.current = true;
       // Small delay to ensure the native splash screen is ready to be hidden
       const timer = setTimeout(() => {
         SplashScreen.hideAsync().catch((err) => {

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Mail, Lock, LogIn, UserPlus, Sparkles, ArrowRight } from 'lucide-react-native';
 import { SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
@@ -66,95 +66,100 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Image 
-                source={require('@/assets/images/Artboard 1 logo.png')} 
-                style={[styles.logoImage, { tintColor: colors.primary }]} 
-                resizeMode="contain" 
-              />
-            </View>
-            <Text style={styles.title}>{isSignUp ? 'Join Batsir' : 'Welcome Back'}</Text>
-            <Text style={styles.subtitle}>
-              {isSignUp ? 'Start your journey to atomic efficiency.' : 'Find your flow state and continue building.'}
-            </Text>
-          </View>
-
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>EMAIL ADDRESS</Text>
-              <View style={styles.inputWrapper}>
-                <Mail size={20} color={colors.outline} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="name@example.com"
-                  placeholderTextColor={colors.outline}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+            <View style={styles.header}>
+              <View style={styles.logoContainer}>
+                <Image 
+                  source={require('@/assets/images/Artboard 1 logo.png')} 
+                  style={[styles.logoImage, { tintColor: colors.primary }]} 
+                  resizeMode="contain" 
                 />
               </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>PASSWORD</Text>
-              <View style={styles.inputWrapper}>
-                <Lock size={20} color={colors.outline} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Your secure password"
-                  placeholderTextColor={colors.outline}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity 
-              style={[styles.primaryBtn, loading && { opacity: 0.7 }]} 
-              onPress={handleAuth}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.onPrimary} />
-              ) : (
-                <>
-                  <Text style={styles.primaryBtnText}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>
-                  {isSignUp ? <UserPlus size={18} color={colors.onPrimary} /> : <LogIn size={18} color={colors.onPrimary} />}
-                </>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.switchBtn} 
-              onPress={() => setIsSignUp(!isSignUp)}
-            >
-              <Text style={styles.switchBtnText}>
-                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+              <Text style={styles.title}>{isSignUp ? 'Join Batsir' : 'Welcome Back'}</Text>
+              <Text style={styles.subtitle}>
+                {isSignUp ? 'Start your journey to atomic efficiency.' : 'Find your flow state and continue building.'}
               </Text>
-            </TouchableOpacity>
-          </View>
-
-          {!isSignUp && (
-            <View style={styles.featureHighlight}>
-              <View style={styles.featureIcon}>
-                <Sparkles size={20} color={colors.primary} />
-              </View>
-              <View style={styles.featureContent}>
-                <Text style={styles.featureTitle}>Batsirai Integration</Text>
-                <Text style={styles.featureDesc}>Your personal flow assistant is ready to help you optimize your schedule.</Text>
-              </View>
             </View>
-          )}
 
-          <TouchableOpacity style={styles.guestBtn} onPress={() => router.replace('/(tabs)/')}>
-            <Text style={styles.guestBtnText}>Continue as Guest</Text>
-            <ArrowRight size={14} color={colors.outline} />
-          </TouchableOpacity>
-        </ScrollView>
+            <View style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>EMAIL ADDRESS</Text>
+                <View style={styles.inputWrapper}>
+                  <Mail size={20} color={colors.outline} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="name@example.com"
+                    placeholderTextColor={colors.outline}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>PASSWORD</Text>
+                <View style={styles.inputWrapper}>
+                  <Lock size={20} color={colors.outline} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Your secure password"
+                    placeholderTextColor={colors.outline}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity 
+                style={[styles.primaryBtn, loading && { opacity: 0.7 }]} 
+                onPress={handleAuth}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={colors.onPrimary} />
+                ) : (
+                  <>
+                    <Text style={styles.primaryBtnText}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>
+                    {isSignUp ? <UserPlus size={18} color={colors.onPrimary} /> : <LogIn size={18} color={colors.onPrimary} />}
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.switchBtn} 
+                onPress={() => setIsSignUp(!isSignUp)}
+              >
+                <Text style={styles.switchBtnText}>
+                  {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {!isSignUp && (
+              <View style={styles.featureHighlight}>
+                <View style={styles.featureIcon}>
+                  <Sparkles size={20} color={colors.primary} />
+                </View>
+                <View style={styles.featureContent}>
+                  <Text style={styles.featureTitle}>Batsirai Integration</Text>
+                  <Text style={styles.featureDesc}>Your personal flow assistant is ready to help you optimize your schedule.</Text>
+                </View>
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.guestBtn} onPress={() => router.replace('/(tabs)/')}>
+              <Text style={styles.guestBtnText}>Continue as Guest</Text>
+              <ArrowRight size={14} color={colors.outline} />
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );

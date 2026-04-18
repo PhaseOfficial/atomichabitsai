@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Play, CheckCircle2, Activity, BarChart2, Mail, CreditCard, Sparkles, Plus, Globe, Trash2, Menu } from 'lucide-react-native';
+import { Settings, Play, CheckCircle2, Activity, BarChart2, Mail, CreditCard, Sparkles, Plus, Globe, Trash2, Menu, History } from 'lucide-react-native';
 import { SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
 import { useData } from '@/src/hooks/useData';
 import { useTheme } from '@/src/hooks/useTheme';
@@ -10,6 +10,8 @@ import { useAuth } from '@/src/hooks/useAuth';
 import { performMutation } from '@/src/lib/sync';
 import * as Haptics from 'expo-haptics';
 
+import { getLocalDateString } from '@/src/lib/date-utils';
+
 export default function DashboardScreen() {
   const { colors, focusGoal, displayName } = useTheme();
   const { user } = useAuth();
@@ -17,7 +19,7 @@ export default function DashboardScreen() {
   const router = useRouter();
 
   const userId = user?.id || 'guest';
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   const { data: habitStats, loading: habitsLoading } = useData<{count: number}>(
     'SELECT COUNT(*) as count FROM habits WHERE is_active = 1 AND (user_id = ? OR user_id IS NULL)', 
@@ -25,18 +27,18 @@ export default function DashboardScreen() {
   );
   
   const { data: logStats, loading: logsLoading } = useData<{count: number}>(
-    'SELECT COUNT(DISTINCT l.habit_id) as count FROM logs l JOIN habits h ON l.habit_id = h.id WHERE date(l.logged_at) = ? AND (h.user_id = ? OR h.user_id IS NULL)', 
-    [today, userId]
+    "SELECT COUNT(DISTINCT l.habit_id) as count FROM logs l JOIN habits h ON l.habit_id = h.id WHERE date(l.logged_at, 'localtime') = date('now', 'localtime') AND (h.user_id = ? OR h.user_id IS NULL)", 
+    [userId]
   );
 
   const { data: sessionStats } = useData<{count: number}>(
-    "SELECT SUM(completed_sessions) as count FROM tasks WHERE (user_id = ? OR user_id IS NULL) AND date(updated_at) = date('now')",
+    "SELECT SUM(completed_sessions) as count FROM tasks WHERE (user_id = ? OR user_id IS NULL) AND date(updated_at, 'localtime') = date('now', 'localtime')",
     [userId]
   );
 
   const { data: habits, loading: listLoading, refresh: refreshHabits } = useData<{id: string, title: string, is_done_today: number}>(
     `SELECT h.id, h.title, 
-     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at) = date('now')) as is_done_today
+     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at, 'localtime') = date('now', 'localtime')) as is_done_today
      FROM habits h 
      WHERE h.is_active = 1 AND (h.user_id = ? OR h.user_id IS NULL) LIMIT 3`,
     [userId]
@@ -165,15 +167,26 @@ export default function DashboardScreen() {
             />
           </View>
 
-          <TouchableOpacity 
-            style={styles.ghostBtn} 
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push('/modal');
-            }}
-          >
-            <Settings size={20} color={colors.primary} strokeWidth={1.5} />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity 
+              style={styles.ghostBtn} 
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/history');
+              }}
+            >
+              <History size={20} color={colors.primary} strokeWidth={1.5} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.ghostBtn} 
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/modal');
+              }}
+            >
+              <Settings size={20} color={colors.primary} strokeWidth={1.5} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView 
@@ -465,7 +478,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: 40,
     width: 160,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   ghostBtn: {
+
     padding: 8,
   },
   greetingContainer: {

@@ -1,9 +1,9 @@
 export const ACCENTS = {
-  sage: {
-    label: 'Batsir Sage',
-    primary: '#4a655a',
-    primaryContainer: '#cbe9db',
-    onPrimaryContainer: '#3d574d',
+  slate: {
+    label: 'Modern Slate',
+    primary: '#334155',
+    primaryContainer: '#f1f5f9',
+    onPrimaryContainer: '#0f172a',
   },
   blue: {
     label: 'Ocean Blue',
@@ -53,10 +53,10 @@ export type AccentKey = keyof typeof ACCENTS;
 
 export const COLORS = {
   light: {
-    primary: '#4a655a', // Sage
+    primary: '#334155', // Slate
     onPrimary: '#f8faf9',
-    primaryContainer: '#cbe9db',
-    onPrimaryContainer: '#3d574d',
+    primaryContainer: '#f1f5f9',
+    onPrimaryContainer: '#0f172a',
     secondary: '#4e607b', // Soft Blue
     onSecondary: '#f8f8ff',
     secondaryContainer: '#d3e3ff',
@@ -75,10 +75,10 @@ export const COLORS = {
     onError: '#fff7f6',
   },
   dark: {
-    primary: '#bedbce', // Tonal lighter Sage
-    onPrimary: '#2a443b',
-    primaryContainer: '#466156',
-    onPrimaryContainer: '#d7f5e7',
+    primary: '#94a3b8', // Light Slate
+    onPrimary: '#0f172a',
+    primaryContainer: '#1e293b',
+    onPrimaryContainer: '#f1f5f9',
     secondary: '#c2d6f5', // Tonal lighter Soft Blue
     onSecondary: '#2e405a',
     secondaryContainer: '#4a5d77',
@@ -125,5 +125,5 @@ export const FONTS = {
 };
 
 export const GRID_STYLE = {
-  ghostBorder: (scheme: 'light' | 'dark') => scheme === 'light' ? 'rgba(74, 101, 90, 0.1)' : 'rgba(190, 219, 206, 0.1)',
+  ghostBorder: (scheme: 'light' | 'dark') => scheme === 'light' ? 'rgba(51, 65, 85, 0.1)' : 'rgba(148, 163, 184, 0.1)',
 };

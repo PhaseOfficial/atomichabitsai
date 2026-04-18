@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Save, Link as LinkIcon, Type, Sparkles } from 'lucide-react-native';
 import { SPACING, FONTS, ROUNDNESS } from '@/src/constants/Theme';
@@ -45,62 +45,67 @@ export default function AddShortcutScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <X size={24} color={colors.onSurface} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add Shortcut</Text>
-          <TouchableOpacity onPress={handleSave} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Save size={24} color={colors.primary} />
-            )}
-          </TouchableOpacity>
-        </View>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()}>
+              <X size={24} color={colors.onSurface} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Add Shortcut</Text>
+            <TouchableOpacity onPress={handleSave} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Save size={24} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+          </View>
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>SHORTCUT DETAILS</Text>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>DISPLAY NAME</Text>
-              <View style={styles.inputWrapper}>
-                <Type size={20} color={colors.outline} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Project Dashboard"
-                  placeholderTextColor={colors.outline}
-                  value={title}
-                  onChangeText={setTitle}
-                />
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>SHORTCUT DETAILS</Text>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>DISPLAY NAME</Text>
+                <View style={styles.inputWrapper}>
+                  <Type size={20} color={colors.outline} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. Project Dashboard"
+                    placeholderTextColor={colors.outline}
+                    value={title}
+                    onChangeText={setTitle}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>URL OR APP LINK</Text>
+                <View style={styles.inputWrapper}>
+                  <LinkIcon size={20} color={colors.outline} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. linear.app/my-team"
+                    placeholderTextColor={colors.outline}
+                    value={url}
+                    onChangeText={setUrl}
+                    autoCapitalize="none"
+                    keyboardType="url"
+                  />
+                </View>
               </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>URL OR APP LINK</Text>
-              <View style={styles.inputWrapper}>
-                <LinkIcon size={20} color={colors.outline} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. linear.app/my-team"
-                  placeholderTextColor={colors.outline}
-                  value={url}
-                  onChangeText={setUrl}
-                  autoCapitalize="none"
-                  keyboardType="url"
-                />
-              </View>
+            <View style={styles.infoCard}>
+              <Sparkles size={20} color={colors.primary} />
+              <Text style={styles.infoText}>
+                Shortcuts will appear in your Ecosystem Tools section for quick access to your external workspaces.
+              </Text>
             </View>
-          </View>
-
-          <View style={styles.infoCard}>
-            <Sparkles size={20} color={colors.primary} />
-            <Text style={styles.infoText}>
-              Shortcuts will appear in your Ecosystem Tools section for quick access to your external workspaces.
-            </Text>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );

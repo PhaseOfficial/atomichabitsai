@@ -74,12 +74,55 @@ export const initDatabase = async () => {
       estimated_sessions INTEGER DEFAULT 1,
       completed_sessions INTEGER DEFAULT 0,
       tag TEXT,
+      todos TEXT NOT NULL DEFAULT '[]', -- JSON string
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS sync_history (
+      old_id TEXT PRIMARY KEY NOT NULL,
+      new_id TEXT NOT NULL,
+      table_name TEXT NOT NULL,
+      synced_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS books (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT,
+      title TEXT NOT NULL,
+      author TEXT,
+      total_pages INTEGER DEFAULT 0,
+      current_page INTEGER DEFAULT 0,
+      file_uri TEXT,
+      cover_uri TEXT,
+      status TEXT DEFAULT 'want_to_read', -- 'reading', 'finished', 'want_to_read'
+      synthesis TEXT, -- AI generated insights
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS reading_logs (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT,
+      book_id TEXT NOT NULL,
+      pages_read INTEGER DEFAULT 0,
+      duration_minutes REAL DEFAULT 0,
+      duration_seconds REAL DEFAULT 0,
+      logged_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (book_id) REFERENCES books (id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS bookmarks (
+      id TEXT PRIMARY KEY NOT NULL,
+      book_id TEXT NOT NULL,
+      page_number INTEGER NOT NULL,
+      note TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (book_id) REFERENCES books (id) ON DELETE CASCADE
+    );
   `);
 
-  // Simple migration to add missing columns if they don't exist
+  // Migration logic
   try {
     const tableInfo = await db.getAllAsync(`PRAGMA table_info(habits)`);
     const columnNames = (tableInfo as any[]).map(c => c.name);
@@ -105,6 +148,22 @@ export const initDatabase = async () => {
     if (!columnNames.includes('anchor_habit_id')) {
       await db.execAsync(`ALTER TABLE habits ADD COLUMN anchor_habit_id TEXT;`);
     }
+
+    const taskInfo = await db.getAllAsync(`PRAGMA table_info(tasks)`);
+    const taskColumns = (taskInfo as any[]).map(c => c.name);
+    if (!taskColumns.includes('todos')) {
+      await db.execAsync(`ALTER TABLE tasks ADD COLUMN todos TEXT NOT NULL DEFAULT '[]';`);
+    }
+
+    // Ensure sync_history exists explicitly
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS sync_history (
+        old_id TEXT PRIMARY KEY NOT NULL,
+        new_id TEXT NOT NULL,
+        table_name TEXT NOT NULL,
+        synced_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
   } catch (error) {
     console.error('Migration error:', error);
   }

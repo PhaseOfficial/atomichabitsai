@@ -39,14 +39,17 @@ export function calculateStreak(
   }
 
   // Normalize dates to local YYYY-MM-DD and sort descending
-  // We handle both full ISO strings and YYYY-MM-DD strings
   const uniqueDates = [...new Set(logDates.map(d => {
-    if (d.includes('T')) {
-      // If it's a full ISO string from the DB/API, we need to convert it to LOCAL YYYY-MM-DD
-      const dateObj = new Date(d);
-      return getLocalDayString(dateObj);
+    // Handle ISO (T) or SQLite (space) format
+    const datePart = d.split(/[T ]/)[0]; 
+    if (d.includes('T') || d.includes(':')) {
+      // If it looks like a full timestamp, we treat it as UTC and convert to LOCAL YYYY-MM-DD
+      const dateObj = new Date(d.replace(' ', 'T'));
+      if (!isNaN(dateObj.getTime())) {
+        return getLocalDayString(dateObj);
+      }
     }
-    return d;
+    return datePart; // Fallback to the date part
   }))].sort((a, b) => b.localeCompare(a));
   
   const todayStr = getLocalDayString();
@@ -174,4 +177,19 @@ export async function updateHabitStreak(habitId: string) {
     'UPDATE habits SET current_streak = ?, max_streak = ?, updated_at = ? WHERE id = ?',
     [streakInfo.currentStreak, streakInfo.maxStreak, new Date().toISOString(), habitId]
   );
+}
+
+/**
+ * Recalculates streaks for all active habits
+ */
+export async function recalculateAllStreaks(userId: string = 'guest') {
+  const db = await getDb();
+  const habits = await db.getAllAsync<{id: string}>(
+    'SELECT id FROM habits WHERE is_active = 1 AND (user_id = ? OR user_id IS NULL)',
+    [userId]
+  );
+
+  for (const habit of habits) {
+    await updateHabitStreak(habit.id);
+  }
 }

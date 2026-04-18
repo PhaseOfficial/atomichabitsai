@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import { COLORS, ACCENTS, AccentKey } from '../constants/Theme';
 import { getDb } from '../db/database';
@@ -66,7 +66,7 @@ async function saveSetting(key: string, value: string): Promise<void> {
 
 export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
   const systemColorScheme = useColorScheme() ?? 'light';
-  const [accentKey, setAccentKey] = useState<AccentKey>('sage');
+  const [accentKey, setAccentKey] = useState<AccentKey>('slate');
   const [themeMode, setThemeMode] = useState<ThemeMode>('system');
   const [focusGoal, setFocusGoal] = useState(8);
   const [sprintDuration, setSprintDuration] = useState(25);
@@ -77,7 +77,7 @@ export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const storedAccent = await getSetting(ACCENT_STORAGE_KEY, 'sage');
+        const storedAccent = await getSetting(ACCENT_STORAGE_KEY, 'slate');
         const storedMode = await getSetting(THEME_MODE_STORAGE_KEY, 'system');
         const storedGoal = await getSetting(FOCUS_GOAL_KEY, '8');
         const storedDuration = await getSetting(SPRINT_DURATION_KEY, '25');
@@ -141,18 +141,20 @@ export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const colorScheme = themeMode === 'system' ? systemColorScheme : themeMode;
   const isDark = colorScheme === 'dark';
-  const baseColors = COLORS[colorScheme as keyof typeof COLORS];
-  const accent = ACCENTS[accentKey];
+  
+  const colors = useMemo(() => {
+    const baseColors = COLORS[colorScheme as keyof typeof COLORS];
+    const accent = ACCENTS[accentKey];
+    return {
+      ...baseColors,
+      primary: accent.primary,
+      onPrimary: '#FFFFFF', 
+      primaryContainer: isDark ? baseColors.primaryContainer : accent.primaryContainer,
+      onPrimaryContainer: isDark ? baseColors.onPrimaryContainer : accent.onPrimaryContainer,
+    };
+  }, [colorScheme, accentKey, isDark]);
 
-  const colors = {
-    ...baseColors,
-    primary: accent.primary,
-    onPrimary: '#FFFFFF', 
-    primaryContainer: isDark ? baseColors.primaryContainer : accent.primaryContainer,
-    onPrimaryContainer: isDark ? baseColors.onPrimaryContainer : accent.onPrimaryContainer,
-  };
-
-  const value = {
+  const value = useMemo(() => ({
     colors,
     colorScheme: colorScheme as 'light' | 'dark',
     isDark,
@@ -170,7 +172,12 @@ export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
     displayName,
     updateDisplayName,
     isLoaded,
-  };
+  }), [
+    colors, colorScheme, isDark, accentKey, updateAccent, themeMode, 
+    updateThemeMode, focusGoal, updateFocusGoal, sprintDuration, 
+    updateSprintDuration, identityAnchor, updateIdentityAnchor, 
+    displayName, updateDisplayName, isLoaded
+  ]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };

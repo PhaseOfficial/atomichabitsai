@@ -10,6 +10,7 @@ import {
     Sparkles,
     Target,
     X,
+    History
 } from "lucide-react-native";
 import React, { useMemo, useState } from "react";
 import {
@@ -23,11 +24,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function MenuModal() {
-  const { 
-    colors, 
-    identityAnchor, 
-    updateIdentityAnchor, 
-    focusGoal, 
+  const {
+    colors,
+    identityAnchor,
+    updateIdentityAnchor,
+    focusGoal,
     updateFocusGoal,
   } = useTheme();
   const router = useRouter();
@@ -56,6 +57,12 @@ export default function MenuModal() {
       subtitle: "Start a focused work session",
       icon: <Clock size={22} color={colors.primary} />,
       route: "/sprint" as const,
+    },
+    {
+      title: "History",
+      subtitle: "Browse past activities & inventory",
+      icon: <History size={22} color={colors.primary} />,
+      route: "/history" as const,
     },
     {
       title: "Assistant",
@@ -91,50 +98,6 @@ export default function MenuModal() {
 
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>IDENTITY & TARGETS</Text>
-            <View style={styles.settingsCard}>
-              <View style={styles.inputGroup}>
-                <View style={styles.rowAlign}>
-                  <Sparkles size={16} color={colors.primary} />
-                  <Text style={styles.inputLabel}>IDENTITY ANCHOR</Text>
-                </View>
-                <TextInput
-                  style={styles.input}
-                  value={newAnchor}
-                  onChangeText={setNewAnchor}
-                  placeholder="e.g. The Disciplined Creator"
-                  placeholderTextColor={colors.outline}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <View style={styles.rowAlign}>
-                  <Target size={16} color={colors.primary} />
-                  <Text style={styles.inputLabel}>
-                    DAILY FOCUS GOAL (SESSIONS)
-                  </Text>
-                </View>
-                <TextInput
-                  style={styles.input}
-                  value={newGoal}
-                  onChangeText={setNewGoal}
-                  keyboardType="numeric"
-                  placeholder="8"
-                  placeholderTextColor={colors.outline}
-                />
-              </View>
-
-              <TouchableOpacity
-                style={styles.saveBtn}
-                onPress={handleSaveSettings}
-              >
-                <Save size={18} color={colors.onPrimary} />
-                <Text style={styles.saveBtnText}>Save Targets</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={[styles.section, { marginTop: 24 }]}>
             <Text style={styles.sectionLabel}>MAIN TOOLS</Text>
             {menuItems.map((item, index) => (
               <TouchableOpacity

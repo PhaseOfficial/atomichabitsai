@@ -140,17 +140,40 @@ const hasPendingHabitInsert = (queue: SyncOperation[], habitId: string) => {
 
 const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
   const payload = JSON.parse(item.payload);
-  const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks"];
+  const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks", "books", "reading_logs", "bookmarks", "sync_history"];
 
-  if (
-    item.table_name === "logs" &&
-    payload.habit_id &&
-    !isUUID(payload.habit_id)
-  ) {
-    console.warn(
-      `Postponing sync for log ${item.id}: habit_id "${payload.habit_id}" is still a temporary ID`,
-    );
-    return false;
+  // Special handling for logs with temporary or system IDs
+  if (item.table_name === "logs" && payload.habit_id) {
+    if (payload.habit_id === 'focus-session') {
+      // System logs that shouldn't be synced to Supabase (unless a system habit exists)
+      // For now, we just remove them from queue as they aren't compatible with UUID schema
+      await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
+      return true;
+    }
+
+    if (!isUUID(payload.habit_id)) {
+      // Check if the habit actually exists locally and has been synced already
+      const habit = await db.getFirstAsync<{id: string}>("SELECT id FROM habits WHERE id = ? OR id IN (SELECT old_id FROM sync_history WHERE new_id = ?)", [payload.habit_id, payload.habit_id]);
+      
+      // If we find a UUID for this habit locally that wasn't reflected in the queue payload
+      if (habit && isUUID(habit.id)) {
+        payload.habit_id = habit.id;
+        await db.runAsync("UPDATE sync_queue SET payload = ? WHERE id = ?", [JSON.stringify(payload), item.id]);
+        // Continue processing with fixed payload
+      } else {
+        // Threshold: If item was created > 30 minutes ago and still stuck, abandon it
+        const createdTime = new Date(item.created_at).getTime();
+        const now = new Date().getTime();
+        if (now - createdTime > 30 * 60 * 1000) {
+          console.warn(`Abandoning orphaned log ${item.id} for temp habit "${payload.habit_id}" after timeout.`);
+          await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
+          return true;
+        }
+
+        console.warn(`Postponing sync for log ${item.id}: habit_id "${payload.habit_id}" is still a temporary ID and habit is not yet synced.`);
+        return false;
+      }
+    }
   }
 
   let error;
@@ -195,6 +218,12 @@ const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
               [remoteData.id, localId],
             );
           }
+
+          // Record ID mapping in sync_history
+          await db.runAsync(
+            "INSERT OR REPLACE INTO sync_history (old_id, new_id, table_name) VALUES (?, ?, ?)",
+            [localId, remoteData.id, item.table_name]
+          );
 
           await updateQueuePayloads(localId, remoteData.id);
         });
@@ -336,10 +365,10 @@ export const pullFromServer = async () => {
   if (!user) return;
 
   const db = await getDb();
-  
+
   // Get last sync time
-  const lastSyncResult = await db.getFirstAsync<{value: string}>(
-    "SELECT value FROM settings WHERE key = 'last_pulled_at'"
+  const lastSyncResult = await db.getFirstAsync<{ value: string }>(
+    "SELECT value FROM settings WHERE key = 'last_pulled_at'",
   );
   const lastPulledAt = lastSyncResult?.value;
 
@@ -357,7 +386,7 @@ export const pullFromServer = async () => {
 
       // Incremental sync logic
       if (lastPulledAt) {
-        const timeColumn = table === 'logs' ? 'created_at' : 'updated_at';
+        const timeColumn = table === "logs" ? "created_at" : "updated_at";
         query = query.gt(timeColumn, lastPulledAt);
       }
 
@@ -415,7 +444,7 @@ export const pullFromServer = async () => {
   const now = new Date().toISOString();
   await db.runAsync(
     "INSERT OR REPLACE INTO settings (key, value) VALUES ('last_pulled_at', ?)",
-    [now]
+    [now],
   );
 };
 

@@ -114,6 +114,7 @@ export const initDatabase = async () => {
 
     CREATE TABLE IF NOT EXISTS bookmarks (
       id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT,
       book_id TEXT NOT NULL,
       page_number INTEGER NOT NULL,
       note TEXT,
@@ -124,38 +125,29 @@ export const initDatabase = async () => {
 
   // Migration logic
   try {
-    const tableInfo = await db.getAllAsync(`PRAGMA table_info(habits)`);
-    const columnNames = (tableInfo as any[]).map(c => c.name);
-    
-    if (!columnNames.includes('preferred_time')) {
-      await db.execAsync(`ALTER TABLE habits ADD COLUMN preferred_time TEXT;`);
-    }
-    if (!columnNames.includes('weekend_flexibility')) {
-      await db.execAsync(`ALTER TABLE habits ADD COLUMN weekend_flexibility INTEGER DEFAULT 0;`);
-    }
-    if (!columnNames.includes('current_streak')) {
-      await db.execAsync(`ALTER TABLE habits ADD COLUMN current_streak INTEGER DEFAULT 0;`);
-    }
-    if (!columnNames.includes('max_streak')) {
-      await db.execAsync(`ALTER TABLE habits ADD COLUMN max_streak INTEGER DEFAULT 0;`);
-    }
-    if (!columnNames.includes('two_minute_version')) {
-      await db.execAsync(`ALTER TABLE habits ADD COLUMN two_minute_version TEXT;`);
-    }
-    if (!columnNames.includes('location')) {
-      await db.execAsync(`ALTER TABLE habits ADD COLUMN location TEXT;`);
-    }
-    if (!columnNames.includes('anchor_habit_id')) {
-      await db.execAsync(`ALTER TABLE habits ADD COLUMN anchor_habit_id TEXT;`);
-    }
+    const habitsInfo = await db.getAllAsync(`PRAGMA table_info(habits)`);
+    const hCols = (habitsInfo as any[]).map(c => c.name);
+    if (!hCols.includes('preferred_time')) await db.execAsync(`ALTER TABLE habits ADD COLUMN preferred_time TEXT;`);
+    if (!hCols.includes('weekend_flexibility')) await db.execAsync(`ALTER TABLE habits ADD COLUMN weekend_flexibility INTEGER DEFAULT 0;`);
+    if (!hCols.includes('current_streak')) await db.execAsync(`ALTER TABLE habits ADD COLUMN current_streak INTEGER DEFAULT 0;`);
+    if (!hCols.includes('max_streak')) await db.execAsync(`ALTER TABLE habits ADD COLUMN max_streak INTEGER DEFAULT 0;`);
+    if (!hCols.includes('two_minute_version')) await db.execAsync(`ALTER TABLE habits ADD COLUMN two_minute_version TEXT;`);
+    if (!hCols.includes('location')) await db.execAsync(`ALTER TABLE habits ADD COLUMN location TEXT;`);
+    if (!hCols.includes('anchor_habit_id')) await db.execAsync(`ALTER TABLE habits ADD COLUMN anchor_habit_id TEXT;`);
 
     const taskInfo = await db.getAllAsync(`PRAGMA table_info(tasks)`);
-    const taskColumns = (taskInfo as any[]).map(c => c.name);
-    if (!taskColumns.includes('todos')) {
-      await db.execAsync(`ALTER TABLE tasks ADD COLUMN todos TEXT NOT NULL DEFAULT '[]';`);
-    }
+    const tCols = (taskInfo as any[]).map(c => c.name);
+    if (!tCols.includes('todos')) await db.execAsync(`ALTER TABLE tasks ADD COLUMN todos TEXT NOT NULL DEFAULT '[]';`);
 
-    // Ensure sync_history exists explicitly
+    const readingLogInfo = await db.getAllAsync(`PRAGMA table_info(reading_logs)`);
+    const rlCols = (readingLogInfo as any[]).map(c => c.name);
+    if (!rlCols.includes('user_id')) await db.execAsync(`ALTER TABLE reading_logs ADD COLUMN user_id TEXT;`);
+    if (!rlCols.includes('duration_seconds')) await db.execAsync(`ALTER TABLE reading_logs ADD COLUMN duration_seconds REAL DEFAULT 0;`);
+
+    const bookmarksInfo = await db.getAllAsync(`PRAGMA table_info(bookmarks)`);
+    const bCols = (bookmarksInfo as any[]).map(c => c.name);
+    if (!bCols.includes('user_id')) await db.execAsync(`ALTER TABLE bookmarks ADD COLUMN user_id TEXT;`);
+
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS sync_history (
         old_id TEXT PRIMARY KEY NOT NULL,

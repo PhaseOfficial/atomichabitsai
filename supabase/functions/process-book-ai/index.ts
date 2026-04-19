@@ -8,25 +8,25 @@ serve(async (req) => {
   }
 
   try {
-    const { pdf_base64, title } = await req.json();
+    const { pdf_base64, filename } = await req.json();
 
     if (!GEMINI_API_KEY) {
       return new Response(JSON.stringify({ error: "API key not configured" }), { status: 500 });
     }
 
-    // This is a simplified implementation. 
-    // Ideally, for large PDFs, you'd use the File API of Gemini.
-    // For this prototype, we'll send a prompt asking for a summary based on the provided metadata and small context.
-    
-    const prompt = `I am reading a book titled "${title}". 
-    Please provide a structured synthesis of this book including:
-    1. A 3-sentence executive summary.
-    2. 5 key actionable takeaways for productivity.
-    3. The primary "Atomic Principle" this book reinforces.
-    
-    Format the response as clean Markdown.`;
+    // Since we are in 2026, we use the multimodal capabilities of Gemini 3.1 Flash.
+    // We send a snippet of the base64 data (the first few KB usually contain header/metadata).
+    // For a production app, we'd use a dedicated PDF parsing library in the edge function,
+    // but here we'll use Gemini's reasoning on the filename and context.
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const prompt = `I am uploading a file named "${filename}". 
+    Please extract the formal Book Title and the Author's full name.
+    Also, based on common knowledge of this book, what is its approximate total page count?
+    
+    Return ONLY a JSON object:
+    {"title": "string", "author": "string", "totalPages": number}`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -34,10 +34,14 @@ serve(async (req) => {
       })
     });
 
-    const data = await response.json();
-    const synthesis = data.candidates?.[0]?.content?.parts?.[0]?.text || "Unable to generate synthesis at this time.";
+    const result = await response.json();
+    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    
+    // Clean up potential markdown formatting in the response
+    const jsonString = text.replace(/```json|```/g, "").trim();
+    const metadata = JSON.parse(jsonString);
 
-    return new Response(JSON.stringify({ synthesis }), {
+    return new Response(JSON.stringify(metadata), {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
   } catch (error) {

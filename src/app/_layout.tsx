@@ -65,13 +65,18 @@ function RootLayoutContent() {
 
   useEffect(() => {
     if (isLoaded && !splashHidden.current) {
-      splashHidden.current = true;
-      // Small delay to ensure the native splash screen is ready to be hidden
-      const timer = setTimeout(() => {
-        SplashScreen.hideAsync().catch((err) => {
-          console.warn('SplashScreen.hideAsync failed:', err.message);
-        });
-      }, 100);
+      const hideSplash = async () => {
+        try {
+          splashHidden.current = true;
+          // Verify if we can actually hide it
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          // If it fails, it usually means it's already hidden or not registered
+          console.log("Splash hide safely ignored:", e);
+        }
+      };
+      
+      const timer = setTimeout(hideSplash, 200);
       return () => clearTimeout(timer);
     }
   }, [isLoaded]);

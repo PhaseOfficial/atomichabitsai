@@ -200,6 +200,120 @@ interface Habit {
   is_done_today: number;
 }
 
+interface DraggableTaskBlockProps {
+  block: any;
+  index: number;
+  hourHeight: number;
+  colors: any;
+  onEdit: (block: any, index: number) => void;
+  onUpdateTimes: (index: number, newStart: string, newEnd: string) => Promise<void>;
+  styles: any;
+}
+
+const DraggableTaskBlock: React.FC<DraggableTaskBlockProps> = ({ 
+  block, index, hourHeight, colors, onEdit, onUpdateTimes, styles 
+}) => {
+  const pan = useRef(new Animated.ValueXY()).current;
+  const [isDragging, setIsDragging] = useState(false);
+
+  const top = getTimeOffset(block.start, hourHeight);
+  const height = getBlockHeight(block.start, block.end, hourHeight);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only start dragging if the movement is significant
+        return Math.abs(gestureState.dy) > 10;
+      },
+      onPanResponderGrant: () => {
+        setIsDragging(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      },
+      onPanResponderMove: Animated.event([null, { dy: pan.y }], { useNativeDriver: false }),
+      onPanResponderRelease: async (_, gestureState) => {
+        setIsDragging(false);
+        const deltaMinutes = Math.round((gestureState.dy / hourHeight) * 60 / 15) * 15;
+        
+        if (deltaMinutes !== 0) {
+          const currentStartMins = toMinutes(block.start);
+          const currentEndMins = toMinutes(block.end);
+          const duration = currentEndMins - currentStartMins;
+          
+          let newStartMins = currentStartMins + deltaMinutes;
+          // Clamp to day boundaries
+          if (newStartMins < 0) newStartMins = 0;
+          if (newStartMins + duration > 24 * 60) newStartMins = 24 * 60 - duration;
+          
+          const newStart = toTimeString(newStartMins);
+          const newEnd = toTimeString(newStartMins + duration);
+          
+          await onUpdateTimes(index, newStart, newEnd);
+        }
+        
+        Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
+      },
+    })
+  ).current;
+
+  const blockStyle = block.type === "deep-work" ? styles.deepWorkBlock : 
+                     block.type === "break" ? styles.breakBlock :
+                     block.type === "habit" ? [styles.habitBlock, block.isDone && { opacity: 0.6 }] :
+                     block.type === "chores" ? styles.choresBlock :
+                     styles.defaultBlock;
+
+  const completedTodos = block.todos?.filter((t: any) => t.completed).length || 0;
+  const totalTodos = block.todos?.length || 0;
+
+  return (
+    <Animated.View
+      {...panResponder.panHandlers}
+      style={[
+        styles.taskBlock, 
+        blockStyle, 
+        { 
+          top: top, 
+          height,
+          left: `${(block.column || 0) * (100 / (block.totalCols || 1))}%`,
+          width: `${100 / (block.totalCols || 1)}%`,
+          transform: [{ translateY: pan.y }],
+          zIndex: isDragging ? 1000 : 1,
+          elevation: isDragging ? 10 : 1,
+          opacity: isDragging ? 0.9 : 1,
+        }
+      ]}
+    >
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => onEdit(block, index)}
+        disabled={isDragging}
+        style={{ flex: 1 }}
+      >
+        <View>
+          <Text style={[styles.blockLabel, { color: block.type === "deep-work" ? colors.onPrimary : colors.onSurfaceVariant }]}>
+            {block.type?.toUpperCase() || "EVENT"}
+          </Text>
+          <Text style={[styles.taskTitle, { color: block.type === "deep-work" ? colors.onPrimary : colors.onSurface }]} numberOfLines={1}>
+            {block.task}
+          </Text>
+          {totalTodos > 0 && (
+            <View style={styles.todoProgress}>
+              <Text style={[styles.todoText, { color: block.type === "deep-work" ? colors.onPrimary : colors.primary }]}>
+                {completedTodos}/{totalTodos} points
+              </Text>
+            </View>
+          )}
+        </View>
+        {block.description && (
+          <Text style={[styles.taskLocation, { color: block.type === "deep-work" ? colors.onPrimary : colors.onSurfaceVariant }]} numberOfLines={1}>
+            • {block.description}
+          </Text>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 export default function CalendarScreen() {
   const { colors, sprintDuration } = useTheme();
   const { user } = useAuth();

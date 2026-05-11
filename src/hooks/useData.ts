@@ -35,6 +35,7 @@ export function useData<T>(query: string, params: any[] = []) {
           if (stringifiedResult !== dataRef.current) {
             dataRef.current = stringifiedResult;
             setData(result as T[]);
+            console.log("SCHEDULE DATA UPDATED", { query: queryRef.current.substring(0, 50), blocks_count: result.length });
           }
           setError(null);
         }

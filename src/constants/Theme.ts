@@ -85,11 +85,11 @@ export const COLORS = {
     onSecondaryContainer: '#d3e3ff',
     tertiary: '#e5d8f0', // Tonal lighter Lavender
     onTertiary: '#4a4154',
-    background: '#0b0f0f', // Very dark Charcoal
+    background: '#000000', // Pure black
     onBackground: '#f1f4f3',
-    surface: '#0b0f0f',
+    surface: '#000000',
     onSurface: '#f1f4f3',
-    surfaceVariant: '#2d3433',
+    surfaceVariant: '#1a1a1a',
     onSurfaceVariant: '#acb3b2',
     outline: '#acb3b2',
     outlineVariant: '#596060',

@@ -40,6 +40,7 @@ import { getLocalDateString } from "@/src/lib/date-utils";
 import * as Haptics from 'expo-haptics';
 import { useRouter, useFocusEffect } from "expo-router";
 import { TimeInput } from "@/src/components/ui/TimeInput";
+import { CalendarStrip } from "@/src/components/ui/CalendarStrip";
 
 interface Habit {
   id: string;
@@ -63,6 +64,7 @@ export default function HabitsScreen() {
 
   const userId = user?.id || 'guest';
   const today = getLocalDateString();
+  const [selectedDate, setSelectedDate] = useState(today);
 
   const {
     data: habits,
@@ -70,12 +72,12 @@ export default function HabitsScreen() {
     refresh,
   } = useData<Habit>(
     `SELECT h.*, 
-     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at, 'localtime') = date('now', 'localtime')) as is_done_today,
-     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at, 'localtime') = date('now', 'localtime', '-1 day')) as is_done_yesterday
+     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at, 'localtime') = ?) as is_done_today,
+     (SELECT COUNT(*) FROM logs l WHERE l.habit_id = h.id AND date(l.logged_at, 'localtime') = date(?, '-1 day')) as is_done_yesterday
      FROM habits h 
      WHERE h.is_active = 1 AND (h.user_id = ? OR h.user_id IS NULL)
      ORDER BY h.preferred_time ASC`, 
-    [userId]
+    [selectedDate, selectedDate, userId]
   );
 
   const { data: matrixLogs } = useData<{date: string, count: number}>(
@@ -266,6 +268,12 @@ export default function HabitsScreen() {
           </TouchableOpacity>
         </View>
 
+        <CalendarStrip 
+          selectedDate={selectedDate}
+          onDateSelect={setSelectedDate}
+          colors={colors}
+        />
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}
@@ -314,7 +322,7 @@ export default function HabitsScreen() {
           <View style={styles.summaryCard}>
             <View style={styles.summaryInfo}>
               <View>
-                <Text style={styles.summaryTitle}>Today's Progress</Text>
+                <Text style={styles.summaryTitle}>Progress</Text>
                 <Text style={styles.summarySubtitle}>
                   {dailySummary.completed} of {dailySummary.total} habits completed
                 </Text>

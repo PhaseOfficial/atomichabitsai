@@ -59,12 +59,13 @@ export const addToSyncQueue = async (
   table_name: string,
   operation: "INSERT" | "UPDATE" | "DELETE",
   payload: any,
-) => {
+): Promise<number | undefined> => {
   const db = await getDb();
-  await db.runAsync(
+  const result = await db.runAsync(
     "INSERT INTO sync_queue (table_name, operation, payload) VALUES (?, ?, ?)",
     [table_name, operation, JSON.stringify(payload)],
   );
+  return result.lastInsertRowId;
 };
 
 /**
@@ -95,7 +96,7 @@ const updateQueuePayloads = async (oldId: string, newId: string) => {
 
 const migrateGuestDataToUser = async (userId: string) => {
   const db = await getDb();
-  const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks"];
+  const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks", "books", "reading_logs", "bookmarks", "logs"];
 
   for (const table of tablesWithUserId) {
     await db.runAsync(`UPDATE ${table} SET user_id = ? WHERE user_id = ?`, [
@@ -140,7 +141,7 @@ const hasPendingHabitInsert = (queue: SyncOperation[], habitId: string) => {
 
 const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
   const payload = JSON.parse(item.payload);
-  const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks", "books", "reading_logs", "bookmarks", "sync_history"];
+  const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks", "books", "reading_logs", "bookmarks", "logs", "sync_history"];
 
   // Special handling for logs with temporary or system IDs
   if (item.table_name === "logs" && payload.habit_id) {
@@ -372,14 +373,14 @@ export const pullFromServer = async () => {
   );
   const lastPulledAt = lastSyncResult?.value;
 
-  const tables = ["habits", "schedules", "logs", "shortcuts", "tasks"];
+  const tables = ["habits", "schedules", "logs", "shortcuts", "tasks", "books", "reading_logs", "bookmarks", "sync_history"];
 
   for (const table of tables) {
     try {
       let syncTouchedLocalRows = false;
       let query = supabase.from(table).select("*");
 
-      const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks"];
+      const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks", "books", "reading_logs", "bookmarks", "logs", "sync_history"];
       if (tablesWithUserId.includes(table)) {
         query = query.eq("user_id", user.id);
       }
@@ -453,6 +454,7 @@ export const performMutation = async (
   operation: "INSERT" | "UPDATE" | "DELETE",
   payload: any,
 ) => {
+  console.log("performMutation START", { table_name, operation, payload });
   const db = await getDb();
 
   switch (operation) {
@@ -505,6 +507,8 @@ export const performMutation = async (
     await updateHabitStreak(payload.id);
   }
 
-  await addToSyncQueue(table_name, operation, payload);
+  const syncId = await addToSyncQueue(table_name, operation, payload);
+  console.log("performMutation RESULT", { success: !!syncId, syncId });
   syncWithSupabase().catch(console.error);
+  return syncId;
 };

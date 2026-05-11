@@ -10,6 +10,15 @@ import { initDatabase } from '@/src/db/database';
 import { useTheme, BatsirThemeProvider } from '@/src/hooks/useTheme';
 import { useSync } from '@/src/hooks/useSync';
 import { AnimatedSplashScreen } from '@/src/components/animated-splash-screen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
+
+// Disable strict mode for Reanimated logger to suppress warnings about reading value during render,
+// which can be triggered by the React Compiler or third-party libraries in Reanimated 4.
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false,
+});
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -52,9 +61,11 @@ export default function RootLayout() {
   }
 
   return (
-    <BatsirThemeProvider>
-      <RootLayoutContent />
-    </BatsirThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BatsirThemeProvider>
+        <RootLayoutContent />
+      </BatsirThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 

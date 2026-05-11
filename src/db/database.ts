@@ -36,6 +36,7 @@ export const initDatabase = async () => {
 
     CREATE TABLE IF NOT EXISTS logs (
       id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT, -- Supabase user ID
       habit_id TEXT NOT NULL,
       status TEXT NOT NULL,
       logged_at TEXT DEFAULT (datetime('now')),
@@ -93,6 +94,7 @@ export const initDatabase = async () => {
       author TEXT,
       total_pages INTEGER DEFAULT 0,
       current_page INTEGER DEFAULT 0,
+      last_page_read INTEGER DEFAULT 0,
       file_uri TEXT,
       cover_uri TEXT,
       status TEXT DEFAULT 'want_to_read', -- 'reading', 'finished', 'want_to_read'
@@ -147,6 +149,14 @@ export const initDatabase = async () => {
     const bookmarksInfo = await db.getAllAsync(`PRAGMA table_info(bookmarks)`);
     const bCols = (bookmarksInfo as any[]).map(c => c.name);
     if (!bCols.includes('user_id')) await db.execAsync(`ALTER TABLE bookmarks ADD COLUMN user_id TEXT;`);
+
+    const logsInfo = await db.getAllAsync(`PRAGMA table_info(logs)`);
+    const lCols = (logsInfo as any[]).map(c => c.name);
+    if (!lCols.includes('user_id')) await db.execAsync(`ALTER TABLE logs ADD COLUMN user_id TEXT;`);
+
+    const booksInfo = await db.getAllAsync(`PRAGMA table_info(books)`);
+    const bookCols = (booksInfo as any[]).map(c => c.name);
+    if (!bookCols.includes('last_page_read')) await db.execAsync(`ALTER TABLE books ADD COLUMN last_page_read INTEGER DEFAULT 0;`);
 
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS sync_history (

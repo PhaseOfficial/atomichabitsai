@@ -22,14 +22,20 @@ export function AnimatedSplashScreen({ onAnimationFinish, backgroundColor }: Pro
   const opacity = useSharedValue(0);
   const containerOpacity = useSharedValue(1);
 
-  const animatedLogoStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+  const animatedLogoStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    };
+  });
 
-  const animatedContainerStyle = useAnimatedStyle(() => ({
-    opacity: containerOpacity.value,
-  }));
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      opacity: containerOpacity.value,
+    };
+  });
 
   useEffect(() => {
     // Sequence: Fade in and scale up -> Hold -> Zoom in/Fade out container

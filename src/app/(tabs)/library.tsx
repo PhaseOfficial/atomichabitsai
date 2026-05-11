@@ -6,6 +6,7 @@ import { supabase } from "@/src/lib/supabase";
 import { performMutation } from "@/src/lib/sync";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { decode } from "base-64";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
@@ -28,14 +29,9 @@ import {
   Trash2,
   TrendingUp,
   Upload,
-  X
+  X,
 } from "lucide-react-native";
-import React, {
-  useCallback,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -51,35 +47,76 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  GestureHandlerRootView
-} from "react-native-gesture-handler";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming
+  withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Helper for PDF Placeholder
-const PdfPlaceholder = (props: any) => (
-  <View style={[props.style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0', padding: 20 }]}>
-    <BookOpen size={48} color="#ccc" style={{ marginBottom: 16 }} />
-    <Text style={{ textAlign: 'center', color: '#666', fontSize: 16, fontWeight: '600' }}>
-      PDF Reader Unavailable
-    </Text>
-    <Text style={{ textAlign: 'center', color: '#888', fontSize: 14, marginTop: 8 }}>
-      Native modules are not supported in Expo Go.
-    </Text>
-    <TouchableOpacity 
-      style={{ marginTop: 20, padding: 12, backgroundColor: '#007AFF', borderRadius: 8 }}
-      onPress={() => Alert.alert("Development Build Required", "To view PDFs, you must create a development build by running 'npx expo run:android' or 'npx expo run:ios'.")}
+const PdfPlaceholder = (props: any) => {
+  const { colors, isDark } = useTheme();
+  return (
+    <View
+      style={[
+        props.style,
+        {
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: isDark ? "#121212" : "#f0f0f0",
+          padding: 20,
+        },
+      ]}
     >
-      <Text style={{ color: 'white', fontWeight: 'bold' }}>Learn More</Text>
-    </TouchableOpacity>
-  </View>
-);
+      <BookOpen
+        size={48}
+        color={isDark ? colors.outline : "#ccc"}
+        style={{ marginBottom: 16 }}
+      />
+      <Text
+        style={{
+          textAlign: "center",
+          color: colors.onSurface,
+          fontSize: 16,
+          fontWeight: "600",
+        }}
+      >
+        PDF Reader Unavailable
+      </Text>
+      <Text
+        style={{
+          textAlign: "center",
+          color: colors.outline,
+          fontSize: 14,
+          marginTop: 8,
+        }}
+      >
+        Native modules are not supported in Expo Go.
+      </Text>
+      <TouchableOpacity
+        style={{
+          marginTop: 20,
+          padding: 12,
+          backgroundColor: colors.primary,
+          borderRadius: 8,
+        }}
+        onPress={() =>
+          Alert.alert(
+            "Development Build Required",
+            "To view PDFs, you must create a development build by running 'npx expo run:android' or 'npx expo run:ios'.",
+          )
+        }
+      >
+        <Text style={{ color: colors.onPrimary, fontWeight: "bold" }}>
+          Learn More
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 // Safe PDF Component Wrapper
 const Pdf = (props: any) => {
@@ -87,20 +124,30 @@ const Pdf = (props: any) => {
   const [error, setError] = useState(false);
 
   useMemo(() => {
+    // Check if running in Expo Go
+    const isExpoGo =
+      Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+    if (isExpoGo) {
+      console.log("PDF Reader not available in Expo Go");
+      setError(true);
+      return;
+    }
+
     try {
       // Lazy require to avoid top-level native module evaluation crashes
       const PdfLib = require("react-native-pdf");
       const Comp = PdfLib.default || PdfLib;
       setPdfComponent(() => Comp);
     } catch (e) {
-      console.log("PDF Reader not available - likely running in Expo Go");
+      console.log("PDF Reader failed to load");
       setError(true);
     }
   }, []);
 
   if (error) return <PdfPlaceholder {...props} />;
   if (!PdfComponent) return <ActivityIndicator style={props.style} />;
-  
+
   const Comp = PdfComponent;
   return <Comp {...props} />;
 };
@@ -402,10 +449,8 @@ export default function LibraryScreen() {
 
         // Copy file to app's document directory for local access
         const localUri = `${FileSystem.documentDirectory}books/${fileName}`;
-        await FileSystem.makeDirectoryAsync(
-          `${FileSystem.documentDirectory}books`,
-          { intermediates: true },
-        );
+        const dirPath = `${FileSystem.documentDirectory}books/${userId}`;
+        await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
         await FileSystem.copyAsync({
           from: selectedFile.uri,
           to: localUri,
@@ -563,17 +608,18 @@ export default function LibraryScreen() {
   };
 
   const notePanelAnimatedStyle = useAnimatedStyle(() => {
+    "worklet";
     return {
       height: notePanelHeight.value,
       opacity: notePanelOpacity.value,
     };
   });
 
-  const toggleNotePanel = () => {
+  const toggleNotePanel = useCallback(() => {
     const isOpening = notePanelHeight.value === 0;
     notePanelHeight.value = withSpring(isOpening ? 300 : 0);
     notePanelOpacity.value = withTiming(isOpening ? 1 : 0);
-  };
+  }, [notePanelHeight, notePanelOpacity]);
 
   const handleDeleteBook = async (id: string, fileUri?: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -876,7 +922,10 @@ export default function LibraryScreen() {
             presentationStyle="fullScreen"
           >
             <View style={styles.readerContainer}>
-              <SafeAreaView style={styles.readerHeader}>
+              <SafeAreaView
+                style={styles.readerHeader}
+                edges={["top", "left", "right"]}
+              >
                 <View style={styles.readerInfo}>
                   <Text style={styles.readerTitle} numberOfLines={1}>
                     {activeBook?.title}
@@ -943,7 +992,7 @@ export default function LibraryScreen() {
                     enablePaging={true}
                     enableRTL={false}
                     enableAnnotationRendering={true}
-                    fitPolicy={2} // Fit to width
+                    fitPolicy={0} // Fit to width for better reading
                     style={styles.pdfView}
                   />
                 ) : (
@@ -1007,7 +1056,10 @@ export default function LibraryScreen() {
                 </ScrollView>
               </Animated.View>
 
-              <SafeAreaView style={styles.readerFooter}>
+              <SafeAreaView
+                style={styles.readerFooter}
+                edges={["bottom", "left", "right"]}
+              >
                 <View style={styles.pageInputGroup}>
                   <Text style={styles.footerLabel}>Go to:</Text>
                   <TextInput
@@ -1558,11 +1610,12 @@ const createStyles = (colors: any, isDark: boolean) =>
     },
     readerBody: {
       flex: 1,
-      backgroundColor: "#f5f5f5",
+      backgroundColor: isDark ? "#121212" : "#f5f5f5",
     },
     pdfView: {
       flex: 1,
       width: Dimensions.get("window").width,
+      backgroundColor: isDark ? "#121212" : "#f5f5f5",
     },
     readerPlaceholder: {
       flex: 1,

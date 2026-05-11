@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS public.books (
   author TEXT,
   total_pages INTEGER DEFAULT 0,
   current_page INTEGER DEFAULT 0,
+  last_page_read INTEGER DEFAULT 0,
   file_uri TEXT,
   cover_uri TEXT,
   status TEXT DEFAULT 'want_to_read',
@@ -101,6 +102,7 @@ CREATE TABLE IF NOT EXISTS public.books (
 );
 
 ALTER TABLE public.books ADD COLUMN IF NOT EXISTS synthesis TEXT;
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS last_page_read INTEGER DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS public.reading_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

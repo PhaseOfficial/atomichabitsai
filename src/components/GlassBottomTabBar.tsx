@@ -110,6 +110,11 @@ export default function GlassBottomTabBar(props: BottomTabBarProps) {
 
   const visibleRoutes = state.routes.filter((r) => MAIN_TABS.includes(r.name));
 
+  const indexRouteKey = visibleRoutes.find((r) => r.name === "index")?.key;
+  const indexActiveColor =
+    (descriptors[indexRouteKey || ""].options
+      .tabBarActiveTintColor as string) || "#5EA1FF";
+
   return (
     <>
       <Animated.View
@@ -208,7 +213,7 @@ export default function GlassBottomTabBar(props: BottomTabBarProps) {
       >
         <AutoHideFloatingActionButton
           onPress={onMostImportantPress}
-          accentColor="#5EA1FF"
+          accentColor={indexActiveColor}
           label="Day"
         />
       </Animated.View>

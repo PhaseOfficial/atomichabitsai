@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
   },
   fab: {
     // Requirement: Circular (56x56 points)
-    width: 56,
-    height: 56,
+    width: 60,
+    height: 60,
     borderRadius: 28,
     // Requirement: Subtle white border (0.5px, 30% opacity)
     borderWidth: 0.5,

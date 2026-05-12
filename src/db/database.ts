@@ -114,13 +114,13 @@ export const initDatabase = async () => {
       FOREIGN KEY (book_id) REFERENCES books (id) ON DELETE CASCADE
     );
 
-    CREATE TABLE IF NOT EXISTS bookmarks (
-      id TEXT PRIMARY KEY NOT NULL,
-      user_id TEXT,
-      book_id TEXT NOT NULL,
-      page_number INTEGER NOT NULL,
-      note TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
+    CREATE TABLE IF NOT EXISTS reading_sessions (
+      book_id TEXT PRIMARY KEY NOT NULL,
+      start_time INTEGER NOT NULL,
+      start_page INTEGER NOT NULL,
+      last_update_time INTEGER NOT NULL,
+      accumulated_time INTEGER NOT NULL,
+      notes TEXT NOT NULL, -- JSON string
       FOREIGN KEY (book_id) REFERENCES books (id) ON DELETE CASCADE
     );
   `);
@@ -157,6 +157,7 @@ export const initDatabase = async () => {
     const booksInfo = await db.getAllAsync(`PRAGMA table_info(books)`);
     const bookCols = (booksInfo as any[]).map(c => c.name);
     if (!bookCols.includes('last_page_read')) await db.execAsync(`ALTER TABLE books ADD COLUMN last_page_read INTEGER DEFAULT 0;`);
+    if (!bookCols.includes('synthesis')) await db.execAsync(`ALTER TABLE books ADD COLUMN synthesis TEXT;`);
 
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS sync_history (

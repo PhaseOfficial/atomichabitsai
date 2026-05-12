@@ -140,38 +140,78 @@ const hasPendingHabitInsert = (queue: SyncOperation[], habitId: string) => {
 };
 
 const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
-  const payload = JSON.parse(item.payload);
+  let payload: any;
+  try {
+    payload = JSON.parse(item.payload);
+  } catch (e) {
+    console.error(`Failed to parse payload for item ${item.id}:`, item.payload);
+    await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
+    return true;
+  }
+
   const tablesWithUserId = ["habits", "schedules", "shortcuts", "tasks", "books", "reading_logs", "bookmarks", "logs", "sync_history"];
 
-  // Special handling for logs with temporary or system IDs
-  if (item.table_name === "logs" && payload.habit_id) {
-    if (payload.habit_id === 'focus-session') {
-      // System logs that shouldn't be synced to Supabase (unless a system habit exists)
-      // For now, we just remove them from queue as they aren't compatible with UUID schema
+  // HEAL: Strip 'last_page_read' from books if it exists (legacy column mismatch)
+  if (item.table_name === "books" && payload.hasOwnProperty("last_page_read")) {
+    const { last_page_read, ...cleanPayload } = payload;
+    payload = cleanPayload;
+  }
+
+  // HEAL: Detect and fix "undefined" strings in UUID fields
+  if (payload.id === "undefined") {
+    console.warn(`Item ${item.id} (${item.table_name}) has "undefined" as ID. Abandoning.`);
+    await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
+    return true;
+  }
+
+  if (payload.user_id === "undefined") {
+    payload.user_id = user.id;
+  }
+
+  // Handle foreign key relationships that might still be using temporary IDs
+  const fkFields: Record<string, string> = {
+    'logs': 'habit_id',
+    'reading_logs': 'book_id',
+    'bookmarks': 'book_id',
+    'habits': 'anchor_habit_id'
+  };
+
+  const fkField = fkFields[item.table_name];
+  if (fkField && payload[fkField]) {
+    const fkValue = payload[fkField];
+    
+    if (fkValue === 'focus-session' && item.table_name === 'logs') {
       await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
       return true;
     }
 
-    if (!isUUID(payload.habit_id)) {
-      // Check if the habit actually exists locally and has been synced already
-      const habit = await db.getFirstAsync<{id: string}>("SELECT id FROM habits WHERE id = ? OR id IN (SELECT old_id FROM sync_history WHERE new_id = ?)", [payload.habit_id, payload.habit_id]);
+    if (fkValue === 'undefined') {
+        console.warn(`Item ${item.id} (${item.table_name}) has "undefined" as ${fkField}. Abandoning.`);
+        await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
+        return true;
+    }
+
+    if (!isUUID(fkValue)) {
+      // Try to find the mapped UUID in sync_history or local table
+      const history = await db.getFirstAsync<{new_id: string}>(
+        "SELECT new_id FROM sync_history WHERE old_id = ?", 
+        [fkValue]
+      );
       
-      // If we find a UUID for this habit locally that wasn't reflected in the queue payload
-      if (habit && isUUID(habit.id)) {
-        payload.habit_id = habit.id;
+      if (history && isUUID(history.new_id)) {
+        payload[fkField] = history.new_id;
         await db.runAsync("UPDATE sync_queue SET payload = ? WHERE id = ?", [JSON.stringify(payload), item.id]);
-        // Continue processing with fixed payload
       } else {
-        // Threshold: If item was created > 30 minutes ago and still stuck, abandon it
-        const createdTime = new Date(item.created_at).getTime();
-        const now = new Date().getTime();
+        // Threshold check for orphaned items
+        const createdTime = item.created_at ? new Date(item.created_at).getTime() : Date.now();
+        const now = Date.now();
         if (now - createdTime > 30 * 60 * 1000) {
-          console.warn(`Abandoning orphaned log ${item.id} for temp habit "${payload.habit_id}" after timeout.`);
+          console.warn(`Abandoning orphaned ${item.table_name} item ${item.id}: ${fkField} "${fkValue}" is not a UUID after 30m.`);
           await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
           return true;
         }
 
-        console.warn(`Postponing sync for log ${item.id}: habit_id "${payload.habit_id}" is still a temporary ID and habit is not yet synced.`);
+        console.warn(`Postponing sync for ${item.table_name} ${item.id}: ${fkField} "${fkValue}" is still a temporary ID.`);
         return false;
       }
     }
@@ -185,7 +225,7 @@ const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
       const { id: localId, ...insertPayload } = payload;
 
       if (tablesWithUserId.includes(item.table_name)) {
-        if (insertPayload.user_id === "guest" || !insertPayload.user_id) {
+        if (insertPayload.user_id === "guest" || !insertPayload.user_id || insertPayload.user_id === "undefined") {
           insertPayload.user_id = user.id;
         }
       }
@@ -201,6 +241,7 @@ const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
 
       if (!error && remoteData) {
         await db.withTransactionAsync(async () => {
+          // Special case for habits/logs relationship
           if (item.table_name === "habits") {
             await db.runAsync(
               "UPDATE logs SET habit_id = ? WHERE habit_id = ?",
@@ -237,10 +278,23 @@ const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
     case "UPDATE": {
       if (
         tablesWithUserId.includes(item.table_name) &&
-        payload.user_id === "guest"
+        (payload.user_id === "guest" || payload.user_id === "undefined")
       ) {
         payload.user_id = user.id;
       }
+
+      // Final check: if ID is still not a UUID for an update, it's doomed unless we find it in history
+      if (!isUUID(payload.id)) {
+          const history = await db.getFirstAsync<{new_id: string}>("SELECT new_id FROM sync_history WHERE old_id = ?", [payload.id]);
+          if (history && isUUID(history.new_id)) {
+              payload.id = history.new_id;
+          } else {
+              console.error(`Cannot UPDATE ${item.table_name}: ID ${payload.id} is not a UUID and no mapping found.`);
+              await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
+              return true;
+          }
+      }
+
       ({ error } = await supabase
         .from(item.table_name)
         .update(payload)
@@ -249,6 +303,16 @@ const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
     }
 
     case "DELETE": {
+      if (!isUUID(payload.id)) {
+          const history = await db.getFirstAsync<{new_id: string}>("SELECT new_id FROM sync_history WHERE old_id = ?", [payload.id]);
+          if (history && isUUID(history.new_id)) {
+              payload.id = history.new_id;
+          } else {
+              // If we can't find the remote ID, it probably never synced, so just delete locally
+              await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
+              return true;
+          }
+      }
       ({ error } = await supabase
         .from(item.table_name)
         .delete()
@@ -264,12 +328,14 @@ const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
     console.error(
       `Sync error for item ${item.id} (${item.table_name}):`,
       error.message,
+      "Payload:", JSON.stringify(payload)
     );
     if (
       error.code === "42P01" ||
       error.code === "23503" ||
       error.code === "22P02" ||
-      error.message.includes("row-level security")
+      error.message.includes("row-level security") ||
+      error.message.includes("uuid")
     ) {
       await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [item.id]);
       emitDatabaseChange();

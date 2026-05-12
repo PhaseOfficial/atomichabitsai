@@ -1,35 +1,41 @@
+import AutoHideScrollView from "@/src/components/AutoHideScrollView";
+import { CalendarStrip } from "@/src/components/ui/CalendarStrip";
+import { TimeInput } from "@/src/components/ui/TimeInput";
 import { FONTS, ROUNDNESS, SPACING } from "@/src/constants/Theme";
+import { getDb } from "@/src/db/database";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useData } from "@/src/hooks/useData";
 import { useTheme } from "@/src/hooks/useTheme";
+import { getLocalDateString } from "@/src/lib/date-utils";
 import { performMutation } from "@/src/lib/sync";
-import { getDb } from "@/src/db/database";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import {
-    Clock,
-    Menu,
-    Plus,
-    Settings,
-    Target,
-    Zap,
-    Trash2,
-    ChevronLeft,
-    ChevronRight,
-    Check,
-    X,
-    ListTodo,
-    Sparkles,
+    AlertCircle,
     Calendar as CalendarIcon,
-    MapPin,
+    Check,
+    ChevronRight,
+    Clock,
     History as HistoryIcon,
     Layers,
+    MapPin,
+    Menu,
+    Plus,
     RefreshCw,
-    AlertCircle
+    Settings,
+    Sparkles,
+    Target,
+    Trash2,
+    X,
+    Zap
 } from "lucide-react-native";
-import * as Haptics from 'expo-haptics';
-import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import React, {
+    useEffect,
+    useMemo,
+    useRef,
+    useState
+} from "react";
 import {
-    ActivityIndicator,
     Alert,
     Image,
     KeyboardAvoidingView,
@@ -40,19 +46,16 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
+import { DraxProvider, DraxView } from "react-native-drax";
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DraxProvider, DraxView } from 'react-native-drax';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withSequence 
-} from 'react-native-reanimated';
-import { getLocalDateString } from "@/src/lib/date-utils";
-import { TimeInput } from "@/src/components/ui/TimeInput";
-import { CalendarStrip } from "@/src/components/ui/CalendarStrip";
 
 type Schedule = {
   id: string;
@@ -90,7 +93,10 @@ const getBlockHeight = (start: string, end: string, hourHeight: number) => {
   const endTime = parseTimeString(end);
   const startMinutes = startTime.hours * 60 + startTime.minutes;
   const endMinutes = endTime.hours * 60 + endTime.minutes;
-  return Math.max(hourHeight * 0.4, ((endMinutes - startMinutes) * hourHeight) / 60);
+  return Math.max(
+    hourHeight * 0.4,
+    ((endMinutes - startMinutes) * hourHeight) / 60,
+  );
 };
 
 const toMinutes = (time: string) => {
@@ -151,13 +157,21 @@ const splitDeepWorkBlock = (
       continue;
     }
 
-    const segmentEnd = Math.min(current + focusDuration, end, bridgesLunch && current < LUNCH_START ? LUNCH_START : end);
+    const segmentEnd = Math.min(
+      current + focusDuration,
+      end,
+      bridgesLunch && current < LUNCH_START ? LUNCH_START : end,
+    );
     pushFocusSegment(segmentEnd);
 
     if (current >= end) break;
     if (bridgesLunch && current === LUNCH_START) continue;
 
-    const nextBreakEnd = Math.min(current + breakDuration, end, bridgesLunch && current < LUNCH_START ? LUNCH_START : end);
+    const nextBreakEnd = Math.min(
+      current + breakDuration,
+      end,
+      bridgesLunch && current < LUNCH_START ? LUNCH_START : end,
+    );
     if (nextBreakEnd > current) {
       pushBreakSegment(nextBreakEnd);
     }
@@ -167,7 +181,10 @@ const splitDeepWorkBlock = (
 };
 
 const normalizeTimeBlocks = (blocks: TimeBlock[], focusDuration: number) => {
-  const breakDuration = Math.min(15, Math.max(5, Math.round(focusDuration * 0.25)));
+  const breakDuration = Math.min(
+    15,
+    Math.max(5, Math.round(focusDuration * 0.25)),
+  );
   return blocks
     .flatMap((block) => {
       const duration = toMinutes(block.end) - toMinutes(block.start);
@@ -181,7 +198,7 @@ const normalizeTimeBlocks = (blocks: TimeBlock[], focusDuration: number) => {
 
 function processCluster(cluster: any[], result: any[]) {
   const columns: any[][] = [];
-  cluster.forEach(block => {
+  cluster.forEach((block) => {
     let placed = false;
     for (let i = 0; i < columns.length; i++) {
       const lastInCol = columns[i][columns[i].length - 1];
@@ -197,8 +214,8 @@ function processCluster(cluster: any[], result: any[]) {
       columns.push([block]);
     }
   });
-  
-  cluster.forEach(block => {
+
+  cluster.forEach((block) => {
     block.totalCols = columns.length;
     result.push(block);
   });
@@ -220,17 +237,23 @@ export default function CalendarScreen() {
   const userId = user?.id || "guest";
   const today = getLocalDateString();
   const [selectedDate, setSelectedDate] = useState(today);
-  
+
   const [showModal, setShowModal] = useState(false);
-  const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(null);
-  
+  const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(
+    null,
+  );
+
   const [blockTitle, setBlockTitle] = useState("");
   const [blockStart, setBlockStart] = useState("09:00");
   const [blockEnd, setBlockEnd] = useState("10:00");
-  const [blockType, setBlockType] = useState<"event" | "deep-work" | "walk" | "break">("event");
+  const [blockType, setBlockType] = useState<
+    "event" | "deep-work" | "walk" | "break"
+  >("event");
   const [blockLocation, setBlockLocation] = useState("");
   const [blockDescription, setBlockDescription] = useState("");
-  const [blockTodos, setBlockTodos] = useState<{ id: string; text: string; completed: boolean }[]>([]);
+  const [blockTodos, setBlockTodos] = useState<
+    { id: string; text: string; completed: boolean }[]
+  >([]);
   const [newTodoText, setNewTodoText] = useState("");
 
   const [hoverBlock, setHoverBlock] = useState<any | null>(null);
@@ -238,34 +261,62 @@ export default function CalendarScreen() {
   const [activeActionBlock, setActiveActionBlock] = useState<any | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedBlockKeys, setSelectedBlockKeys] = useState<string[]>([]);
-  
+
   // UNDO STATE
-  const [undoState, setUndoState] = useState<{ blocks: any[], scheduleId: string } | null>(null);
+  const [undoState, setUndoState] = useState<{
+    blocks: any[];
+    scheduleId: string;
+  } | null>(null);
   const [showUndoToast, setShowUndoToast] = useState(false);
   const undoTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const triggerHaptic = (type: 'light' | 'medium' | 'heavy' | 'selection' | 'success' | 'warning' | 'error') => {
+  const triggerHaptic = (
+    type:
+      | "light"
+      | "medium"
+      | "heavy"
+      | "selection"
+      | "success"
+      | "warning"
+      | "error",
+  ) => {
     switch (type) {
-      case 'light': Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); break;
-      case 'medium': Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); break;
-      case 'heavy': Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); break;
-      case 'selection': Haptics.selectionAsync(); break;
-      case 'success': Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); break;
-      case 'warning': Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); break;
-      case 'error': Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); break;
+      case "light":
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        break;
+      case "medium":
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        break;
+      case "heavy":
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        break;
+      case "selection":
+        Haptics.selectionAsync();
+        break;
+      case "success":
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        break;
+      case "warning":
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        break;
+      case "error":
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        break;
     }
   };
 
   const toggleBlockSelection = (block: any) => {
     const key = `${block.start}-${block.task}`;
-    setSelectedBlockKeys(prev => 
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    setSelectedBlockKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
-    triggerHaptic('light');
+    triggerHaptic("light");
   };
 
   const getSelectedBlocks = () => {
-    return combinedBlocks.filter(b => selectedBlockKeys.includes(`${b.start}-${b.task}`));
+    return combinedBlocks.filter((b) =>
+      selectedBlockKeys.includes(`${b.start}-${b.task}`),
+    );
   };
 
   const ghostTop = useSharedValue(0);
@@ -287,33 +338,44 @@ export default function CalendarScreen() {
   const scrollInterval = useRef<NodeJS.Timeout | null>(null);
 
   // SYNC TRACKING STATE
-  const [trackedSyncIds, setTrackedSyncIds] = useState<Record<number, { status: 'pending' | 'synced' | 'failed', blocks: string[], timestamp: number }>>({});
+  const [trackedSyncIds, setTrackedSyncIds] = useState<
+    Record<
+      number,
+      {
+        status: "pending" | "synced" | "failed";
+        blocks: string[];
+        timestamp: number;
+      }
+    >
+  >({});
 
   useEffect(() => {
     if (Object.keys(trackedSyncIds).length === 0) return;
 
     const checkSyncStatus = async () => {
       const db = await getDb();
-      const pendingIds: number[] = (await db.getAllAsync<any>("SELECT id FROM sync_queue")).map(item => item.id);
-      
-      setTrackedSyncIds(prev => {
+      const pendingIds: number[] = (
+        await db.getAllAsync<any>("SELECT id FROM sync_queue")
+      ).map((item) => item.id);
+
+      setTrackedSyncIds((prev) => {
         const next = { ...prev };
         let changed = false;
-        
-        Object.keys(next).forEach(idStr => {
+
+        Object.keys(next).forEach((idStr) => {
           const id = parseInt(idStr);
-          if (next[id].status === 'pending' && !pendingIds.includes(id)) {
-            next[id] = { ...next[id], status: 'synced' };
+          if (next[id].status === "pending" && !pendingIds.includes(id)) {
+            next[id] = { ...next[id], status: "synced" };
             changed = true;
           }
-          
+
           // Clear old indicators after 30 seconds
           if (Date.now() - next[id].timestamp > 30000) {
             delete next[id];
             changed = true;
           }
         });
-        
+
         return changed ? next : prev;
       });
     };
@@ -324,25 +386,27 @@ export default function CalendarScreen() {
 
   const addTrackedSync = (syncId: number | undefined, blocks: any[]) => {
     if (!syncId) return;
-    const blockKeys = blocks.map(b => `${b.start}-${b.task}`);
-    setTrackedSyncIds(prev => ({
+    const blockKeys = blocks.map((b) => `${b.start}-${b.task}`);
+    setTrackedSyncIds((prev) => ({
       ...prev,
-      [syncId]: { status: 'pending', blocks: blockKeys, timestamp: Date.now() }
+      [syncId]: { status: "pending", blocks: blockKeys, timestamp: Date.now() },
     }));
   };
 
   const getSyncStatusForBlock = (block: any) => {
     const key = `${block.start}-${block.task}`;
-    const entry = Object.values(trackedSyncIds).find(e => e.blocks.includes(key));
+    const entry = Object.values(trackedSyncIds).find((e) =>
+      e.blocks.includes(key),
+    );
     return entry;
   };
 
   const handleShowSyncInfo = (syncEntry: any) => {
     const time = new Date(syncEntry.timestamp).toLocaleTimeString();
     let msg = `Operation at ${time}\nStatus: ${syncEntry.status.toUpperCase()}`;
-    if (syncEntry.status === 'pending') msg += "\nWaiting for network...";
-    if (syncEntry.status === 'synced') msg += "\nSuccessfully saved to cloud.";
-    
+    if (syncEntry.status === "pending") msg += "\nWaiting for network...";
+    if (syncEntry.status === "synced") msg += "\nSuccessfully saved to cloud.";
+
     Alert.alert("Sync Details", msg);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
@@ -350,7 +414,7 @@ export default function CalendarScreen() {
   const handleDuplicateBlock = async (block: any) => {
     const duration = toMinutes(block.end) - toMinutes(block.start);
     const nextStartMins = toMinutes(block.end);
-    
+
     if (nextStartMins + duration > 24 * 60) {
       Alert.alert("No Room", "Cannot duplicate block, not enough space today.");
       return;
@@ -364,16 +428,27 @@ export default function CalendarScreen() {
       return;
     }
 
-    const newBlock = { ...block, start: newStart, end: newEnd, isHabit: undefined };
-    const nextBlocks = [...rawTimeBlocks, newBlock].sort((a, b) => a.start.localeCompare(b.start));
-    
+    const newBlock = {
+      ...block,
+      start: newStart,
+      end: newEnd,
+      isHabit: undefined,
+    };
+    const nextBlocks = [...rawTimeBlocks, newBlock].sort((a, b) =>
+      a.start.localeCompare(b.start),
+    );
+
     const schedule = schedules?.[0];
-    const syncId = await performMutation("schedules", schedule ? "UPDATE" : "INSERT", {
-      id: schedule?.id || Math.random().toString(36).substring(7),
-      user_id: schedule?.user_id || userId,
-      date: selectedDate,
-      time_blocks: JSON.stringify(nextBlocks),
-    });
+    const syncId = await performMutation(
+      "schedules",
+      schedule ? "UPDATE" : "INSERT",
+      {
+        id: schedule?.id || Math.random().toString(36).substring(7),
+        user_id: schedule?.user_id || userId,
+        date: selectedDate,
+        time_blocks: JSON.stringify(nextBlocks),
+      },
+    );
     addTrackedSync(syncId, [newBlock]);
     refreshSchedule();
     setActiveActionBlock(null);
@@ -386,7 +461,9 @@ export default function CalendarScreen() {
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
     // 1. Remove from today
-    const nextTodayBlocks = rawTimeBlocks.filter(b => !(b.start === block.start && b.task === block.task));
+    const nextTodayBlocks = rawTimeBlocks.filter(
+      (b) => !(b.start === block.start && b.task === block.task),
+    );
     const syncId = await performMutation("schedules", "UPDATE", {
       id: schedules[0].id,
       user_id: userId,
@@ -399,11 +476,16 @@ export default function CalendarScreen() {
     const db = await getDb();
     const tomorrowSchedule = await db.getFirstAsync<Schedule>(
       "SELECT * FROM schedules WHERE date = ? AND (user_id = ? OR user_id IS NULL)",
-      [tomorrowStr, userId]
+      [tomorrowStr, userId],
     );
 
-    const tomorrowBlocks = tomorrowSchedule ? JSON.parse(tomorrowSchedule.time_blocks) : [];
-    const newTomorrowBlocks = [...tomorrowBlocks, { ...block, isHabit: undefined }].sort((a, b) => a.start.localeCompare(b.start));
+    const tomorrowBlocks = tomorrowSchedule
+      ? JSON.parse(tomorrowSchedule.time_blocks)
+      : [];
+    const newTomorrowBlocks = [
+      ...tomorrowBlocks,
+      { ...block, isHabit: undefined },
+    ].sort((a, b) => a.start.localeCompare(b.start));
 
     await performMutation("schedules", tomorrowSchedule ? "UPDATE" : "INSERT", {
       id: tomorrowSchedule?.id || Math.random().toString(36).substring(7),
@@ -419,22 +501,26 @@ export default function CalendarScreen() {
 
   const ghostAnimatedStyle = useAnimatedStyle(() => ({
     top: ghostTop.value,
-    transform: [{ scale: ghostScale.value }]
+    transform: [{ scale: ghostScale.value }],
   }));
 
   const isPastTime = (timeStr: string) => {
     if (selectedDate < today) return true;
     if (selectedDate > today) return false;
-    
+
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
     const targetMins = toMinutes(timeStr);
-    
+
     // Allow 5 minute grace period
-    return targetMins < (currentMins - 5);
+    return targetMins < currentMins - 5;
   };
 
-  const checkTimeSlotAvailability = (newStart: string, newEnd: string, draggedBlock?: any) => {
+  const checkTimeSlotAvailability = (
+    newStart: string,
+    newEnd: string,
+    draggedBlock?: any,
+  ) => {
     if (isPastTime(newStart)) {
       return { available: false, reason: "past" };
     }
@@ -442,17 +528,22 @@ export default function CalendarScreen() {
     const startMins = toMinutes(newStart);
     const endMins = toMinutes(newEnd);
     const duration = endMins - startMins;
-    
+
     // Find colliding block (excluding self)
-    const collidingBlock = combinedBlocks.find(block => {
-      if (draggedBlock && !draggedBlock.isNew && block.task === draggedBlock.task && block.start === draggedBlock.start) {
+    const collidingBlock = combinedBlocks.find((block) => {
+      if (
+        draggedBlock &&
+        !draggedBlock.isNew &&
+        block.task === draggedBlock.task &&
+        block.start === draggedBlock.start
+      ) {
         return false;
       }
       if (block.isHabit) return false; // Don't collide with habits for swaps/shifts yet
 
       const bStart = toMinutes(block.start);
       const bEnd = toMinutes(block.end);
-      return (startMins < bEnd && endMins > bStart);
+      return startMins < bEnd && endMins > bStart;
     });
 
     if (!collidingBlock) {
@@ -461,10 +552,10 @@ export default function CalendarScreen() {
 
     // SWAP LOGIC: Existing block dropped on Existing block
     if (draggedBlock && !draggedBlock.isNew && !collidingBlock.isHabit) {
-      return { 
-        available: true, 
-        reason: "swap", 
-        targetBlock: collidingBlock 
+      return {
+        available: true,
+        reason: "swap",
+        targetBlock: collidingBlock,
       };
     }
 
@@ -474,31 +565,38 @@ export default function CalendarScreen() {
       const bStart = toMinutes(collidingBlock.start);
       const bEnd = toMinutes(collidingBlock.end);
       const bDuration = bEnd - bStart;
-      
+
       const shiftedStart = endMins;
       const shiftedEnd = endMins + bDuration;
 
       // Check if shifted block would collide with something else or go off grid
       if (shiftedEnd > 24 * 60) return { available: false, reason: "no-room" };
 
-      const secondaryCollision = combinedBlocks.some(block => {
-        if (block.task === collidingBlock.task && block.start === collidingBlock.start) return false;
+      const secondaryCollision = combinedBlocks.some((block) => {
+        if (
+          block.task === collidingBlock.task &&
+          block.start === collidingBlock.start
+        )
+          return false;
         if (block.task === draggedBlock.task) return false;
-        
+
         const sStart = toMinutes(block.start);
         const sEnd = toMinutes(block.end);
-        return (shiftedStart < sEnd && shiftedEnd > sStart);
+        return shiftedStart < sEnd && shiftedEnd > sStart;
       });
 
       if (secondaryCollision) {
         return { available: false, reason: "no-room" };
       }
 
-      return { 
-        available: true, 
-        reason: "shift", 
+      return {
+        available: true,
+        reason: "shift",
         targetBlock: collidingBlock,
-        shiftedTime: { start: toTimeString(shiftedStart), end: toTimeString(shiftedEnd) }
+        shiftedTime: {
+          start: toTimeString(shiftedStart),
+          end: toTimeString(shiftedEnd),
+        },
       };
     }
 
@@ -526,37 +624,38 @@ export default function CalendarScreen() {
     [userId],
   );
 
-  const { data: tasks } = useData<{id: string, title: string, todos: string}>(
+  const { data: tasks } = useData<{ id: string; title: string; todos: string }>(
     "SELECT id, title, todos FROM tasks WHERE (user_id = ? OR user_id IS NULL)",
-    [userId]
+    [userId],
   );
 
-  const rawTimeBlocks = useMemo(
-    () => {
-      if (!schedules.length) return [];
-      try {
-        const blocks = JSON.parse(schedules[0].time_blocks) as TimeBlock[];
-        return Array.isArray(blocks) ? blocks : [];
-      } catch { return []; }
-    },
-    [schedules]
-  );
+  const rawTimeBlocks = useMemo(() => {
+    if (!schedules.length) return [];
+    try {
+      const blocks = JSON.parse(schedules[0].time_blocks) as TimeBlock[];
+      return Array.isArray(blocks) ? blocks : [];
+    } catch {
+      return [];
+    }
+  }, [schedules]);
 
   const displayBlocks = useMemo(
     () => normalizeTimeBlocks(rawTimeBlocks, sprintDuration),
-    [rawTimeBlocks, sprintDuration]
+    [rawTimeBlocks, sprintDuration],
   );
 
   const combinedBlocks = useMemo(() => {
-    const blocks: any[] = displayBlocks.map(block => {
+    const blocks: any[] = displayBlocks.map((block) => {
       // Find matching task in inventory
-      const linkedTask = tasks.find(t => t.id === block.task_id || t.title === block.task);
+      const linkedTask = tasks.find(
+        (t) => t.id === block.task_id || t.title === block.task,
+      );
       if (linkedTask) {
         return {
           ...block,
           task_id: linkedTask.id,
           // Use inventory todos as source of truth if available
-          todos: linkedTask.todos ? JSON.parse(linkedTask.todos) : block.todos
+          todos: linkedTask.todos ? JSON.parse(linkedTask.todos) : block.todos,
         };
       }
       return block;
@@ -567,7 +666,9 @@ export default function CalendarScreen() {
       habits.forEach((habit) => {
         if (habit.preferred_time) {
           const duration = 30;
-          const endTime = toTimeString(toMinutes(habit.preferred_time) + duration);
+          const endTime = toTimeString(
+            toMinutes(habit.preferred_time) + duration,
+          );
 
           blocks.push({
             start: habit.preferred_time,
@@ -576,7 +677,7 @@ export default function CalendarScreen() {
             type: "habit",
             location: habit.location,
             isDone: habit.is_done_today > 0,
-            isHabit: true
+            isHabit: true,
           });
         }
       });
@@ -592,7 +693,8 @@ export default function CalendarScreen() {
         currentCluster.push(block);
         if (block.end > clusterEnd) clusterEnd = block.end;
       } else {
-        if (currentCluster.length > 0) processCluster(currentCluster, layoutBlocks);
+        if (currentCluster.length > 0)
+          processCluster(currentCluster, layoutBlocks);
         currentCluster = [block];
         clusterEnd = block.end;
       }
@@ -603,16 +705,19 @@ export default function CalendarScreen() {
   }, [displayBlocks, habits, selectedDate]);
 
   const hourHeight = useMemo(() => {
-    const maxCols = Math.max(1, ...combinedBlocks.map(b => b.totalCols || 1));
+    const maxCols = Math.max(1, ...combinedBlocks.map((b) => b.totalCols || 1));
     const density = combinedBlocks.length;
-    
-    if (maxCols > 1) return 220; 
+
+    if (maxCols > 1) return 220;
     if (density > 10) return 180;
     if (density > 5) return 140;
     return 120;
   }, [combinedBlocks]);
 
-  const styles = useMemo(() => createStyles(colors, hourHeight), [colors, hourHeight]);
+  const styles = useMemo(
+    () => createStyles(colors, hourHeight),
+    [colors, hourHeight],
+  );
 
   const changeDay = (days: number) => {
     const d = new Date(selectedDate);
@@ -623,11 +728,13 @@ export default function CalendarScreen() {
 
   const handleEditBlock = (block: any, index: number) => {
     if (block.isHabit) {
-      router.push('/hh_habits');
+      router.push("/hh_habits");
       return;
     }
-    
-    const originalIndex = rawTimeBlocks.findIndex(b => b.start === block.start && b.task === block.task);
+
+    const originalIndex = rawTimeBlocks.findIndex(
+      (b) => b.start === block.start && b.task === block.task,
+    );
     setEditingBlockIndex(originalIndex);
     setBlockTitle(block.task);
     setBlockStart(block.start);
@@ -660,12 +767,18 @@ export default function CalendarScreen() {
     }
   };
 
-  const updateBlockTime = async (block: any, newStart: string, newEnd: string) => {
+  const updateBlockTime = async (
+    block: any,
+    newStart: string,
+    newEnd: string,
+  ) => {
     const originalStart = block.originalStart || block.start;
-    let originalIndex = rawTimeBlocks.findIndex(b => b.start === originalStart && b.task === block.task);
-    
+    let originalIndex = rawTimeBlocks.findIndex(
+      (b) => b.start === originalStart && b.task === block.task,
+    );
+
     if (originalIndex === -1) {
-      originalIndex = rawTimeBlocks.findIndex(b => b.task === block.task);
+      originalIndex = rawTimeBlocks.findIndex((b) => b.task === block.task);
     }
 
     // CAPTURE UNDO STATE
@@ -709,12 +822,12 @@ export default function CalendarScreen() {
       }
       addTrackedSync(syncId, [updatedBlock]);
       refreshSchedule();
-      
+
       // SHOW UNDO TOAST
       setShowUndoToast(true);
       if (undoTimeout.current) clearTimeout(undoTimeout.current);
       undoTimeout.current = setTimeout(() => setShowUndoToast(false), 5000);
-      
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e) {
       console.error("Failed to update block time", e);
@@ -727,7 +840,7 @@ export default function CalendarScreen() {
     const newTodo = {
       id: Math.random().toString(36).substring(7),
       text: newTodoText.trim(),
-      completed: false
+      completed: false,
     };
     setBlockTodos([...blockTodos, newTodo]);
     setNewTodoText("");
@@ -735,18 +848,26 @@ export default function CalendarScreen() {
   };
 
   const toggleTodo = (id: string) => {
-    setBlockTodos(blockTodos.map(t => 
-      t.id === id ? { ...t, completed: !t.completed } : t
-    ));
+    setBlockTodos(
+      blockTodos.map((t) =>
+        t.id === id ? { ...t, completed: !t.completed } : t,
+      ),
+    );
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const removeTodo = (id: string) => {
-    setBlockTodos(blockTodos.filter(t => t.id !== id));
+    setBlockTodos(blockTodos.filter((t) => t.id !== id));
   };
 
   const handleSaveBlock = async () => {
-    console.log("SAVE BLOCK CALLED", { title: blockTitle, start: blockStart, end: blockEnd, type: blockType, selectedDate });
+    console.log("SAVE BLOCK CALLED", {
+      title: blockTitle,
+      start: blockStart,
+      end: blockEnd,
+      type: blockType,
+      selectedDate,
+    });
     if (!blockTitle.trim()) {
       Alert.alert("Error", "Please enter a title for the block.");
       return;
@@ -778,7 +899,10 @@ export default function CalendarScreen() {
     const schedule = schedules?.[0];
     try {
       let syncId;
-      console.log("CALLING performMutation", { scheduleId: schedule?.id, time_blocks_count: nextBlocks.length });
+      console.log("CALLING performMutation", {
+        scheduleId: schedule?.id,
+        time_blocks_count: nextBlocks.length,
+      });
       if (schedule) {
         syncId = await performMutation("schedules", "UPDATE", {
           id: schedule.id,
@@ -796,13 +920,16 @@ export default function CalendarScreen() {
       }
       addTrackedSync(syncId, [newBlock]);
       refreshSchedule();
-      
+
       // If it's a deep-work block, ensure it exists in tasks
       if (blockType === "deep-work") {
         const db = await getDb();
-        const existingTask = await db.getFirstAsync<{id: string, todos: string}>(
+        const existingTask = await db.getFirstAsync<{
+          id: string;
+          todos: string;
+        }>(
           "SELECT id, todos FROM tasks WHERE title = ? AND (user_id = ? OR user_id IS NULL)",
-          [blockTitle.trim(), userId]
+          [blockTitle.trim(), userId],
         );
 
         const duration = toMinutes(blockEnd) - toMinutes(blockStart);
@@ -813,8 +940,12 @@ export default function CalendarScreen() {
           await performMutation("tasks", "UPDATE", {
             id: existingTask.id,
             estimated_sessions: estimated,
-            todos: JSON.stringify(blockTodos.length > 0 ? blockTodos : JSON.parse(existingTask.todos || '[]')),
-            updated_at: new Date().toISOString()
+            todos: JSON.stringify(
+              blockTodos.length > 0
+                ? blockTodos
+                : JSON.parse(existingTask.todos || "[]"),
+            ),
+            updated_at: new Date().toISOString(),
           });
         } else {
           // Create new task
@@ -822,13 +953,13 @@ export default function CalendarScreen() {
             id: Math.random().toString(36).substring(7),
             user_id: userId,
             title: blockTitle.trim(),
-            status: 'todo',
+            status: "todo",
             estimated_sessions: estimated,
             completed_sessions: 0,
-            tag: 'Deep Work',
+            tag: "Deep Work",
             todos: JSON.stringify(blockTodos),
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           });
         }
       }
@@ -844,15 +975,17 @@ export default function CalendarScreen() {
 
   const handleDeleteBlock = async () => {
     if (editingBlockIndex === null) return;
-    
+
     Alert.alert("Delete Block", "Are you sure you want to remove this block?", [
       { text: "Cancel", style: "cancel" },
-      { 
-        text: "Delete", 
-        style: "destructive", 
+      {
+        text: "Delete",
+        style: "destructive",
         onPress: async () => {
           const blockToDelete = rawTimeBlocks[editingBlockIndex];
-          const nextBlocks = rawTimeBlocks.filter((_, i) => i !== editingBlockIndex);
+          const nextBlocks = rawTimeBlocks.filter(
+            (_, i) => i !== editingBlockIndex,
+          );
           const schedule = schedules[0];
           const syncId = await performMutation("schedules", "UPDATE", {
             id: schedule.id,
@@ -864,8 +997,8 @@ export default function CalendarScreen() {
           addTrackedSync(syncId, [blockToDelete]);
           setShowModal(false);
           resetModal();
-        }
-      }
+        },
+      },
     ]);
   };
 
@@ -888,7 +1021,8 @@ export default function CalendarScreen() {
 
     const habitTotal = habits.length;
     const habitDone = habits.filter((h) => h.is_done_today > 0).length;
-    const adherence = habitTotal > 0 ? Math.round((habitDone / habitTotal) * 100) : 0;
+    const adherence =
+      habitTotal > 0 ? Math.round((habitDone / habitTotal) * 100) : 0;
 
     return {
       focusHours: (focusMinutes / 60).toFixed(1),
@@ -900,25 +1034,30 @@ export default function CalendarScreen() {
   const upcomingTasks = useMemo(() => {
     const nowMinutes = toMinutes(new Date().toTimeString().slice(0, 5));
     return combinedBlocks
-      .filter(b => toMinutes(b.start) >= nowMinutes && b.type !== 'break' && b.type !== 'habit')
+      .filter(
+        (b) =>
+          toMinutes(b.start) >= nowMinutes &&
+          b.type !== "break" &&
+          b.type !== "habit",
+      )
       .slice(0, 3);
   }, [combinedBlocks]);
 
   const aiSuggestion = useMemo(() => {
     if (selectedDate !== today) return null;
-    
+
     const nowMinutes = toMinutes(new Date().toTimeString().slice(0, 5));
-    const fallenBehind = combinedBlocks.find(b => {
+    const fallenBehind = combinedBlocks.find((b) => {
       const endMins = toMinutes(b.end);
       const isDone = b.todos?.every((t: any) => t.completed) ?? false;
-      return endMins < nowMinutes && !isDone && b.type === 'deep-work';
+      return endMins < nowMinutes && !isDone && b.type === "deep-work";
     });
 
     if (fallenBehind) {
       return {
         message: `You missed your "${fallenBehind.task}" slot. Should I find a 15m catch-up window at the next gap?`,
-        type: 'recovery',
-        action: 'SCHEDULE CATCH-UP'
+        type: "recovery",
+        action: "SCHEDULE CATCH-UP",
       };
     }
     return null;
@@ -928,8 +1067,10 @@ export default function CalendarScreen() {
     // Find first gap of 15 mins
     const nowMinutes = toMinutes(new Date().toTimeString().slice(0, 5));
     let current = Math.max(nowMinutes, toMinutes("09:00"));
-    const sorted = [...rawTimeBlocks].sort((a, b) => a.start.localeCompare(b.start));
-    
+    const sorted = [...rawTimeBlocks].sort((a, b) =>
+      a.start.localeCompare(b.start),
+    );
+
     for (const b of sorted) {
       const bStart = toMinutes(b.start);
       if (bStart >= current + 20) {
@@ -942,22 +1083,30 @@ export default function CalendarScreen() {
       start: toTimeString(current + 5),
       end: toTimeString(current + 20),
       task: "AI Recovery: Catch-up",
-      type: "deep-work"
+      type: "deep-work",
     };
 
-    const nextBlocks = [...rawTimeBlocks, catchUpBlock].sort((a, b) => a.start.localeCompare(b.start));
-    
+    const nextBlocks = [...rawTimeBlocks, catchUpBlock].sort((a, b) =>
+      a.start.localeCompare(b.start),
+    );
+
     try {
       const schedule = schedules[0];
-      const syncId = await performMutation("schedules", schedule ? "UPDATE" : "INSERT", {
-        id: schedule?.id || Math.random().toString(36).substring(7),
-        user_id: userId,
-        date: selectedDate,
-        time_blocks: JSON.stringify(nextBlocks)
-      });
+      const syncId = await performMutation(
+        "schedules",
+        schedule ? "UPDATE" : "INSERT",
+        {
+          id: schedule?.id || Math.random().toString(36).substring(7),
+          user_id: userId,
+          date: selectedDate,
+          time_blocks: JSON.stringify(nextBlocks),
+        },
+      );
       addTrackedSync(syncId, [catchUpBlock]);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   // Rollover Logic: Carry forward incomplete tasks from yesterday
@@ -965,65 +1114,85 @@ export default function CalendarScreen() {
   useEffect(() => {
     const checkRollover = async () => {
       // Only run if we are looking at TODAY and schedules are loaded
-      if (isRollingOver.current || schedulesLoading || selectedDate !== today) return;
-      
+      if (isRollingOver.current || schedulesLoading || selectedDate !== today)
+        return;
+
       isRollingOver.current = true;
       try {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split("T")[0];
-        
+
         const db = await getDb();
-        
+
         // Check if we've already rolled over today (prevent duplicates)
         const todaySchedule = schedules[0];
-        const todayBlocks: TimeBlock[] = todaySchedule ? JSON.parse(todaySchedule.time_blocks) : [];
-        const alreadyCarried = todayBlocks.some(b => b.task.includes('[CARRIED]'));
-        
+        const todayBlocks: TimeBlock[] = todaySchedule
+          ? JSON.parse(todaySchedule.time_blocks)
+          : [];
+        const alreadyCarried = todayBlocks.some((b) =>
+          b.task.includes("[CARRIED]"),
+        );
+
         if (alreadyCarried) return;
 
         // Fetch yesterday's schedule
         const prevSchedule = await db.getFirstAsync<Schedule>(
           "SELECT * FROM schedules WHERE date = ? AND (user_id = ? OR user_id IS NULL)",
-          [yesterdayStr, userId]
+          [yesterdayStr, userId],
         );
 
         if (prevSchedule) {
-          const prevBlocks = JSON.parse(prevSchedule.time_blocks) as TimeBlock[];
-          
+          const prevBlocks = JSON.parse(
+            prevSchedule.time_blocks,
+          ) as TimeBlock[];
+
           // Find incomplete deep-work or event blocks
-          const incompleteBlocks = prevBlocks.filter(b => {
-            const hasIncompleteTodos = b.todos && b.todos.some(t => !t.completed);
-            const isDeepWork = b.type === 'deep-work';
-            return (hasIncompleteTodos || isDeepWork) && b.task !== "Break";
-          }).map(b => ({
-            ...b,
-            task: `[CARRIED] ${b.task.replace('[CARRIED] ', '')}`,
-            // Move to a morning slot today
-            start: "09:00", 
-            end: "10:00"
-          }));
+          const incompleteBlocks = prevBlocks
+            .filter((b) => {
+              const hasIncompleteTodos =
+                b.todos && b.todos.some((t) => !t.completed);
+              const isDeepWork = b.type === "deep-work";
+              return (hasIncompleteTodos || isDeepWork) && b.task !== "Break";
+            })
+            .map((b) => ({
+              ...b,
+              task: `[CARRIED] ${b.task.replace("[CARRIED] ", "")}`,
+              // Move to a morning slot today
+              start: "09:00",
+              end: "10:00",
+            }));
 
           if (incompleteBlocks.length > 0) {
-            const updatedBlocks = [...todayBlocks, ...incompleteBlocks].sort((a, b) => a.start.localeCompare(b.start));
-            
-            await performMutation("schedules", todaySchedule ? "UPDATE" : "INSERT", {
-              id: todaySchedule?.id || Math.random().toString(36).substring(7),
-              user_id: userId,
-              date: today,
-              time_blocks: JSON.stringify(updatedBlocks),
-            });
-            
+            const updatedBlocks = [...todayBlocks, ...incompleteBlocks].sort(
+              (a, b) => a.start.localeCompare(b.start),
+            );
+
+            await performMutation(
+              "schedules",
+              todaySchedule ? "UPDATE" : "INSERT",
+              {
+                id:
+                  todaySchedule?.id || Math.random().toString(36).substring(7),
+                user_id: userId,
+                date: today,
+                time_blocks: JSON.stringify(updatedBlocks),
+              },
+            );
+
             refreshSchedule();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert("Tasks Carried Over", `Carried forward ${incompleteBlocks.length} items from yesterday.`);
+            Alert.alert(
+              "Tasks Carried Over",
+              `Carried forward ${incompleteBlocks.length} items from yesterday.`,
+            );
           }
         }
       } catch (e) {
         console.error("Rollover failed", e);
       }
     };
-    
+
     checkRollover();
   }, [schedules.length, schedulesLoading, selectedDate, today]);
 
@@ -1032,71 +1201,130 @@ export default function CalendarScreen() {
       <View style={styles.container}>
         <SafeAreaView style={styles.safeArea} edges={["top"]}>
           <View style={styles.header}>
-            <TouchableOpacity style={styles.menuBtn} onPress={() => router.push("/menu")}>
+            <TouchableOpacity
+              style={styles.menuBtn}
+              onPress={() => router.push("/menu")}
+            >
               <Menu size={24} color={colors.primary} strokeWidth={1.5} />
             </TouchableOpacity>
             <View style={styles.logoContainer}>
-              <Image source={require('@/assets/images/Artboard 1 logo.png')} style={styles.logoImage} tintColor={colors.primary} resizeMode="contain" />
+              <Image
+                source={require("@/assets/images/Artboard 1 logo.png")}
+                style={styles.logoImage}
+                tintColor={colors.primary}
+                resizeMode="contain"
+              />
             </View>
             <View style={styles.headerRight}>
-              <TouchableOpacity 
-                style={[styles.ghostBtn, isMultiSelectMode && { backgroundColor: colors.primary + '1A', borderRadius: 8 }]} 
+              <TouchableOpacity
+                style={[
+                  styles.ghostBtn,
+                  isMultiSelectMode && {
+                    backgroundColor: colors.primary + "1A",
+                    borderRadius: 8,
+                  },
+                ]}
                 onPress={() => {
                   setIsMultiSelectMode(!isMultiSelectMode);
                   if (!isMultiSelectMode) setSelectedBlockKeys([]);
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }}
               >
-                <Layers size={20} color={isMultiSelectMode ? colors.primary : colors.onSurfaceVariant} strokeWidth={1.5} />
+                <Layers
+                  size={20}
+                  color={
+                    isMultiSelectMode ? colors.primary : colors.onSurfaceVariant
+                  }
+                  strokeWidth={1.5}
+                />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/history')}>
-                <HistoryIcon size={20} color={colors.primary} strokeWidth={1.5} />
+              <TouchableOpacity
+                style={styles.ghostBtn}
+                onPress={() => router.push("/history")}
+              >
+                <HistoryIcon
+                  size={20}
+                  color={colors.primary}
+                  strokeWidth={1.5}
+                />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push("/modal")}>
+              <TouchableOpacity
+                style={styles.ghostBtn}
+                onPress={() => router.push("/modal")}
+              >
                 <Settings size={20} color={colors.primary} strokeWidth={1.5} />
               </TouchableOpacity>
             </View>
           </View>
 
-          <CalendarStrip 
+          <CalendarStrip
             selectedDate={selectedDate}
             onDateSelect={setSelectedDate}
             colors={colors}
           />
 
-          <ScrollView 
+          <AutoHideScrollView
             ref={scrollRef}
-            style={styles.scrollView} 
-            contentContainerStyle={styles.contentContainer} 
+            style={styles.scrollView}
+            contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
-            onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; }}
-            scrollEventThrottle={16}
+            onScroll={(e) => {
+              scrollY.current = e.nativeEvent.contentOffset.y;
+            }}
           >
             <View style={styles.dateHeader}>
               <View style={styles.dateInfo}>
                 <Text style={styles.dayLabel}>
-                  {selectedDate === today ? "TODAY" : new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" }).toUpperCase()}
+                  {selectedDate === today
+                    ? "TODAY"
+                    : new Date(selectedDate)
+                        .toLocaleDateString("en-US", { weekday: "long" })
+                        .toUpperCase()}
                 </Text>
                 <Text style={styles.dateLabel}>
-                  {new Date(selectedDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {new Date(selectedDate).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
                 </Text>
               </View>
               <View style={styles.metricsGrid}>
-                <View style={styles.metricItem}><Target size={14} color={colors.secondary} /><Text style={styles.metricValue}>{stats.adherence}</Text></View>
-                <View style={styles.metricItem}><Zap size={14} color={colors.primary} /><Text style={styles.metricValue}>{stats.votes}</Text></View>
-                <View style={styles.metricItem}><Clock size={14} color={colors.tertiary} /><Text style={styles.metricValue}>{stats.focusHours}h</Text></View>
+                <View style={styles.metricItem}>
+                  <Target size={14} color={colors.secondary} />
+                  <Text style={styles.metricValue}>{stats.adherence}</Text>
+                </View>
+                <View style={styles.metricItem}>
+                  <Zap size={14} color={colors.primary} />
+                  <Text style={styles.metricValue}>{stats.votes}</Text>
+                </View>
+                <View style={styles.metricItem}>
+                  <Clock size={14} color={colors.tertiary} />
+                  <Text style={styles.metricValue}>{stats.focusHours}h</Text>
+                </View>
               </View>
             </View>
 
             {/* AI Suggestion Banner */}
             {aiSuggestion && (
               <View style={styles.aiNudgeContainer}>
-                <View style={[styles.aiNudgeCard, { backgroundColor: colors.primary + '1A' }]}>
+                <View
+                  style={[
+                    styles.aiNudgeCard,
+                    { backgroundColor: colors.primary + "1A" },
+                  ]}
+                >
                   <Sparkles size={20} color={colors.primary} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.aiNudgeText}>{aiSuggestion.message}</Text>
-                    <TouchableOpacity style={styles.aiNudgeAction} onPress={handleCatchUp}>
-                      <Text style={styles.aiNudgeActionText}>{aiSuggestion.action}</Text>
+                    <Text style={styles.aiNudgeText}>
+                      {aiSuggestion.message}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.aiNudgeAction}
+                      onPress={handleCatchUp}
+                    >
+                      <Text style={styles.aiNudgeActionText}>
+                        {aiSuggestion.action}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1107,14 +1335,24 @@ export default function CalendarScreen() {
             {upcomingTasks.length > 0 && (
               <View style={styles.upcomingSection}>
                 <Text style={styles.sectionLabel}>NEXT UP</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.upcomingRow}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.upcomingRow}
+                >
                   {upcomingTasks.map((task, i) => (
-                    <TouchableOpacity key={i} style={styles.upcomingCard} onPress={() => handleEditBlock(task, -1)}>
+                    <TouchableOpacity
+                      key={i}
+                      style={styles.upcomingCard}
+                      onPress={() => handleEditBlock(task, -1)}
+                    >
                       <View style={styles.upcomingTimeRow}>
                         <Clock size={12} color={colors.primary} />
                         <Text style={styles.upcomingTime}>{task.start}</Text>
                       </View>
-                      <Text style={styles.upcomingTitle} numberOfLines={1}>{task.task}</Text>
+                      <Text style={styles.upcomingTitle} numberOfLines={1}>
+                        {task.task}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -1125,64 +1363,93 @@ export default function CalendarScreen() {
             <View style={styles.inventorySection}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionLabel}>TASK INVENTORY</Text>
-                <TouchableOpacity onPress={() => router.push('/add-task')}>
+                <TouchableOpacity onPress={() => router.push("/add-task")}>
                   <Plus size={16} color={colors.primary} />
                 </TouchableOpacity>
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inventoryRow}>
-                {tasks.filter(t => !rawTimeBlocks.some(b => b.task_id === t.id)).map((task, i) => (
-                  <DraxView
-                    key={task.id}
-                    payload={{ ...task, isNew: true }}
-                    style={[styles.inventoryCard, { backgroundColor: colors.surfaceVariant + '80' }]}
-                    draggingStyle={{ opacity: 0.5 }}
-                    dragReleasedStyle={{ opacity: 1 }}
-                    onDragStart={() => {
-                      triggerHaptic('light');
-                      setActiveActionBlock(null);
-                    }}
-                  >
-                    <Text style={styles.inventoryTitle} numberOfLines={1}>{task.title}</Text>
-                  </DraxView>
-                ))}
-                {tasks.filter(t => !rawTimeBlocks.some(b => b.task_id === t.id)).length === 0 && (
-                  <Text style={styles.emptyInventoryText}>No unscheduled tasks</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.inventoryRow}
+              >
+                {tasks
+                  .filter((t) => !rawTimeBlocks.some((b) => b.task_id === t.id))
+                  .map((task, i) => (
+                    <DraxView
+                      key={task.id}
+                      payload={{ ...task, isNew: true }}
+                      style={[
+                        styles.inventoryCard,
+                        { backgroundColor: colors.surfaceVariant + "80" },
+                      ]}
+                      draggingStyle={{ opacity: 0.5 }}
+                      dragReleasedStyle={{ opacity: 1 }}
+                      onDragStart={() => {
+                        triggerHaptic("light");
+                        setActiveActionBlock(null);
+                      }}
+                    >
+                      <Text style={styles.inventoryTitle} numberOfLines={1}>
+                        {task.title}
+                      </Text>
+                    </DraxView>
+                  ))}
+                {tasks.filter(
+                  (t) => !rawTimeBlocks.some((b) => b.task_id === t.id),
+                ).length === 0 && (
+                  <Text style={styles.emptyInventoryText}>
+                    No unscheduled tasks
+                  </Text>
                 )}
               </ScrollView>
             </View>
 
-            <View 
+            <View
               ref={timelineRef}
               style={styles.timelineWrapper}
               onLayout={measureTimeline}
             >
               <View style={styles.timeColumn}>
                 {TIME_MARKERS.map((time, index) => (
-                  <View key={index} style={styles.timeSlot}><Text style={styles.timeText}>{time}</Text></View>
+                  <View key={index} style={styles.timeSlot}>
+                    <Text style={styles.timeText}>{time}</Text>
+                  </View>
                 ))}
               </View>
 
-              <DraxView 
+              <DraxView
                 style={[
-                  styles.calendarGrid, 
-                  { backgroundColor: 'transparent' }, // Ensure hit area for Drax
-                  dropCollision && { backgroundColor: colors.error + '1A' }
+                  styles.calendarGrid,
+                  { backgroundColor: "transparent" }, // Ensure hit area for Drax
+                  dropCollision && { backgroundColor: colors.error + "1A" },
                 ]}
                 onReceiveDragEnter={() => {
-                  triggerHaptic('medium');
+                  triggerHaptic("medium");
                   measureTimeline(); // CRITICAL: Re-measure on entry to account for scrolls/keyboard
                 }}
                 onReceiveDragOver={(event) => {
-                  const absoluteY = (event as any)?.absoluteY || (event as any)?.pageY || (event as any)?.nativeEvent?.pageY || 0;
-                  const relativeY = absoluteY - timelineLayout.y + scrollY.current;
-                  
-                  console.log("DRAG OVER", { absoluteY, timelineTop: timelineLayout.y, scrollY: scrollY.current, relativeY, receiverY: event?.receiverLocation?.y });
-                  
+                  const absoluteY =
+                    (event as any)?.absoluteY ||
+                    (event as any)?.pageY ||
+                    (event as any)?.nativeEvent?.pageY ||
+                    0;
+                  const relativeY =
+                    absoluteY - timelineLayout.y + scrollY.current;
+
+                  console.log("DRAG OVER", {
+                    absoluteY,
+                    timelineTop: timelineLayout.y,
+                    scrollY: scrollY.current,
+                    relativeY,
+                    receiverY: event?.receiverLocation?.y,
+                  });
+
                   const findY = (obj: any, depth = 0): any => {
-                    if (depth > 3 || !obj || typeof obj !== 'object') return null;
+                    if (depth > 3 || !obj || typeof obj !== "object")
+                      return null;
                     try {
                       for (const key of Object.keys(obj)) {
-                        if (key.toLowerCase().includes('y')) {
+                        if (key.toLowerCase().includes("y")) {
                           console.log(`Found y-like key: ${key} = ${obj[key]}`);
                         }
                         findY(obj[key], depth + 1);
@@ -1192,48 +1459,74 @@ export default function CalendarScreen() {
                   // findY(event); // Uncomment if deeper property search is needed
 
                   const payload = event.dragged?.payload as any;
-                  const dropY = (typeof event?.receiverLocation?.y === 'number') 
-                    ? event.receiverLocation.y 
-                    : (relativeY > 0 ? relativeY : (lastDragY.current ?? 0));
+                  const dropY =
+                    typeof event?.receiverLocation?.y === "number"
+                      ? event.receiverLocation.y
+                      : relativeY > 0
+                        ? relativeY
+                        : (lastDragY.current ?? 0);
 
-                  if (payload && typeof dropY === 'number') {
+                  if (payload && typeof dropY === "number") {
                     lastDragY.current = dropY;
-                    const minutes = Math.floor((dropY / hourHeight) * 60 / 15) * 15;
-                    const clampedMinutes = Math.max(0, Math.min(23 * 60, minutes));
+                    const minutes =
+                      Math.floor(((dropY / hourHeight) * 60) / 15) * 15;
+                    const clampedMinutes = Math.max(
+                      0,
+                      Math.min(23 * 60, minutes),
+                    );
                     const newStartStr = toTimeString(clampedMinutes);
-                    
+
                     // MAGNETIC SNAP & PULSE
                     const targetTop = getTimeOffset(newStartStr, hourHeight);
-                    ghostTop.value = withSpring(targetTop, { damping: 20, stiffness: 200 });
-                    
+                    ghostTop.value = withSpring(targetTop, {
+                      damping: 20,
+                      stiffness: 200,
+                    });
+
                     if (clampedMinutes !== lastSnap.current) {
                       lastSnap.current = clampedMinutes;
                       ghostScale.value = withSequence(
                         withSpring(1.02, { damping: 10, stiffness: 400 }),
-                        withSpring(1.0, { damping: 10, stiffness: 400 })
+                        withSpring(1.0, { damping: 10, stiffness: 400 }),
                       );
-                      triggerHaptic('selection');
+                      triggerHaptic("selection");
                     }
 
                     // AUTO-SCROLL LOGIC
-                    if (scrollInterval.current) clearInterval(scrollInterval.current);
-                    
+                    if (scrollInterval.current)
+                      clearInterval(scrollInterval.current);
+
                     const scrollZoneHeight = 100;
                     // For edge detection, we use screen-relative coords
                     const screenY = absoluteY - timelineLayout.y;
                     const viewportHeight = 600;
 
                     if (screenY < scrollZoneHeight) {
-                      const speed = Math.max(2, (scrollZoneHeight - screenY) / 5);
+                      const speed = Math.max(
+                        2,
+                        (scrollZoneHeight - screenY) / 5,
+                      );
                       scrollInterval.current = setInterval(() => {
                         const nextScroll = Math.max(0, scrollY.current - speed);
-                        scrollRef.current?.scrollTo({ y: nextScroll, animated: false });
+                        scrollRef.current?.scrollTo({
+                          y: nextScroll,
+                          animated: false,
+                        });
                       }, 16);
-                    } else if (screenY > (viewportHeight - scrollZoneHeight)) {
-                      const speed = Math.max(2, (screenY - (viewportHeight - scrollZoneHeight)) / 5);
+                    } else if (screenY > viewportHeight - scrollZoneHeight) {
+                      const speed = Math.max(
+                        2,
+                        (screenY - (viewportHeight - scrollZoneHeight)) / 5,
+                      );
                       scrollInterval.current = setInterval(() => {
-                        const nextScroll = Math.min(hourHeight * 24, scrollY.current + speed);
-                        scrollRef.current?.scrollTo({ y: nextScroll, animated: false });
+                        const nextScroll = Math.min(
+                          hourHeight * 24,
+                          scrollY.current + speed,
+                        );
+                        scrollRef.current?.scrollTo({
+                          y: nextScroll,
+                          animated: false,
+                        });
                       }, 16);
                     }
 
@@ -1241,30 +1534,41 @@ export default function CalendarScreen() {
                     if (payload.isMulti) {
                       const masterOrigStart = toMinutes(payload.start);
                       const delta = clampedMinutes - masterOrigStart;
-                      
-                      const shiftedBlocks = getSelectedBlocks().map(b => ({
+
+                      const shiftedBlocks = getSelectedBlocks().map((b) => ({
                         ...b,
                         start: toTimeString(toMinutes(b.start) + delta),
-                        end: toTimeString(toMinutes(b.end) + delta)
+                        end: toTimeString(toMinutes(b.end) + delta),
                       }));
 
                       setHoverBlock({
                         isMulti: true,
                         blocks: shiftedBlocks,
-                        delta
+                        delta,
                       });
                     } else {
                       let duration = 60;
                       if (payload.isNew) {
                         const tag = payload.tag?.toLowerCase() || "";
-                        if (tag.includes("deep") || tag.includes("work")) duration = sprintDuration;
+                        if (tag.includes("deep") || tag.includes("work"))
+                          duration = sprintDuration;
                         else if (tag.includes("break")) duration = 15;
-                        else if (tag.includes("meeting") || tag.includes("call")) duration = 30;
-                        else if (tag.includes("chore") || tag.includes("task")) duration = 30;
+                        else if (
+                          tag.includes("meeting") ||
+                          tag.includes("call")
+                        )
+                          duration = 30;
+                        else if (tag.includes("chore") || tag.includes("task"))
+                          duration = 30;
                       } else {
-                        duration = toMinutes(payload.end) - toMinutes(payload.start);
+                        duration =
+                          toMinutes(payload.end) - toMinutes(payload.start);
                       }
-                      setHoverBlock({ ...payload, start: newStartStr, end: toTimeString(clampedMinutes + duration) });
+                      setHoverBlock({
+                        ...payload,
+                        start: newStartStr,
+                        end: toTimeString(clampedMinutes + duration),
+                      });
                     }
                   }
                 }}
@@ -1272,7 +1576,7 @@ export default function CalendarScreen() {
                   setHoverBlock(null);
                   lastSnap.current = -1;
                   // DO NOT clear lastDragY here, we need it as fallback for drop
-                  triggerHaptic('warning');
+                  triggerHaptic("warning");
                   if (scrollInterval.current) {
                     clearInterval(scrollInterval.current);
                     scrollInterval.current = null;
@@ -1280,18 +1584,26 @@ export default function CalendarScreen() {
                 }}
                 onReceiveDragDrop={async (event) => {
                   const payload = event.dragged?.payload as any;
-                  const absoluteY = (event as any)?.absoluteY || (event as any)?.pageY || (event as any)?.nativeEvent?.pageY || 0;
-                  const relativeY = absoluteY - timelineLayout.y + scrollY.current;
-                  
-                  const dropY = (typeof event?.receiverLocation?.y === 'number')
-                    ? event.receiverLocation.y
-                    : (relativeY > 0 ? relativeY : (lastDragY.current ?? 0));
-                  
-                  console.log("DROP COORDINATE RECOVERY FINAL", { 
+                  const absoluteY =
+                    (event as any)?.absoluteY ||
+                    (event as any)?.pageY ||
+                    (event as any)?.nativeEvent?.pageY ||
+                    0;
+                  const relativeY =
+                    absoluteY - timelineLayout.y + scrollY.current;
+
+                  const dropY =
+                    typeof event?.receiverLocation?.y === "number"
+                      ? event.receiverLocation.y
+                      : relativeY > 0
+                        ? relativeY
+                        : (lastDragY.current ?? 0);
+
+                  console.log("DROP COORDINATE RECOVERY FINAL", {
                     actualY: event?.receiverLocation?.y,
                     relativeY,
                     cachedY: lastDragY.current,
-                    finalY: dropY
+                    finalY: dropY,
                   });
 
                   setHoverBlock(null);
@@ -1301,72 +1613,96 @@ export default function CalendarScreen() {
                     clearInterval(scrollInterval.current);
                     scrollInterval.current = null;
                   }
-                  
-                  if (payload && typeof dropY === 'number') {
-                    const minutes = Math.floor((dropY / hourHeight) * 60 / 15) * 15;
-                    const clampedMinutes = Math.max(0, Math.min(23 * 60, minutes));
+
+                  if (payload && typeof dropY === "number") {
+                    const minutes =
+                      Math.floor(((dropY / hourHeight) * 60) / 15) * 15;
+                    const clampedMinutes = Math.max(
+                      0,
+                      Math.min(23 * 60, minutes),
+                    );
                     const newStart = toTimeString(clampedMinutes);
-                    console.log("TIME CALCULATION", { clampedMinutes, newStart });
+                    console.log("TIME CALCULATION", {
+                      clampedMinutes,
+                      newStart,
+                    });
 
                     if (payload.isMulti) {
                       const masterOrigStart = toMinutes(payload.start);
                       const delta = clampedMinutes - masterOrigStart;
-                      
+
                       let nextBlocks = [...rawTimeBlocks];
                       let isValid = true;
 
                       const selectedBlocks = getSelectedBlocks();
-                      const updatedSelected = selectedBlocks.map(b => {
+                      const updatedSelected = selectedBlocks.map((b) => {
                         const newS = toTimeString(toMinutes(b.start) + delta);
                         const newE = toTimeString(toMinutes(b.end) + delta);
-                        
+
                         // Validation
                         if (isPastTime(newS)) isValid = false;
                         if (toMinutes(newE) > 24 * 60) isValid = false;
-                        
+
                         // Collision check against NON-selected blocks
-                        const collision = rawTimeBlocks.some(rb => {
-                          const isCurrentlySelected = selectedBlockKeys.includes(`${rb.start}-${rb.task}`);
+                        const collision = rawTimeBlocks.some((rb) => {
+                          const isCurrentlySelected =
+                            selectedBlockKeys.includes(
+                              `${rb.start}-${rb.task}`,
+                            );
                           if (isCurrentlySelected) return false;
-                          
+
                           const rbStart = toMinutes(rb.start);
                           const rbEnd = toMinutes(rb.end);
-                          return (toMinutes(newS) < rbEnd && toMinutes(newE) > rbStart);
+                          return (
+                            toMinutes(newS) < rbEnd && toMinutes(newE) > rbStart
+                          );
                         });
-                        
+
                         if (collision) isValid = false;
 
                         return { ...b, start: newS, end: newE };
                       });
 
                       if (!isValid) {
-                        triggerHaptic('error');
+                        triggerHaptic("error");
                         setDropCollision(true);
                         setTimeout(() => setDropCollision(false), 500);
                         return;
                       }
 
                       // Apply updates
-                      updatedSelected.forEach(ub => {
-                        const idx = nextBlocks.findIndex(nb => nb.task === ub.task && nb.start === ub.originalStart);
+                      updatedSelected.forEach((ub) => {
+                        const idx = nextBlocks.findIndex(
+                          (nb) =>
+                            nb.task === ub.task &&
+                            nb.start === ub.originalStart,
+                        );
                         if (idx !== -1) {
-                          nextBlocks[idx] = { ...nextBlocks[idx], start: ub.start, end: ub.end };
+                          nextBlocks[idx] = {
+                            ...nextBlocks[idx],
+                            start: ub.start,
+                            end: ub.end,
+                          };
                         }
                       });
 
                       const schedule = schedules[0];
-                      const syncId = await performMutation("schedules", "UPDATE", {
-                        id: schedule.id,
-                        user_id: schedule.user_id || userId,
-                        date: selectedDate,
-                        time_blocks: JSON.stringify(nextBlocks),
-                      });
+                      const syncId = await performMutation(
+                        "schedules",
+                        "UPDATE",
+                        {
+                          id: schedule.id,
+                          user_id: schedule.user_id || userId,
+                          date: selectedDate,
+                          time_blocks: JSON.stringify(nextBlocks),
+                        },
+                      );
                       addTrackedSync(syncId, updatedSelected);
-                      
+
                       refreshSchedule();
                       setIsMultiSelectMode(false);
                       setSelectedBlockKeys([]);
-                      triggerHaptic('success');
+                      triggerHaptic("success");
                       return;
                     }
 
@@ -1375,33 +1711,48 @@ export default function CalendarScreen() {
                     let duration = 60;
                     if (payload.isNew) {
                       const tag = payload.tag?.toLowerCase() || "";
-                      if (tag.includes("deep") || tag.includes("work")) duration = sprintDuration;
+                      if (tag.includes("deep") || tag.includes("work"))
+                        duration = sprintDuration;
                       else if (tag.includes("break")) duration = 15;
-                      else if (tag.includes("meeting") || tag.includes("call")) duration = 30;
-                      else if (tag.includes("chore") || tag.includes("task")) duration = 30;
+                      else if (tag.includes("meeting") || tag.includes("call"))
+                        duration = 30;
+                      else if (tag.includes("chore") || tag.includes("task"))
+                        duration = 30;
                     } else {
-                      duration = toMinutes(payload.end) - toMinutes(payload.start);
+                      duration =
+                        toMinutes(payload.end) - toMinutes(payload.start);
                     }
                     const newEnd = toTimeString(clampedMinutes + duration);
 
-                    const checkResult = checkTimeSlotAvailability(newStart, newEnd, payload);
+                    const checkResult = checkTimeSlotAvailability(
+                      newStart,
+                      newEnd,
+                      payload,
+                    );
                     if (!checkResult.available) {
                       // ... rejection logic
-                      triggerHaptic('error');
+                      triggerHaptic("error");
                       setDropCollision(true);
                       setTimeout(() => setDropCollision(false), 500);
-                      if (checkResult.reason === "past") Alert.alert("Temporal Lock", "Cannot schedule tasks in the past.");
+                      if (checkResult.reason === "past")
+                        Alert.alert(
+                          "Temporal Lock",
+                          "Cannot schedule tasks in the past.",
+                        );
                       return;
                     }
 
                     // ... swap/shift logic ...
 
                     if (payload.isNew) {
-                      console.log("NEW TASK PATH", { taskTitle: payload.title, calculatedStart: newStart });
+                      console.log("NEW TASK PATH", {
+                        taskTitle: payload.title,
+                        calculatedStart: newStart,
+                      });
                       setBlockTitle(payload.title);
                       setBlockStart(newStart);
                       setBlockEnd(newEnd);
-                      
+
                       const tag = payload.tag?.toLowerCase() || "";
                       if (tag.includes("deep") || tag.includes("work")) {
                         setBlockType("deep-work");
@@ -1410,111 +1761,177 @@ export default function CalendarScreen() {
                       } else {
                         setBlockType("event");
                       }
-                      
+
                       setEditingBlockIndex(null);
-                      console.log("SETTING MODAL STATE", { showModal: true, blockTitle: payload.title, blockStart: newStart });
+                      console.log("SETTING MODAL STATE", {
+                        showModal: true,
+                        blockTitle: payload.title,
+                        blockStart: newStart,
+                      });
                       setShowModal(true);
                     } else {
                       await updateBlockTime(payload, newStart, newEnd);
                     }
-                    triggerHaptic('success');
+                    triggerHaptic("success");
                   }
                 }}
               >
                 <View style={styles.gridLines}>
                   {TIME_MARKERS.map((_, index) => (
-                    <View key={index} style={[styles.gridLine, { height: hourHeight }]} />
+                    <View
+                      key={index}
+                      style={[styles.gridLine, { height: hourHeight }]}
+                    />
                   ))}
                 </View>
 
                 {/* PAST TIME OVERLAY */}
-                {(selectedDate <= today) && (
-                  <View 
+                {selectedDate <= today && (
+                  <View
                     pointerEvents="none"
                     style={{
-                      position: 'absolute',
+                      position: "absolute",
                       top: 0,
                       left: 0,
                       right: 0,
-                      height: selectedDate < today ? (hourHeight * 24) : getTimeOffset(toTimeString(Math.max(0, (new Date().getHours() * 60 + new Date().getMinutes()) - 5)), hourHeight),
-                      backgroundColor: colors.error + '0D',
+                      height:
+                        selectedDate < today
+                          ? hourHeight * 24
+                          : getTimeOffset(
+                              toTimeString(
+                                Math.max(
+                                  0,
+                                  new Date().getHours() * 60 +
+                                    new Date().getMinutes() -
+                                    5,
+                                ),
+                              ),
+                              hourHeight,
+                            ),
+                      backgroundColor: colors.error + "0D",
                       zIndex: 1,
                     }}
                   />
                 )}
 
                 {hoverBlock && !hoverBlock.isMulti && (
-                  <Animated.View 
+                  <Animated.View
                     style={[
-                      styles.taskBlock, 
-                      styles.ghostBlock, 
+                      styles.taskBlock,
+                      styles.ghostBlock,
                       ghostAnimatedStyle,
-                      { 
-                        height: getBlockHeight(hoverBlock.start, hoverBlock.end, hourHeight),
-                        backgroundColor: colors.primary + '26' 
-                      }
-                    ]} 
+                      {
+                        height: getBlockHeight(
+                          hoverBlock.start,
+                          hoverBlock.end,
+                          hourHeight,
+                        ),
+                        backgroundColor: colors.primary + "26",
+                      },
+                    ]}
                   >
-                    <Text style={styles.ghostText}>{hoverBlock.task || hoverBlock.title}</Text>
+                    <Text style={styles.ghostText}>
+                      {hoverBlock.task || hoverBlock.title}
+                    </Text>
                   </Animated.View>
                 )}
 
-                {hoverBlock && hoverBlock.isMulti && hoverBlock.blocks.map((b: any, i: number) => (
-                  <View 
-                    key={`ghost-multi-${i}`}
-                    style={[
-                      styles.taskBlock, 
-                      styles.ghostBlock, 
-                      { 
-                        top: getTimeOffset(b.start, hourHeight),
-                        height: getBlockHeight(b.start, b.end, hourHeight),
-                        backgroundColor: colors.primary + '26',
-                        borderColor: colors.primary,
-                        opacity: 0.8
-                      }
-                    ]} 
-                  >
-                    <Text style={styles.ghostText}>{b.task}</Text>
-                  </View>
-                ))}
+                {hoverBlock &&
+                  hoverBlock.isMulti &&
+                  hoverBlock.blocks.map((b: any, i: number) => (
+                    <View
+                      key={`ghost-multi-${i}`}
+                      style={[
+                        styles.taskBlock,
+                        styles.ghostBlock,
+                        {
+                          top: getTimeOffset(b.start, hourHeight),
+                          height: getBlockHeight(b.start, b.end, hourHeight),
+                          backgroundColor: colors.primary + "26",
+                          borderColor: colors.primary,
+                          opacity: 0.8,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.ghostText}>{b.task}</Text>
+                    </View>
+                  ))}
 
                 {combinedBlocks.map((block, index) => {
                   const top = getTimeOffset(block.start, hourHeight);
-                  const height = getBlockHeight(block.start, block.end, hourHeight);
-                  const blockStyle = block.type === "deep-work" ? styles.deepWorkBlock : 
-                                    block.type === "break" ? styles.breakBlock :
-                                    block.type === "habit" ? [styles.habitBlock, block.isDone && { opacity: 0.6 }] :
-                                    styles.defaultBlock;
+                  const height = getBlockHeight(
+                    block.start,
+                    block.end,
+                    hourHeight,
+                  );
+                  const blockStyle =
+                    block.type === "deep-work"
+                      ? styles.deepWorkBlock
+                      : block.type === "break"
+                        ? styles.breakBlock
+                        : block.type === "habit"
+                          ? [
+                              styles.habitBlock,
+                              block.isDone && { opacity: 0.6 },
+                            ]
+                          : styles.defaultBlock;
 
-                  const completedTodos = block.todos?.filter((t: any) => t.completed).length || 0;
+                  const completedTodos =
+                    block.todos?.filter((t: any) => t.completed).length || 0;
                   const totalTodos = block.todos?.length || 0;
 
-                  const isSelected = selectedBlockKeys.includes(`${block.start}-${block.task}`);
+                  const isSelected = selectedBlockKeys.includes(
+                    `${block.start}-${block.task}`,
+                  );
                   const syncStatus = getSyncStatusForBlock(block);
 
                   return (
                     <DraxView
                       key={index}
-                      payload={isMultiSelectMode ? { ...block, isMulti: true, selectedKeys: selectedBlockKeys } : block}
+                      payload={
+                        isMultiSelectMode
+                          ? {
+                              ...block,
+                              isMulti: true,
+                              selectedKeys: selectedBlockKeys,
+                            }
+                          : block
+                      }
                       style={[
-                        styles.taskBlock, 
-                        blockStyle, 
-                        { 
-                          top, height,
+                        styles.taskBlock,
+                        blockStyle,
+                        {
+                          top,
+                          height,
                           left: `${(block.column || 0) * (100 / (block.totalCols || 1))}%`,
                           width: `${100 / (block.totalCols || 1)}%`,
-                          zIndex: (activeActionBlock?.start === block.start || isSelected) ? 100 : 1
+                          zIndex:
+                            activeActionBlock?.start === block.start ||
+                            isSelected
+                              ? 100
+                              : 1,
                         },
-                        activeActionBlock?.start === block.start && { transform: [{ scale: 1.05 }] },
-                        isSelected && { borderColor: colors.primary, borderWidth: 2, backgroundColor: block.type === 'deep-work' ? colors.primary : colors.primary + '1A' }
+                        activeActionBlock?.start === block.start && {
+                          transform: [{ scale: 1.05 }],
+                        },
+                        isSelected && {
+                          borderColor: colors.primary,
+                          borderWidth: 2,
+                          backgroundColor:
+                            block.type === "deep-work"
+                              ? colors.primary
+                              : colors.primary + "1A",
+                        },
                       ]}
                       draggingStyle={{ opacity: 0.5 }}
                       dragReleasedStyle={{ opacity: 1 }}
                       onDragStart={() => {
-                        triggerHaptic('light');
+                        triggerHaptic("light");
                         setActiveActionBlock(null);
                       }}
-                      longPressDelay={isMultiSelectMode && isSelected ? 200 : 500}
+                      longPressDelay={
+                        isMultiSelectMode && isSelected ? 200 : 500
+                      }
                     >
                       <TouchableOpacity
                         activeOpacity={0.8}
@@ -1531,125 +1948,295 @@ export default function CalendarScreen() {
                           if (isMultiSelectMode) return; // Drax handles drag
                           if (!block.isHabit) {
                             setActiveActionBlock(block);
-                            triggerHaptic('medium');
+                            triggerHaptic("medium");
                           }
                         }}
                         style={{ flex: 1 }}
                       >
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                          }}
+                        >
                           <View style={{ flex: 1 }}>
-                            <Text style={[styles.blockLabel, { color: (block.type === "deep-work" || isSelected) ? colors.onPrimary : colors.onSurfaceVariant }]}>
+                            <Text
+                              style={[
+                                styles.blockLabel,
+                                {
+                                  color:
+                                    block.type === "deep-work" || isSelected
+                                      ? colors.onPrimary
+                                      : colors.onSurfaceVariant,
+                                },
+                              ]}
+                            >
                               {block.type?.toUpperCase() || "EVENT"}
                             </Text>
-                            <Text style={[styles.taskTitle, { color: (block.type === "deep-work" || isSelected) ? colors.onPrimary : colors.onSurface }]} numberOfLines={1}>
+                            <Text
+                              style={[
+                                styles.taskTitle,
+                                {
+                                  color:
+                                    block.type === "deep-work" || isSelected
+                                      ? colors.onPrimary
+                                      : colors.onSurface,
+                                },
+                              ]}
+                              numberOfLines={1}
+                            >
                               {block.task}
                             </Text>
                           </View>
-                          <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              gap: 4,
+                              alignItems: "center",
+                            }}
+                          >
                             {syncStatus && (
-                              <TouchableOpacity onPress={() => handleShowSyncInfo(syncStatus)}>
-                                {syncStatus.status === 'pending' && <RefreshCw size={12} color={block.type === 'deep-work' ? colors.onPrimary : colors.secondary} />}
-                                {syncStatus.status === 'synced' && <Check size={12} color={block.type === 'deep-work' ? colors.onPrimary : "#4CAF50"} />}
-                                {syncStatus.status === 'failed' && <AlertCircle size={12} color={colors.error} />}
+                              <TouchableOpacity
+                                onPress={() => handleShowSyncInfo(syncStatus)}
+                              >
+                                {syncStatus.status === "pending" && (
+                                  <RefreshCw
+                                    size={12}
+                                    color={
+                                      block.type === "deep-work"
+                                        ? colors.onPrimary
+                                        : colors.secondary
+                                    }
+                                  />
+                                )}
+                                {syncStatus.status === "synced" && (
+                                  <Check
+                                    size={12}
+                                    color={
+                                      block.type === "deep-work"
+                                        ? colors.onPrimary
+                                        : "#4CAF50"
+                                    }
+                                  />
+                                )}
+                                {syncStatus.status === "failed" && (
+                                  <AlertCircle size={12} color={colors.error} />
+                                )}
                               </TouchableOpacity>
                             )}
                             {isSelected && (
-                              <View style={[styles.checkCircle, { backgroundColor: colors.onPrimary }]}>
-                                <Check size={12} color={colors.primary} strokeWidth={3} />
+                              <View
+                                style={[
+                                  styles.checkCircle,
+                                  { backgroundColor: colors.onPrimary },
+                                ]}
+                              >
+                                <Check
+                                  size={12}
+                                  color={colors.primary}
+                                  strokeWidth={3}
+                                />
                               </View>
                             )}
                           </View>
                         </View>
-                        
+
                         {totalTodos > 0 && (
                           <View style={styles.todoProgress}>
-                            <Text style={[styles.todoText, { color: (block.type === "deep-work" || isSelected) ? colors.onPrimary : colors.primary }]}>
+                            <Text
+                              style={[
+                                styles.todoText,
+                                {
+                                  color:
+                                    block.type === "deep-work" || isSelected
+                                      ? colors.onPrimary
+                                      : colors.primary,
+                                },
+                              ]}
+                            >
                               {completedTodos}/{totalTodos} points
                             </Text>
                           </View>
                         )}
-                        
+
                         {block.description && (
-                          <Text style={[styles.taskLocation, { color: (block.type === "deep-work" || isSelected) ? colors.onPrimary : colors.onSurfaceVariant }]} numberOfLines={1}>
+                          <Text
+                            style={[
+                              styles.taskLocation,
+                              {
+                                color:
+                                  block.type === "deep-work" || isSelected
+                                    ? colors.onPrimary
+                                    : colors.onSurfaceVariant,
+                              },
+                            ]}
+                            numberOfLines={1}
+                          >
                             • {block.description}
                           </Text>
                         )}
                       </TouchableOpacity>
 
                       {/* QUICK ACTIONS OVERLAY */}
-                      {activeActionBlock?.start === block.start && activeActionBlock?.task === block.task && (
-                        <View style={styles.quickActionsContainer}>
-                          <TouchableOpacity style={styles.quickActionBtn} onPress={() => handleDuplicateBlock(block)}>
-                            <Plus size={16} color={colors.primary} />
-                            <Text style={styles.quickActionText}>Copy</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.quickActionBtn} onPress={() => handleMoveToTomorrow(block)}>
-                            <ChevronRight size={16} color={colors.primary} />
-                            <Text style={styles.quickActionText}>+1 Day</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={[styles.quickActionBtn, { borderColor: colors.error + '33' }]} onPress={() => {
-                            setEditingBlockIndex(rawTimeBlocks.findIndex(b => b.start === block.start && b.task === block.task));
-                            handleDeleteBlock();
-                          }}>
-                            <Trash2 size={16} color={colors.error} />
-                            <Text style={[styles.quickActionText, { color: colors.error }]}>Del</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.quickActionBtn} onPress={() => setActiveActionBlock(null)}>
-                            <X size={16} color={colors.outline} />
-                          </TouchableOpacity>
-                        </View>
-                      )}
+                      {activeActionBlock?.start === block.start &&
+                        activeActionBlock?.task === block.task && (
+                          <View style={styles.quickActionsContainer}>
+                            <TouchableOpacity
+                              style={styles.quickActionBtn}
+                              onPress={() => handleDuplicateBlock(block)}
+                            >
+                              <Plus size={16} color={colors.primary} />
+                              <Text style={styles.quickActionText}>Copy</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.quickActionBtn}
+                              onPress={() => handleMoveToTomorrow(block)}
+                            >
+                              <ChevronRight size={16} color={colors.primary} />
+                              <Text style={styles.quickActionText}>+1 Day</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[
+                                styles.quickActionBtn,
+                                { borderColor: colors.error + "33" },
+                              ]}
+                              onPress={() => {
+                                setEditingBlockIndex(
+                                  rawTimeBlocks.findIndex(
+                                    (b) =>
+                                      b.start === block.start &&
+                                      b.task === block.task,
+                                  ),
+                                );
+                                handleDeleteBlock();
+                              }}
+                            >
+                              <Trash2 size={16} color={colors.error} />
+                              <Text
+                                style={[
+                                  styles.quickActionText,
+                                  { color: colors.error },
+                                ]}
+                              >
+                                Del
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.quickActionBtn}
+                              onPress={() => setActiveActionBlock(null)}
+                            >
+                              <X size={16} color={colors.outline} />
+                            </TouchableOpacity>
+                          </View>
+                        )}
                     </DraxView>
                   );
                 })}
 
                 {selectedDate === today && (
-                  <View style={[styles.currentTimeLine, { top: getTimeOffset(new Date().toTimeString().slice(0, 5), hourHeight) }]}>
-                    <View style={[styles.timeDot, { backgroundColor: colors.tertiary }]} />
-                    <View style={[styles.line, { backgroundColor: colors.tertiary }]} />
+                  <View
+                    style={[
+                      styles.currentTimeLine,
+                      {
+                        top: getTimeOffset(
+                          new Date().toTimeString().slice(0, 5),
+                          hourHeight,
+                        ),
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.timeDot,
+                        { backgroundColor: colors.tertiary },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.line,
+                        { backgroundColor: colors.tertiary },
+                      ]}
+                    />
                   </View>
                 )}
               </DraxView>
             </View>
-          </ScrollView>
+          </AutoHideScrollView>
 
           <Modal visible={showModal} transparent animationType="slide">
-            <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+            <KeyboardAvoidingView
+              style={styles.modalOverlay}
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
               <View style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
-                  <TouchableOpacity 
-                    onPress={() => { setShowModal(false); resetModal(); }}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowModal(false);
+                      resetModal();
+                    }}
                     style={styles.modalTopBtn}
                   >
-                    <Text style={[styles.modalCancelText, { color: colors.outline }]}>Cancel</Text>
+                    <Text
+                      style={[
+                        styles.modalCancelText,
+                        { color: colors.outline },
+                      ]}
+                    >
+                      Cancel
+                    </Text>
                   </TouchableOpacity>
 
                   <Text style={styles.modalTitle}>
                     {editingBlockIndex !== null ? "Edit Block" : "Add Block"}
                   </Text>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={handleSaveBlock}
-                    style={[styles.modalSaveTopBtn, { backgroundColor: colors.primary }]}
+                    style={[
+                      styles.modalSaveTopBtn,
+                      { backgroundColor: colors.primary },
+                    ]}
                   >
                     <Check size={18} color={colors.onPrimary} />
-                    <Text style={[styles.modalSaveText, { color: colors.onPrimary }]}>Save</Text>
+                    <Text
+                      style={[
+                        styles.modalSaveText,
+                        { color: colors.onPrimary },
+                      ]}
+                    >
+                      Save
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false}>
                   {editingBlockIndex !== null && (
-                    <TouchableOpacity 
-                      style={[styles.deleteBtnInline, { borderColor: colors.error + '33' }]} 
+                    <TouchableOpacity
+                      style={[
+                        styles.deleteBtnInline,
+                        { borderColor: colors.error + "33" },
+                      ]}
                       onPress={handleDeleteBlock}
                     >
                       <Trash2 size={16} color={colors.error} />
-                      <Text style={[styles.deleteBtnText, { color: colors.error }]}>Delete this block</Text>
+                      <Text
+                        style={[styles.deleteBtnText, { color: colors.error }]}
+                      >
+                        Delete this block
+                      </Text>
                     </TouchableOpacity>
                   )}
                   <View style={styles.modalField}>
                     <Text style={styles.modalLabel}>WHAT ARE YOU DOING?</Text>
-                    <TextInput style={styles.modalInput} value={blockTitle} onChangeText={setBlockTitle} placeholder="Activity title" placeholderTextColor={colors.outline} />
+                    <TextInput
+                      style={styles.modalInput}
+                      value={blockTitle}
+                      onChangeText={setBlockTitle}
+                      placeholder="Activity title"
+                      placeholderTextColor={colors.outline}
+                    />
                   </View>
 
                   <View style={styles.timeAdjustmentRow}>
@@ -1672,7 +2259,11 @@ export default function CalendarScreen() {
                   <View style={styles.modalField}>
                     <Text style={styles.modalLabel}>BLOCK TYPE</Text>
                     <View style={styles.modalTypeRow}>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 8 }}
+                      >
                         {[
                           { id: "event", label: "Event", icon: CalendarIcon },
                           { id: "deep-work", label: "Deep Work", icon: Zap },
@@ -1683,16 +2274,31 @@ export default function CalendarScreen() {
                           const isSelected = blockType === item.id;
                           const IconComp = item.icon;
                           return (
-                            <TouchableOpacity 
-                              key={item.id} 
+                            <TouchableOpacity
+                              key={item.id}
                               style={[
-                                styles.typeChip, 
-                                isSelected && { backgroundColor: colors.primary, borderColor: colors.primary }
-                              ]} 
+                                styles.typeChip,
+                                isSelected && {
+                                  backgroundColor: colors.primary,
+                                  borderColor: colors.primary,
+                                },
+                              ]}
                               onPress={() => setBlockType(item.id as any)}
                             >
-                              <IconComp size={14} color={isSelected ? colors.onPrimary : colors.primary} />
-                              <Text style={[styles.typeChipText, isSelected && { color: colors.onPrimary }]}>{item.label}</Text>
+                              <IconComp
+                                size={14}
+                                color={
+                                  isSelected ? colors.onPrimary : colors.primary
+                                }
+                              />
+                              <Text
+                                style={[
+                                  styles.typeChipText,
+                                  isSelected && { color: colors.onPrimary },
+                                ]}
+                              >
+                                {item.label}
+                              </Text>
                             </TouchableOpacity>
                           );
                         })}
@@ -1703,28 +2309,51 @@ export default function CalendarScreen() {
                   <View style={styles.modalField}>
                     <Text style={styles.modalLabel}>SUB-TASKS (POINTS)</Text>
                     <View style={styles.todoInputRow}>
-                      <TextInput 
-                        style={[styles.modalInput, { flex: 1 }]} 
-                        value={newTodoText} 
-                        onChangeText={setNewTodoText} 
-                        placeholder="Add a point..." 
+                      <TextInput
+                        style={[styles.modalInput, { flex: 1 }]}
+                        value={newTodoText}
+                        onChangeText={setNewTodoText}
+                        placeholder="Add a point..."
                         placeholderTextColor={colors.outline}
                         onSubmitEditing={handleAddTodo}
                       />
-                      <TouchableOpacity style={[styles.addTodoBtn, { backgroundColor: colors.primary }]} onPress={handleAddTodo}>
+                      <TouchableOpacity
+                        style={[
+                          styles.addTodoBtn,
+                          { backgroundColor: colors.primary },
+                        ]}
+                        onPress={handleAddTodo}
+                      >
                         <Plus size={20} color={colors.onPrimary} />
                       </TouchableOpacity>
                     </View>
                     <View style={styles.todoList}>
-                      {blockTodos.map(todo => (
+                      {blockTodos.map((todo) => (
                         <View key={todo.id} style={styles.todoItem}>
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             onPress={() => toggleTodo(todo.id)}
-                            style={[styles.todoCheck, { borderColor: colors.primary }, todo.completed && { backgroundColor: colors.primary }]}
+                            style={[
+                              styles.todoCheck,
+                              { borderColor: colors.primary },
+                              todo.completed && {
+                                backgroundColor: colors.primary,
+                              },
+                            ]}
                           >
-                            {todo.completed && <Check size={12} color={colors.onPrimary} />}
+                            {todo.completed && (
+                              <Check size={12} color={colors.onPrimary} />
+                            )}
                           </TouchableOpacity>
-                          <Text style={[styles.todoLabel, { color: colors.onSurface }, todo.completed && { textDecorationLine: 'line-through', color: colors.outline }]}>
+                          <Text
+                            style={[
+                              styles.todoLabel,
+                              { color: colors.onSurface },
+                              todo.completed && {
+                                textDecorationLine: "line-through",
+                                color: colors.outline,
+                              },
+                            ]}
+                          >
                             {todo.text}
                           </Text>
                           <TouchableOpacity onPress={() => removeTodo(todo.id)}>
@@ -1737,19 +2366,41 @@ export default function CalendarScreen() {
 
                   <View style={styles.modalField}>
                     <Text style={styles.modalLabel}>NOTES</Text>
-                    <TextInput style={[styles.modalInput, { height: 80, textAlignVertical: 'top' }]} value={blockDescription} onChangeText={setBlockDescription} placeholder="Additional notes..." placeholderTextColor={colors.outline} multiline />
+                    <TextInput
+                      style={[
+                        styles.modalInput,
+                        { height: 80, textAlignVertical: "top" },
+                      ]}
+                      value={blockDescription}
+                      onChangeText={setBlockDescription}
+                      placeholder="Additional notes..."
+                      placeholderTextColor={colors.outline}
+                      multiline
+                    />
                   </View>
-                  
+
                   <View style={styles.modalField}>
                     <Text style={styles.modalLabel}>LOCATION</Text>
-                    <TextInput style={styles.modalInput} value={blockLocation} onChangeText={setBlockLocation} placeholder="Where?" placeholderTextColor={colors.outline} />
+                    <TextInput
+                      style={styles.modalInput}
+                      value={blockLocation}
+                      onChangeText={setBlockLocation}
+                      placeholder="Where?"
+                      placeholderTextColor={colors.outline}
+                    />
                   </View>
                 </ScrollView>
               </View>
             </KeyboardAvoidingView>
           </Modal>
 
-          <TouchableOpacity style={[styles.fab, { backgroundColor: colors.primary }]} onPress={() => { resetModal(); setShowModal(true); }}>
+          <TouchableOpacity
+            style={[styles.fab, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              resetModal();
+              setShowModal(true);
+            }}
+          >
             <Plus size={24} color={colors.onPrimary} strokeWidth={2} />
           </TouchableOpacity>
 
@@ -1811,8 +2462,8 @@ const createStyles = (colors: any, hourHeight: number) =>
       padding: 8,
     },
     headerRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 8,
     },
     dateHeader: {
@@ -1826,14 +2477,14 @@ const createStyles = (colors: any, hourHeight: number) =>
       flex: 1,
     },
     dayNavRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 12,
       marginBottom: 2,
     },
     navBtn: {
       padding: 4,
-      backgroundColor: colors.primary + '1A',
+      backgroundColor: colors.primary + "1A",
       borderRadius: 4,
     },
     dayLabel: {
@@ -1997,21 +2648,21 @@ const createStyles = (colors: any, hourHeight: number) =>
       maxHeight: "90%",
     },
     modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       marginBottom: SPACING.xl,
       paddingBottom: SPACING.md,
       borderBottomWidth: 1,
-      borderBottomColor: colors.outlineVariant + '33',
+      borderBottomColor: colors.outlineVariant + "33",
     },
     modalTopBtn: {
       paddingVertical: 8,
       paddingHorizontal: 12,
     },
     modalSaveTopBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
       paddingVertical: 8,
       paddingHorizontal: 16,
@@ -2023,14 +2674,14 @@ const createStyles = (colors: any, hourHeight: number) =>
       color: colors.onSurface,
     },
     deleteBtnInline: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       gap: 8,
       paddingVertical: 12,
       borderRadius: ROUNDNESS.md,
       borderWidth: 1,
-      borderStyle: 'dashed',
+      borderStyle: "dashed",
       marginBottom: SPACING.lg,
     },
     deleteBtnText: {
@@ -2066,7 +2717,7 @@ const createStyles = (colors: any, hourHeight: number) =>
       fontSize: 14,
     },
     timeAdjustmentRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: 12,
       marginBottom: SPACING.md,
     },
@@ -2078,15 +2729,15 @@ const createStyles = (colors: any, hourHeight: number) =>
       marginTop: 4,
     },
     typeChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
       paddingHorizontal: 16,
       paddingVertical: 10,
       borderRadius: ROUNDNESS.full,
-      backgroundColor: colors.surfaceVariant + '4D',
+      backgroundColor: colors.surfaceVariant + "4D",
       borderWidth: 1,
-      borderColor: colors.outlineVariant + '33',
+      borderColor: colors.outlineVariant + "33",
     },
     typeChipText: {
       fontFamily: FONTS.labelSm,
@@ -2094,7 +2745,7 @@ const createStyles = (colors: any, hourHeight: number) =>
       color: colors.onSurfaceVariant,
     },
     todoInputRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: 8,
       marginBottom: 12,
     },
@@ -2102,17 +2753,17 @@ const createStyles = (colors: any, hourHeight: number) =>
       width: 48,
       height: 48,
       borderRadius: ROUNDNESS.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     todoList: {
       gap: 8,
     },
     todoItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 12,
-      backgroundColor: colors.surfaceVariant + '4D',
+      backgroundColor: colors.surfaceVariant + "4D",
       padding: 10,
       borderRadius: ROUNDNESS.sm,
     },
@@ -2121,8 +2772,8 @@ const createStyles = (colors: any, hourHeight: number) =>
       height: 20,
       borderRadius: 4,
       borderWidth: 2,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     todoLabel: {
       flex: 1,
@@ -2157,8 +2808,8 @@ const createStyles = (colors: any, hourHeight: number) =>
       marginBottom: SPACING.md,
     },
     aiNudgeCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       padding: 16,
       borderRadius: ROUNDNESS.lg,
       gap: 12,
@@ -2192,11 +2843,11 @@ const createStyles = (colors: any, hourHeight: number) =>
       borderRadius: ROUNDNESS.md,
       width: 140,
       borderWidth: 1,
-      borderColor: colors.outlineVariant + '4D',
+      borderColor: colors.outlineVariant + "4D",
     },
     upcomingTimeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 4,
       marginBottom: 4,
     },
@@ -2215,18 +2866,18 @@ const createStyles = (colors: any, hourHeight: number) =>
       left: 0,
       right: 0,
       borderWidth: 2,
-      borderStyle: 'dashed',
+      borderStyle: "dashed",
       borderColor: colors.primary,
       opacity: 0.6,
       zIndex: 50,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     ghostText: {
       fontFamily: FONTS.labelSm,
       fontSize: 12,
       color: colors.primary,
-      fontWeight: 'bold',
+      fontWeight: "bold",
     },
     inventorySection: {
       paddingHorizontal: SPACING.lg,
@@ -2242,10 +2893,10 @@ const createStyles = (colors: any, hourHeight: number) =>
       paddingVertical: 10,
       borderRadius: ROUNDNESS.full,
       borderWidth: 1,
-      borderColor: colors.outlineVariant + '4D',
+      borderColor: colors.outlineVariant + "4D",
       minWidth: 100,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     inventoryTitle: {
       fontFamily: FONTS.labelSm,
@@ -2256,39 +2907,39 @@ const createStyles = (colors: any, hourHeight: number) =>
       fontFamily: FONTS.body,
       fontSize: 12,
       color: colors.onSurfaceVariant,
-      fontStyle: 'italic',
+      fontStyle: "italic",
       marginTop: 8,
     },
     quickActionsContainer: {
-      position: 'absolute',
+      position: "absolute",
       top: -45,
       left: 0,
       right: 0,
-      flexDirection: 'row',
-      justifyContent: 'center',
+      flexDirection: "row",
+      justifyContent: "center",
       gap: 8,
       zIndex: 100,
       backgroundColor: colors.surface,
       padding: 6,
       borderRadius: ROUNDNESS.full,
       elevation: 4,
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2,
       shadowRadius: 4,
       borderWidth: 1,
-      borderColor: colors.outlineVariant + '33',
+      borderColor: colors.outlineVariant + "33",
     },
     quickActionBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 4,
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: ROUNDNESS.full,
-      backgroundColor: colors.surfaceVariant + '4D',
+      backgroundColor: colors.surfaceVariant + "4D",
       borderWidth: 1,
-      borderColor: colors.outlineVariant + '33',
+      borderColor: colors.outlineVariant + "33",
     },
     quickActionText: {
       fontFamily: FONTS.labelSm,
@@ -2296,18 +2947,18 @@ const createStyles = (colors: any, hourHeight: number) =>
       color: colors.primary,
     },
     undoToast: {
-      position: 'absolute',
+      position: "absolute",
       bottom: 100,
       left: 20,
       right: 20,
       backgroundColor: colors.onSurface,
       borderRadius: ROUNDNESS.md,
       padding: 16,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       elevation: 6,
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 3 },
       shadowOpacity: 0.3,
       shadowRadius: 5,
@@ -2326,6 +2977,6 @@ const createStyles = (colors: any, hourHeight: number) =>
       color: colors.primaryContainer,
       fontFamily: FONTS.label,
       fontSize: 14,
-      fontWeight: 'bold',
+      fontWeight: "bold",
     },
   });

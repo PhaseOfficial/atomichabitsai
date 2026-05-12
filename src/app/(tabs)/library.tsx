@@ -1,3 +1,4 @@
+import AutoHideScrollView from "@/src/components/AutoHideScrollView";
 import { FONTS, ROUNDNESS, SPACING } from "@/src/constants/Theme";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useData } from "@/src/hooks/useData";
@@ -12,47 +13,47 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
-  ArrowRight,
-  Book as BookIcon,
-  BookMarked,
-  BookOpen,
-  CheckCircle2,
-  Clock,
-  Menu,
-  Pencil,
-  Play,
-  Plus,
-  Save,
-  Settings,
-  Sparkles,
-  Timer,
-  Trash2,
-  TrendingUp,
-  Upload,
-  X,
+    ArrowRight,
+    Book as BookIcon,
+    BookMarked,
+    BookOpen,
+    CheckCircle2,
+    Clock,
+    Menu,
+    Pencil,
+    Play,
+    Plus,
+    Save,
+    Settings,
+    Sparkles,
+    Timer,
+    Trash2,
+    TrendingUp,
+    Upload,
+    X,
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -723,7 +724,7 @@ export default function LibraryScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView
+          <AutoHideScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
@@ -844,7 +845,7 @@ export default function LibraryScreen() {
                 </View>
               )}
             </View>
-          </ScrollView>
+          </AutoHideScrollView>
 
           {/* Add Book Modal */}
           <Modal visible={showAddModal} transparent animationType="slide">

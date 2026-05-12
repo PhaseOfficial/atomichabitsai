@@ -122,6 +122,12 @@ function RootLayoutNav() {
         <Stack.Screen name="add-habit" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="add-shortcut" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="add-task" options={{ presentation: 'modal', headerShown: false }} />
+        
+        {/* Secondary Screens now in root stack */}
+        <Stack.Screen name="(tabs)/history" options={{ headerShown: false, title: 'History' }} />
+        <Stack.Screen name="(tabs)/sprint" options={{ headerShown: false, title: 'Sprint' }} />
+        <Stack.Screen name="(tabs)/aa_ai" options={{ headerShown: false, title: 'Assistant' }} />
+        <Stack.Screen name="(tabs)/hh_habits" options={{ headerShown: false, title: 'Habits' }} />
       </Stack>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>

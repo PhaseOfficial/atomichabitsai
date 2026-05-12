@@ -1,87 +1,67 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
-import { LayoutDashboard, Library, Calendar, History } from 'lucide-react-native';
-import { COLORS, FONTS } from '@/src/constants/Theme';
-import { useTheme } from '@/src/hooks/useTheme';
+import GlassBottomTabBar from "@/src/components/GlassBottomTabBar";
+import { FONTS } from "@/src/constants/Theme";
+import { TabBarVisibilityProvider } from "@/src/hooks/useAutoHideTabBar";
+import { useTheme } from "@/src/hooks/useTheme";
+import { Tabs } from "expo-router";
+import { Calendar, LayoutDashboard, Library } from "lucide-react-native";
+import React from "react";
 
 export default function TabLayout() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+
+  const screenOptions = {
+    tabBarActiveTintColor: colors.primary,
+    tabBarInactiveTintColor: colors.outline,
+    headerShown: false,
+    tabBarStyle: {
+      position: "absolute",
+      borderTopWidth: 0,
+      elevation: 0,
+    },
+    tabBarLabelStyle: {
+      fontFamily: FONTS.label,
+      fontSize: 10,
+      letterSpacing: 0.5,
+    },
+  } as any;
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.outline,
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: isDark ? 'rgba(10, 10, 10, 0.85)' : 'rgba(255, 255, 255, 0.85)',
-          borderTopColor: colors.outline + '1A',
-          borderTopWidth: 0.5,
-          height: 64,
-          paddingBottom: 12,
-          paddingTop: 8,
-          elevation: 0,
-          shadowOpacity: 0,
-          position: 'absolute', // Needed for blur effect
-          left: 0,
-          right: 0,
-          bottom: 0,
-        },
-        tabBarLabelStyle: {
-          fontFamily: FONTS.label,
-          fontSize: 10,
-          letterSpacing: 0.5,
-        },
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Day',
-          tabBarIcon: ({ color }) => <LayoutDashboard size={20} color={color} strokeWidth={1.5} />,
-        }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          title: 'Schedule',
-          tabBarIcon: ({ color }) => <Calendar size={20} color={color} strokeWidth={1.5} />,
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'History',
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="sprint"
-        options={{
-          title: 'Sprint',
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="aa_ai"
-        options={{
-          title: 'Assistant',
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="hh_habits"
-        options={{
-          title: 'Habits',
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="library"
-        options={{
-          title: 'Library',
-          tabBarIcon: ({ color }) => <Library size={20} color={color} strokeWidth={1.5} />,
-        }}
-      />
-    </Tabs>
+    <TabBarVisibilityProvider>
+      <Tabs
+        tabBar={(props: any) => <GlassBottomTabBar {...props} />}
+        screenOptions={screenOptions}
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Day",
+            tabBarIcon: ({ color }) => (
+              <LayoutDashboard size={24} color={color} strokeWidth={1.5} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="calendar"
+          options={{
+            title: "Schedule",
+            tabBarIcon: ({ color }) => (
+              <Calendar size={24} color={color} strokeWidth={1.5} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="library"
+          options={{
+            title: "Library",
+            tabBarIcon: ({ color }) => (
+              <Library size={24} color={color} strokeWidth={1.5} />
+            ),
+          }}
+        />
+      </Tabs>
+      {/* Extra screens still exist in the app, but are intentionally excluded from the bottom glass tab bar.
+        Keep these routes reachable via menu, buttons, or a future drawer/More screen.
+      */}
+    </TabBarVisibilityProvider>
   );
 }

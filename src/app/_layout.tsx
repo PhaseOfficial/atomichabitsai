@@ -44,8 +44,6 @@ export default function RootLayout() {
     PlusJakartaSans_700Bold,
   });
 
-  useSync();
-
   useEffect(() => {
     initDatabase()
       .then(() => setDbLoaded(true))
@@ -63,10 +61,16 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BatsirThemeProvider>
+        <SyncWrapper />
         <RootLayoutContent />
       </BatsirThemeProvider>
     </GestureHandlerRootView>
   );
+}
+
+function SyncWrapper() {
+  useSync();
+  return null;
 }
 
 function RootLayoutContent() {

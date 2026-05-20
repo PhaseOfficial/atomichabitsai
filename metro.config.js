@@ -16,9 +16,6 @@ config.resolver = {
   ...resolver,
   assetExts: [...resolver.assetExts.filter((ext) => ext !== "svg"), "wasm"],
   sourceExts: [...resolver.sourceExts, "svg", "wasm"],
-  // Force Metro to resolve the CJS version by prioritizing 'main' and 'require'
-  resolverMainFields: ["react-native", "main"],
-  unstable_conditionNames: ["require", "react-native"],
 };
 
 module.exports = config;

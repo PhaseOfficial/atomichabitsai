@@ -1,21 +1,29 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
-import { COLORS, ACCENTS, AccentKey } from '../constants/Theme';
-import { getDb } from '../db/database';
-import { supabase } from '../lib/supabase';
+import React, {
+    ReactNode,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+import { useColorScheme } from "react-native";
+import { ACCENTS, AccentKey, COLORS, ThemeColors } from "../constants/Theme";
+import { getDb } from "../db/database";
+import { supabase } from "../lib/supabase";
 
-const ACCENT_STORAGE_KEY = 'accent_key';
-const THEME_MODE_STORAGE_KEY = 'theme_mode';
-const FOCUS_GOAL_KEY = 'daily_focus_goal';
-const SPRINT_DURATION_KEY = 'sprint_duration';
-const IDENTITY_ANCHOR_KEY = 'identity_anchor';
-const DISPLAY_NAME_KEY = 'display_name';
+const ACCENT_STORAGE_KEY = "accent_key";
+const THEME_MODE_STORAGE_KEY = "theme_mode";
+const FOCUS_GOAL_KEY = "daily_focus_goal";
+const SPRINT_DURATION_KEY = "sprint_duration";
+const IDENTITY_ANCHOR_KEY = "identity_anchor";
+const DISPLAY_NAME_KEY = "display_name";
 
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = "light" | "dark" | "system";
 
 interface ThemeContextType {
-  colors: any;
-  colorScheme: 'light' | 'dark';
+  colors: ThemeColors;
+  colorScheme: "light" | "dark";
   isDark: boolean;
   accentKey: AccentKey;
   updateAccent: (key: AccentKey) => Promise<void>;
@@ -38,7 +46,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 async function getSetting(key: string, defaultValue: string): Promise<string> {
   try {
     const db = await getDb();
-    const result = await db.getFirstAsync<{value: string}>('SELECT value FROM settings WHERE key = ?', [key]);
+    const result = await db.getFirstAsync<{ value: string }>(
+      "SELECT value FROM settings WHERE key = ?",
+      [key],
+    );
     return result ? result.value : defaultValue;
   } catch (e) {
     return defaultValue;
@@ -48,16 +59,28 @@ async function getSetting(key: string, defaultValue: string): Promise<string> {
 async function saveSetting(key: string, value: string): Promise<void> {
   try {
     const db = await getDb();
-    await db.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
-    
+    await db.runAsync(
+      "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+      [key, value],
+    );
+
     // Attempt to sync to Supabase profile preferences
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
-      const { data: profile } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("preferences")
+        .eq("id", user.id)
+        .single();
       const prefs = profile?.preferences || {};
-      await supabase.from('profiles').update({
-        preferences: { ...prefs, [key]: value }
-      }).eq('id', user.id);
+      await supabase
+        .from("profiles")
+        .update({
+          preferences: { ...prefs, [key]: value },
+        })
+        .eq("id", user.id);
     }
   } catch (e) {
     console.error(`Failed to save setting ${key}`, e);
@@ -65,24 +88,29 @@ async function saveSetting(key: string, value: string): Promise<void> {
 }
 
 export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
-  const systemColorScheme = useColorScheme() ?? 'light';
-  const [accentKey, setAccentKey] = useState<AccentKey>('slate');
-  const [themeMode, setThemeMode] = useState<ThemeMode>('system');
+  const systemColorScheme = useColorScheme() ?? "light";
+  const [accentKey, setAccentKey] = useState<AccentKey>("slate");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("system");
   const [focusGoal, setFocusGoal] = useState(8);
   const [sprintDuration, setSprintDuration] = useState(25);
-  const [identityAnchor, setIdentityAnchor] = useState('The Disciplined Creator');
-  const [displayName, setDisplayName] = useState('');
+  const [identityAnchor, setIdentityAnchor] = useState(
+    "The Disciplined Creator",
+  );
+  const [displayName, setDisplayName] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const storedAccent = await getSetting(ACCENT_STORAGE_KEY, 'slate');
-        const storedMode = await getSetting(THEME_MODE_STORAGE_KEY, 'system');
-        const storedGoal = await getSetting(FOCUS_GOAL_KEY, '8');
-        const storedDuration = await getSetting(SPRINT_DURATION_KEY, '25');
-        const storedAnchor = await getSetting(IDENTITY_ANCHOR_KEY, 'The Disciplined Creator');
-        const storedName = await getSetting(DISPLAY_NAME_KEY, '');
+        const storedAccent = await getSetting(ACCENT_STORAGE_KEY, "slate");
+        const storedMode = await getSetting(THEME_MODE_STORAGE_KEY, "system");
+        const storedGoal = await getSetting(FOCUS_GOAL_KEY, "8");
+        const storedDuration = await getSetting(SPRINT_DURATION_KEY, "25");
+        const storedAnchor = await getSetting(
+          IDENTITY_ANCHOR_KEY,
+          "The Disciplined Creator",
+        );
+        const storedName = await getSetting(DISPLAY_NAME_KEY, "");
 
         setAccentKey(storedAccent as AccentKey);
         setThemeMode(storedMode as ThemeMode);
@@ -91,7 +119,7 @@ export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
         setIdentityAnchor(storedAnchor);
         setDisplayName(storedName);
       } catch (e) {
-        console.error('Failed to load theme settings', e);
+        console.error("Failed to load theme settings", e);
       } finally {
         setIsLoaded(true);
       }
@@ -127,65 +155,91 @@ export const BatsirThemeProvider = ({ children }: { children: ReactNode }) => {
   const updateDisplayName = useCallback(async (name: string) => {
     setDisplayName(name);
     await saveSetting(DISPLAY_NAME_KEY, name);
-    
+
     // Also update public.profiles table directly for display_name column
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from('profiles').update({ display_name: name }).eq('id', user.id);
+        await supabase
+          .from("profiles")
+          .update({ display_name: name })
+          .eq("id", user.id);
       }
     } catch (e) {
-      console.error('Failed to update display_name in profiles', e);
+      console.error("Failed to update display_name in profiles", e);
     }
   }, []);
 
-  const colorScheme = themeMode === 'system' ? systemColorScheme : themeMode;
-  const isDark = colorScheme === 'dark';
-  
+  const colorScheme = themeMode === "system" ? systemColorScheme : themeMode;
+  const isDark = colorScheme === "dark";
+
   const colors = useMemo(() => {
     const baseColors = COLORS[colorScheme as keyof typeof COLORS];
     const accent = ACCENTS[accentKey];
     return {
       ...baseColors,
       primary: accent.primary,
-      onPrimary: '#FFFFFF', 
-      primaryContainer: isDark ? baseColors.primaryContainer : accent.primaryContainer,
-      onPrimaryContainer: isDark ? baseColors.onPrimaryContainer : accent.onPrimaryContainer,
+      onPrimary: "#FFFFFF",
+      primaryContainer: isDark
+        ? baseColors.primaryContainer
+        : accent.primaryContainer,
+      onPrimaryContainer: isDark
+        ? baseColors.onPrimaryContainer
+        : accent.onPrimaryContainer,
     };
   }, [colorScheme, accentKey, isDark]);
 
-  const value = useMemo(() => ({
-    colors,
-    colorScheme: colorScheme as 'light' | 'dark',
-    isDark,
-    accentKey,
-    updateAccent,
-    availableAccents: ACCENTS,
-    themeMode,
-    updateThemeMode,
-    focusGoal,
-    updateFocusGoal,
-    sprintDuration,
-    updateSprintDuration,
-    identityAnchor,
-    updateIdentityAnchor,
-    displayName,
-    updateDisplayName,
-    isLoaded,
-  }), [
-    colors, colorScheme, isDark, accentKey, updateAccent, themeMode, 
-    updateThemeMode, focusGoal, updateFocusGoal, sprintDuration, 
-    updateSprintDuration, identityAnchor, updateIdentityAnchor, 
-    displayName, updateDisplayName, isLoaded
-  ]);
+  const value = useMemo(
+    () => ({
+      colors,
+      colorScheme: colorScheme as "light" | "dark",
+      isDark,
+      accentKey,
+      updateAccent,
+      availableAccents: ACCENTS,
+      themeMode,
+      updateThemeMode,
+      focusGoal,
+      updateFocusGoal,
+      sprintDuration,
+      updateSprintDuration,
+      identityAnchor,
+      updateIdentityAnchor,
+      displayName,
+      updateDisplayName,
+      isLoaded,
+    }),
+    [
+      colors,
+      colorScheme,
+      isDark,
+      accentKey,
+      updateAccent,
+      themeMode,
+      updateThemeMode,
+      focusGoal,
+      updateFocusGoal,
+      sprintDuration,
+      updateSprintDuration,
+      identityAnchor,
+      updateIdentityAnchor,
+      displayName,
+      updateDisplayName,
+      isLoaded,
+    ],
+  );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 };
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    throw new Error("useTheme must be used within a ThemeProvider");
   }
   return context;
 };

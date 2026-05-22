@@ -36,45 +36,33 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
+import { WebView } from 'react-native-webview';
+
 // Safe PDF Component Wrapper
 const PdfRendererComponent = (props: any) => {
-  const [Component, setComponent] = useState<any>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    if (isExpoGo) {
-      setError(true);
-      return;
+  const { source, style, onLoad, onPageChange, page } = props;
+  
+  const viewerUrl = useMemo(() => {
+    if (Platform.OS === 'ios') {
+      return source;
     }
+    // Android: Use Google Docs Viewer for remote URLs
+    // Note: Local files won't work with this wrapper on Android
+    return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(source)}`;
+  }, [source]);
 
-    try {
-      const PdfLib = require('react-native-pdf-renderer');
-      const Comp = PdfLib.default || PdfLib;
-      setComponent(() => Comp);
-    } catch (e) {
-      console.warn('Failed to load react-native-pdf-renderer:', e);
-      setError(true);
-    }
-  }, []);
-
-  if (error) {
-    return (
-      <View style={[props.style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' }]}>
-        <BookOpen size={48} color="#444" style={{ marginBottom: 16 }} />
-        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', textAlign: 'center', paddingHorizontal: 20 }}>
-          PDF Reader Unavailable
-        </Text>
-        <Text style={{ color: '#888', fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 }}>
-          Development builds are required for native PDF rendering.
-        </Text>
-      </View>
-    );
-  }
-
-  if (!Component) return <ActivityIndicator style={props.style} color="#fff" />;
-
-  const Comp = Component;
-  return <Comp {...props} />;
+  return (
+    <WebView
+      originWhitelist={['*']}
+      source={{ uri: viewerUrl }}
+      style={style}
+      onLoad={() => onLoad?.(0)} // WebView doesn't provide total pages easily
+      javaScriptEnabled={true}
+      domStorageEnabled={true}
+      startInLoadingState={true}
+      renderLoading={() => <ActivityIndicator style={StyleSheet.absoluteFill} size="large" />}
+    />
+  );
 };
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');

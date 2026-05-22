@@ -1,51 +1,51 @@
 export const ACCENTS = {
   slate: {
-    label: 'Modern Slate',
-    primary: '#334155',
-    primaryContainer: '#f1f5f9',
-    onPrimaryContainer: '#0f172a',
+    label: "Modern Slate",
+    primary: "#334155",
+    primaryContainer: "#f1f5f9",
+    onPrimaryContainer: "#0f172a",
   },
   blue: {
-    label: 'Ocean Blue',
-    primary: '#4e607b',
-    primaryContainer: '#d3e3ff',
-    onPrimaryContainer: '#40536d',
+    label: "Ocean Blue",
+    primary: "#4e607b",
+    primaryContainer: "#d3e3ff",
+    onPrimaryContainer: "#40536d",
   },
   pink: {
-    label: 'Rose Pink',
-    primary: '#a8385a',
-    primaryContainer: '#ffd9df',
-    onPrimaryContainer: '#3e001a',
+    label: "Rose Pink",
+    primary: "#a8385a",
+    primaryContainer: "#ffd9df",
+    onPrimaryContainer: "#3e001a",
   },
   red: {
-    label: 'Crimson Rust',
-    primary: '#a84c36',
-    primaryContainer: '#ffdad2',
-    onPrimaryContainer: '#3e0a01',
+    label: "Crimson Rust",
+    primary: "#a84c36",
+    primaryContainer: "#ffdad2",
+    onPrimaryContainer: "#3e0a01",
   },
   purple: {
-    label: 'Royal Amethyst',
-    primary: '#7c4dff',
-    primaryContainer: '#e0e0ff',
-    onPrimaryContainer: '#2c0091',
+    label: "Royal Amethyst",
+    primary: "#7c4dff",
+    primaryContainer: "#e0e0ff",
+    onPrimaryContainer: "#2c0091",
   },
   orange: {
-    label: 'Deep Amber',
-    primary: '#f57c00',
-    primaryContainer: '#fff3e0',
-    onPrimaryContainer: '#e65100',
+    label: "Deep Amber",
+    primary: "#f57c00",
+    primaryContainer: "#fff3e0",
+    onPrimaryContainer: "#e65100",
   },
   teal: {
-    label: 'Deep Teal',
-    primary: '#00796b',
-    primaryContainer: '#e0f2f1',
-    onPrimaryContainer: '#004d40',
+    label: "Deep Teal",
+    primary: "#00796b",
+    primaryContainer: "#e0f2f1",
+    onPrimaryContainer: "#004d40",
   },
   emerald: {
-    label: 'Vibrant Emerald',
-    primary: '#2e7d32',
-    primaryContainer: '#e8f5e9',
-    onPrimaryContainer: '#1b5e20',
+    label: "Vibrant Emerald",
+    primary: "#2e7d32",
+    primaryContainer: "#e8f5e9",
+    onPrimaryContainer: "#1b5e20",
   },
 };
 
@@ -53,50 +53,52 @@ export type AccentKey = keyof typeof ACCENTS;
 
 export const COLORS = {
   light: {
-    primary: '#334155', // Slate
-    onPrimary: '#f8faf9',
-    primaryContainer: '#f1f5f9',
-    onPrimaryContainer: '#0f172a',
-    secondary: '#4e607b', // Soft Blue
-    onSecondary: '#f8f8ff',
-    secondaryContainer: '#d3e3ff',
-    onSecondaryContainer: '#40536d',
-    tertiary: '#655b6f', // Muted Lavender
-    onTertiary: '#fef6ff',
-    background: '#f8faf9', // Off-white
-    onBackground: '#2d3433',
-    surface: '#f8faf9',
-    onSurface: '#2d3433',
-    surfaceVariant: '#eaefee',
-    onSurfaceVariant: '#596060',
-    outline: '#757c7b',
-    outlineVariant: '#acb3b2',
-    error: '#a83836',
-    onError: '#fff7f6',
+    primary: "#334155", // Slate
+    onPrimary: "#f8faf9",
+    primaryContainer: "#f1f5f9",
+    onPrimaryContainer: "#0f172a",
+    secondary: "#4e607b", // Soft Blue
+    onSecondary: "#f8f8ff",
+    secondaryContainer: "#d3e3ff",
+    onSecondaryContainer: "#40536d",
+    tertiary: "#655b6f", // Muted Lavender
+    onTertiary: "#fef6ff",
+    background: "#f8faf9", // Off-white
+    onBackground: "#2d3433",
+    surface: "#f8faf9",
+    onSurface: "#2d3433",
+    surfaceVariant: "#eaefee",
+    onSurfaceVariant: "#596060",
+    outline: "#757c7b",
+    outlineVariant: "#acb3b2",
+    error: "#a83836",
+    onError: "#fff7f6",
   },
   dark: {
-    primary: '#94a3b8', // Light Slate
-    onPrimary: '#0f172a',
-    primaryContainer: '#1e293b',
-    onPrimaryContainer: '#f1f5f9',
-    secondary: '#c2d6f5', // Tonal lighter Soft Blue
-    onSecondary: '#2e405a',
-    secondaryContainer: '#4a5d77',
-    onSecondaryContainer: '#d3e3ff',
-    tertiary: '#e5d8f0', // Tonal lighter Lavender
-    onTertiary: '#4a4154',
-    background: '#000000', // Pure black
-    onBackground: '#f1f4f3',
-    surface: '#000000',
-    onSurface: '#f1f4f3',
-    surfaceVariant: '#1a1a1a',
-    onSurfaceVariant: '#acb3b2',
-    outline: '#acb3b2',
-    outlineVariant: '#596060',
-    error: '#fa746f',
-    onError: '#6e0a12',
-  }
+    primary: "#94a3b8", // Light Slate
+    onPrimary: "#0f172a",
+    primaryContainer: "#1e293b",
+    onPrimaryContainer: "#f1f5f9",
+    secondary: "#c2d6f5", // Tonal lighter Soft Blue
+    onSecondary: "#2e405a",
+    secondaryContainer: "#4a5d77",
+    onSecondaryContainer: "#d3e3ff",
+    tertiary: "#e5d8f0", // Tonal lighter Lavender
+    onTertiary: "#4a4154",
+    background: "#000000", // Pure black
+    onBackground: "#f1f4f3",
+    surface: "#000000",
+    onSurface: "#f1f4f3",
+    surfaceVariant: "#1a1a1a",
+    onSurfaceVariant: "#acb3b2",
+    outline: "#acb3b2",
+    outlineVariant: "#596060",
+    error: "#fa746f",
+    onError: "#6e0a12",
+  },
 };
+
+export type ThemeColors = typeof COLORS.light;
 
 export const SPACING = {
   xs: 4,
@@ -114,16 +116,17 @@ export const ROUNDNESS = {
   md: 8,
   lg: 12,
   xl: 24,
-  full: 9999, 
+  full: 9999,
 };
 
 export const FONTS = {
-  headline: 'Manrope_700Bold',
-  body: 'Manrope_400Regular',
-  label: 'PlusJakartaSans_500Medium',
-  labelSm: 'PlusJakartaSans_700Bold',
+  headline: "Manrope_700Bold",
+  body: "Manrope_400Regular",
+  label: "PlusJakartaSans_500Medium",
+  labelSm: "PlusJakartaSans_700Bold",
 };
 
 export const GRID_STYLE = {
-  ghostBorder: (scheme: 'light' | 'dark') => scheme === 'light' ? 'rgba(51, 65, 85, 0.1)' : 'rgba(148, 163, 184, 0.1)',
+  ghostBorder: (scheme: "light" | "dark") =>
+    scheme === "light" ? "rgba(51, 65, 85, 0.1)" : "rgba(148, 163, 184, 0.1)",
 };

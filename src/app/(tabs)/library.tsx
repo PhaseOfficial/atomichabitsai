@@ -8,7 +8,8 @@ import { performMutation } from "@/src/lib/sync";
 import { getDb } from "@/src/db/database";
 import { decode } from "base-64";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system/legacy";
+import * as FileSystem from "expo-file-system";
+import { resolveFileUri, getRelativePath } from "@/src/lib/file-utils";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -161,7 +162,7 @@ export default function LibraryScreen() {
             if (error) console.error("Cloud sync error:", error);
           });
 
-        finalUri = localUri;
+        finalUri = getRelativePath(localUri);
       }
 
       const id = Math.random().toString(36).substring(7);
@@ -224,9 +225,10 @@ export default function LibraryScreen() {
               await performMutation("books", "DELETE", { id });
 
               if (fileUri) {
-                const fileInfo = await FileSystem.getInfoAsync(fileUri);
+                const resolvedUri = resolveFileUri(fileUri);
+                const fileInfo = await FileSystem.getInfoAsync(resolvedUri);
                 if (fileInfo.exists) {
-                  await FileSystem.deleteAsync(fileUri);
+                  await FileSystem.deleteAsync(resolvedUri, { idempotent: true });
                 }
               }
 

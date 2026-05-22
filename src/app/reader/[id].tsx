@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { getDb } from '@/src/db/database';
 import { performMutation } from '@/src/lib/sync';
+import { resolveFileUri } from '@/src/lib/file-utils';
 import PdfReader from '@/src/components/Library/PdfReader';
 import { useTheme } from '@/src/hooks/useTheme';
 import * as Haptics from 'expo-haptics';
@@ -115,7 +116,7 @@ export default function ReaderScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false, animation: 'fade' }} />
       <PdfReader
-        uri={book.file_uri}
+        uri={resolveFileUri(book.file_uri)}
         title={book.title}
         initialPage={currentPage}
         onClose={handleClose}

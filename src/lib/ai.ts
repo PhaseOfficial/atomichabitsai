@@ -1,16 +1,23 @@
 import { supabase } from './supabase';
 
-export const callAiAssistant = async (prompt: string, userId: string) => {
+export interface AIMessage {
+  text: string;
+  sender: 'user' | 'ai';
+}
+
+export const callAiAssistant = async (messages: AIMessage[], systemPrompt?: string) => {
   try {
-    const { data, error } = await supabase.functions.invoke('ai-assistant', {
-      body: { prompt, userId },
+    // Supabase client automatically includes the session JWT in the Authorization header
+    // if a session exists and AsyncStorage is configured.
+    const { data, error } = await supabase.functions.invoke('chat-ai', {
+      body: { messages, systemPrompt },
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Function Error:', error);
+      throw error;
+    }
     
-    // Once remote data is updated via the AI Assistant,
-    // we should sync it back to local SQLite if online.
-    // This is handled by a separate sync process or a manual trigger.
     return data;
   } catch (error) {
     console.error('AI Assistant Error:', error);

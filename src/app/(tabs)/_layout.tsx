@@ -1,3 +1,4 @@
+import FloatingAIDock from "@/src/components/FloatingAIDock";
 import GlassBottomTabBar from "@/src/components/GlassBottomTabBar";
 import { FONTS } from "@/src/constants/Theme";
 import { TabBarVisibilityProvider } from "@/src/hooks/useAutoHideTabBar";
@@ -59,6 +60,9 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
+      
+      <FloatingAIDock />
+
       {/* Extra screens still exist in the app, but are intentionally excluded from the bottom glass tab bar.
         Keep these routes reachable via menu, buttons, or a future drawer/More screen.
       */}

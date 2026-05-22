@@ -1,6 +1,7 @@
+import { useTheme } from "@/src/hooks/useTheme";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
-import { Calendar } from "lucide-react-native";
+import { LayoutDashboard } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Animated, Platform, Pressable, StyleSheet, View } from "react-native";
 
@@ -17,6 +18,7 @@ export default function AutoHideFloatingActionButton({
   label = "Day",
   position = "center",
 }: Props) {
+  const { isDark, colors } = useTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const onPressIn = useCallback(() => {
@@ -65,15 +67,21 @@ export default function AutoHideFloatingActionButton({
       >
         <BlurView
           // Requirement: Blur amount 15-20
-          intensity={Platform.OS === "ios" ? 20 : 0}
-          tint="light"
+          intensity={Platform.OS === "ios" ? 30 : 0}
+          tint={isDark ? "dark" : "light"}
           style={[
             styles.fab,
-            Platform.OS === "android" && styles.androidFallback,
+            {
+              backgroundColor: isDark ? "rgba(22,22,24,0.72)" : "rgba(248,250,249,0.85)",
+              borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+            },
+            Platform.OS === "android" && {
+              backgroundColor: isDark ? "rgba(28,28,30,0.96)" : colors.surface,
+            },
           ]}
         >
           <View style={[styles.iconContainer]}>
-            <Calendar size={24} color={accentColor} strokeWidth={2} />
+            <LayoutDashboard size={24} color={accentColor} strokeWidth={2.2} />
           </View>
         </BlurView>
       </Pressable>
@@ -84,16 +92,16 @@ export default function AutoHideFloatingActionButton({
 const styles = StyleSheet.create({
   wrapper: {
     // Requirement: Large border radius (24-28px) -> 28 for 56x56
-    borderRadius: 28,
+    borderRadius: 30,
     // Requirement: Slight elevation/shadow
     shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 10,
   },
   pressable: {
-    borderRadius: 28,
+    borderRadius: 30,
     overflow: "hidden",
   },
   positionCenter: {
@@ -107,17 +115,10 @@ const styles = StyleSheet.create({
     // Requirement: Circular (56x56 points)
     width: 60,
     height: 60,
-    borderRadius: 28,
-    // Requirement: Subtle white border (0.5px, 30% opacity)
-    borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.3)",
-    // Requirement: Tint: translucent (rgba(255,255,255,0.2-0.3))
-    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 30,
+    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  androidFallback: {
-    backgroundColor: "rgba(255,255,255,0.95)",
   },
   iconContainer: {
     justifyContent: "center",

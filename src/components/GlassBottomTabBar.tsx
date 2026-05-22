@@ -1,6 +1,7 @@
 import AutoHideFloatingActionButton from "@/src/components/AutoHideFloatingActionButton";
 import { FONTS } from "@/src/constants/Theme";
 import { useTabBarVisibility } from "@/src/hooks/useAutoHideTabBar";
+import { useTheme } from "@/src/hooks/useTheme";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
@@ -19,6 +20,7 @@ const MAIN_TABS = ["index", "calendar", "library"];
 
 export default function GlassBottomTabBar(props: BottomTabBarProps) {
   const { state, descriptors, navigation } = props;
+  const { colors, isDark } = useTheme();
 
   const { tabBarVisible, showTabBar } = useTabBarVisibility();
 
@@ -113,7 +115,7 @@ export default function GlassBottomTabBar(props: BottomTabBarProps) {
   const indexRouteKey = visibleRoutes.find((r) => r.name === "index")?.key;
   const indexActiveColor =
     (descriptors[indexRouteKey || ""].options
-      .tabBarActiveTintColor as string) || "#5EA1FF";
+      .tabBarActiveTintColor as string) || colors.primary;
 
   return (
     <>
@@ -123,10 +125,17 @@ export default function GlassBottomTabBar(props: BottomTabBarProps) {
       >
         <BlurView
           intensity={Platform.OS === "ios" ? 70 : 0}
-          tint="dark"
+          tint={isDark ? "dark" : "light"}
           style={[
             styles.blurContainer,
-            Platform.OS === "android" && styles.androidFallback,
+            {
+              backgroundColor: isDark ? "rgba(22,22,24,0.72)" : "rgba(248,250,249,0.85)",
+              borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+              shadowColor: isDark ? "#000" : colors.outline,
+            },
+            Platform.OS === "android" && {
+              backgroundColor: isDark ? "rgba(28,28,30,0.96)" : colors.surface,
+            },
           ]}
         >
           <View style={styles.inner}>
@@ -137,11 +146,11 @@ export default function GlassBottomTabBar(props: BottomTabBarProps) {
 
               const activeColor =
                 (descriptor.options.tabBarActiveTintColor as string) ||
-                "#5EA1FF";
+                colors.primary;
 
               const inactiveColor =
                 (descriptor.options.tabBarInactiveTintColor as string) ||
-                "rgba(255,255,255,0.72)";
+                colors.outline;
 
               const color = focused ? activeColor : inactiveColor;
 
@@ -150,7 +159,7 @@ export default function GlassBottomTabBar(props: BottomTabBarProps) {
               const icon = descriptor.options.tabBarIcon?.({
                 focused,
                 color,
-                size: 26,
+                size: 24,
               });
 
               const onPress = () => {
@@ -176,6 +185,10 @@ export default function GlassBottomTabBar(props: BottomTabBarProps) {
                   <View
                     style={[
                       styles.tabButton,
+                      focused && {
+                        backgroundColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.04)",
+                        borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.02)",
+                      },
                       focused && styles.activeTabButton,
                     ]}
                   >
@@ -187,7 +200,7 @@ export default function GlassBottomTabBar(props: BottomTabBarProps) {
                         styles.label,
                         {
                           color,
-                          fontWeight: focused ? "600" : "500",
+                          fontWeight: focused ? "700" : "500",
                         },
                       ]}
                     >
@@ -232,34 +245,26 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
 
-    backgroundColor: "rgba(22,22,24,0.72)",
-
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
 
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
 
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 30,
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
     shadowOffset: {
       width: 0,
-      height: 10,
+      height: 8,
     },
 
     elevation: 20,
-  },
-
-  androidFallback: {
-    backgroundColor: "rgba(28,28,30,0.96)",
   },
 
   inner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 4,
   },
 
   tabWrapper: {
@@ -267,45 +272,33 @@ const styles = StyleSheet.create({
   },
 
   tabButton: {
-    minWidth: 80,
-    height: 45,
+    minWidth: 76,
+    height: 44,
 
     borderRadius: 999,
 
     alignItems: "center",
     justifyContent: "center",
 
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
 
   activeTabButton: {
-    backgroundColor: "rgba(255,255,255,0.12)",
-
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-
-    shadowColor: "#FFF",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
   },
 
   iconWrapper: {
-    marginBottom: 4,
+    marginBottom: 2,
     alignItems: "center",
     justifyContent: "center",
   },
 
   label: {
     fontFamily: FONTS.label,
-    fontSize: 11,
-    letterSpacing: -0.2,
+    fontSize: 10,
+    letterSpacing: -0.1,
     textAlign: "center",
-    lineHeight: 14,
+    lineHeight: 12,
   },
 
   fabHost: {

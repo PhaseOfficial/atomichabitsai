@@ -39,7 +39,7 @@ interface Message {
 
 export default function AIScreen() {
   const { colors, identityAnchor } = useTheme();
-  const { user } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -69,19 +69,78 @@ export default function AIScreen() {
     );
   }, [habits]);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      sender: "ai",
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      text: "I'm Batsirai, your Habit Architect. I can help you build consistency, audit your schedule, or refine your 'Two-Minute' versions. How can we find your flow today?",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
+  // Fetch chat history from Supabase
+  useEffect(() => {
+    async function fetchHistory() {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("chat_messages")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const historicalMessages: Message[] = data.map(msg => ({
+            id: msg.id,
+            text: msg.text,
+            sender: msg.sender as "ai" | "user",
+            time: new Date(msg.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          }));
+          setMessages(historicalMessages);
+        } else {
+          // Add initial greeting if no history
+          setMessages([
+            {
+              id: "1",
+              sender: "ai",
+              time: new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              text: "I'm Batsirai, your Habit Architect. I can help you build consistency, audit your schedule, or refine your 'Two-Minute' versions. How can we find your flow today?",
+            },
+          ]);
+        }
+      } catch (err) {
+        console.error("Error fetching chat history:", err);
+      } finally {
+        setIsHistoryLoading(false);
+        // Scroll to bottom after loading history
+        setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: false }), 200);
+      }
+    }
+
+    if (user && !authLoading) {
+        fetchHistory();
+    }
+  }, [user, authLoading]);
+
+  // Ensure user is authenticated
+  React.useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, authLoading, router]);
+
+  if (authLoading || (!isAuthenticated && !user)) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const handleSend = async (text: string = inputText) => {
     const messageText = text.trim();
@@ -108,35 +167,28 @@ export default function AIScreen() {
     );
 
     try {
-      // Include context in the prompt for the AI assistant
-      const contextualPrompt = `Context: I am ${identityAnchor}. ${habitContext}\n\nUser Message: ${messageText}`;
+      // Include context in the system prompt for the AI assistant
+      const systemPrompt = `You are Batsirai, a Habit Architect and productivity coach. 
+      Your tone is encouraging, professional, and insightful.
+      User Profile: I am ${identityAnchor}.
+      User Progress: ${habitContext}
+      
+      Always provide actionable advice based on Atomic Habits principles (e.g., 2-minute rule, habit stacking).`;
 
-      const response = await callAiAssistant(contextualPrompt, userId);
+      // Prepare conversation history for the API (exclude the newly added user message for now as we'll pass it in the list)
+      const apiMessages = [...messages, userMessage].map(m => ({
+        text: m.text,
+        sender: m.sender as 'user' | 'ai'
+      }));
 
-      let aiText = "I've processed your request.";
-      let actionExecuted = undefined;
+      const response = await callAiAssistant(apiMessages, systemPrompt);
 
-      if (response && typeof response === "object") {
-        if (response.success) {
-          actionExecuted = response.action;
-          if (actionExecuted === "CREATE_HABIT") {
-            aiText = `I've architected a new habit for you: "${response.data?.[0]?.title || "New Habit"}". It's been added to your dashboard.`;
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            syncWithSupabase();
-          } else if (actionExecuted === "ADD_LOG") {
-            aiText =
-              "Success. I've logged that session for you. Every vote counts.";
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            syncWithSupabase();
-          } else {
-            aiText = response.message || "Action executed successfully.";
-          }
-        } else {
-          aiText =
-            response.error || "I encountered an issue executing that action.";
-        }
-      } else if (typeof response === "string") {
-        aiText = response;
+      let aiText = "I'm here to help!";
+      
+      if (response && response.reply) {
+        aiText = response.reply;
+      } else if (response && response.error) {
+        aiText = `Error: ${response.error}`;
       }
 
       const aiMessage: Message = {
@@ -147,7 +199,6 @@ export default function AIScreen() {
           hour: "2-digit",
           minute: "2-digit",
         }),
-        action: actionExecuted,
       };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
@@ -221,63 +272,70 @@ export default function AIScreen() {
               <Text style={styles.statusText}>Architect Mode Active</Text>
             </View>
 
-            {messages.map((message) => (
-              <View
-                key={message.id}
-                style={[
-                  styles.messageWrapper,
-                  message.sender === "user"
-                    ? styles.userMessageWrapper
-                    : styles.aiMessageWrapper,
-                ]}
-              >
+            {isHistoryLoading ? (
+              <View style={styles.historyLoading}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.historyLoadingText}>Retrieving conversation...</Text>
+              </View>
+            ) : (
+              messages.map((message) => (
                 <View
+                  key={message.id}
                   style={[
-                    styles.messageBubble,
+                    styles.messageWrapper,
                     message.sender === "user"
-                      ? styles.userBubble
-                      : styles.aiBubble,
+                      ? styles.userMessageWrapper
+                      : styles.aiMessageWrapper,
                   ]}
                 >
-                  <Text
+                  <View
                     style={[
-                      styles.messageText,
+                      styles.messageBubble,
                       message.sender === "user"
-                        ? { color: colors.onPrimary }
-                        : { color: colors.onSurface },
+                        ? styles.userBubble
+                        : styles.aiBubble,
                     ]}
                   >
-                    {message.text}
-                  </Text>
-                  {message.action && (
-                    <View style={styles.actionBadge}>
-                      <CheckCircle2
-                        size={12}
-                        color={
-                          message.sender === "user"
-                            ? colors.onPrimary
-                            : colors.primary
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.actionText,
-                          {
-                            color:
-                              message.sender === "user"
-                                ? colors.onPrimary
-                                : colors.primary,
-                          },
-                        ]}
-                      >
-                        {message.action.replace("_", " ")}
-                      </Text>
-                    </View>
-                  )}
+                    <Text
+                      style={[
+                        styles.messageText,
+                        message.sender === "user"
+                          ? { color: colors.onPrimary }
+                          : { color: colors.onSurface },
+                      ]}
+                    >
+                      {message.text}
+                    </Text>
+                    {message.action && (
+                      <View style={styles.actionBadge}>
+                        <CheckCircle2
+                          size={12}
+                          color={
+                            message.sender === "user"
+                              ? colors.onPrimary
+                              : colors.primary
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.actionText,
+                            {
+                              color:
+                                message.sender === "user"
+                                  ? colors.onPrimary
+                                  : colors.primary,
+                            },
+                          ]}
+                        >
+                          {message.action.replace("_", " ")}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.messageTime}>{message.time}</Text>
                 </View>
-                <Text style={styles.messageTime}>{message.time}</Text>
-              </View>
-            ))}
+              ))
+            )}
 
             {isLoading && (
               <View style={styles.loadingContainer}>
@@ -460,6 +518,17 @@ const createStyles = (colors: any) =>
     loadingText: {
       fontFamily: FONTS.label,
       fontSize: 11,
+      color: colors.onSurfaceVariant,
+    },
+    historyLoading: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 40,
+      gap: 12,
+    },
+    historyLoadingText: {
+      fontFamily: FONTS.label,
+      fontSize: 13,
       color: colors.onSurfaceVariant,
     },
     inputSection: {

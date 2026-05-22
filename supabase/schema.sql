@@ -130,6 +130,14 @@ CREATE TABLE IF NOT EXISTS public.sync_history (
   PRIMARY KEY (old_id, table_name, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  text TEXT NOT NULL,
+  sender TEXT NOT NULL CHECK (sender IN ('user', 'ai')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 ----------------------------------------------------
 -- 2. Safe Column Migrations (Check before adding)
 ----------------------------------------------------
@@ -165,7 +173,7 @@ END $$;
 
 DO $$ 
 DECLARE
-    tables text[] := ARRAY['profiles', 'habits', 'schedules', 'logs', 'sync_queue', 'shortcuts', 'tasks', 'books', 'reading_logs', 'bookmarks', 'sync_history'];
+    tables text[] := ARRAY['profiles', 'habits', 'schedules', 'logs', 'sync_queue', 'shortcuts', 'tasks', 'books', 'reading_logs', 'bookmarks', 'sync_history', 'chat_messages'];
     tbl text;
 BEGIN
     FOREACH tbl IN ARRAY tables
@@ -283,6 +291,12 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'SyncHistory: Users view own' AND tablename = 'sync_history') THEN
         CREATE POLICY "SyncHistory: Users view own" ON public.sync_history FOR SELECT USING (auth.uid() = user_id);
         CREATE POLICY "SyncHistory: Users insert own" ON public.sync_history FOR INSERT WITH CHECK (auth.uid() = user_id);
+    END IF;
+
+    -- Chat Messages policies
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'ChatMessages: Users view own' AND tablename = 'chat_messages') THEN
+        CREATE POLICY "ChatMessages: Users view own" ON public.chat_messages FOR SELECT USING (auth.uid() = user_id);
+        CREATE POLICY "ChatMessages: Users insert own" ON public.chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
     END IF;
 END $$;
 

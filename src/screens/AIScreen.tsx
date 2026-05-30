@@ -89,13 +89,13 @@ const AIScreen = () => {
   }, [messages.length, scrollToBottom]);
 
   const handleSend = useCallback(
-    async (text?: string) => {
-      const content = (text ?? inputText).trim();
+    (text: string) => {
+      const content = text.trim();
       if (!content) return;
       setInputText("");
-      await sendMessage(content);
+      sendMessage(content);
     },
-    [inputText, sendMessage],
+    [sendMessage],
   );
 
   const navigateMenu = useCallback(() => {
@@ -213,13 +213,15 @@ const AIScreen = () => {
             <SuggestionChips
               colors={colors}
               onSuggestionPress={onSuggestionPress}
+              disabled={isSending}
             />
             <ChatInput
               inputText={inputText}
               onChangeText={setInputText}
-              onSend={() => handleSend()}
+              onSend={handleSend}
               placeholder="Message your Architect..."
               colors={colors}
+              disabled={isSending}
             />
           </KeyboardAvoidingView>
         </SafeAreaView>

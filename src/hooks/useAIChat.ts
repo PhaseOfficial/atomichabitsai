@@ -41,18 +41,16 @@ export function useAIChat({
       }
 
       const userMessage = createUserMessage(content);
-      console.log("[useAIChat] Appending user message", userMessage.id);
-      appendMessage(userMessage);
-
-      const systemPrompt = buildSystemPrompt(identityAnchor, habitContext);
       const pendingAssistantMessage = createAssistantMessage("", "sending");
-      console.log("[useAIChat] Appending pending assistant message", pendingAssistantMessage.id);
-      appendMessage(pendingAssistantMessage);
+      
+      console.log("[useAIChat] Appending user and pending messages");
+      appendMessage([userMessage, pendingAssistantMessage]);
+      
+      const systemPrompt = buildSystemPrompt(identityAnchor, habitContext);
       setIsSending(true);
       setError(null);
 
-      console.log("[useAIChat] messagesRef.current length:", messagesRef.current.length);
-      const conversation = [...messagesRef.current, userMessage].map(
+      const conversation = [...[...messagesRef.current].reverse(), userMessage].map(
         serializeHistoryMessage,
       );
       console.log("[useAIChat] Prepared conversation length:", conversation.length);

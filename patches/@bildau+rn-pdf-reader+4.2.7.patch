@@ -1,0 +1,128 @@
+diff --git a/node_modules/@bildau/rn-pdf-reader/lib/index.js b/node_modules/@bildau/rn-pdf-reader/lib/index.js
+index 2483bd2..06fc443 100644
+--- a/node_modules/@bildau/rn-pdf-reader/lib/index.js
++++ b/node_modules/@bildau/rn-pdf-reader/lib/index.js
+@@ -1,7 +1,7 @@
+ import * as React from 'react';
+ import { View, ActivityIndicator, Platform, StyleSheet } from 'react-native';
+ import { WebView } from 'react-native-webview';
+-import * as FileSystem from 'expo-file-system';
++import * as FileSystem from 'expo-file-system/legacy';
+ const { cacheDirectory, writeAsStringAsync, deleteAsync, getInfoAsync, EncodingType, } = FileSystem;
+ function viewerHtml(base64, customStyle, withScroll = false, withPinchZoom = false, maximumPinchZoomScale = 5) {
+     return `
+@@ -48,10 +48,14 @@ const bundleJsPath = `${cacheDirectory}bundle.js`;
+ const htmlPath = `${cacheDirectory}index.html`;
+ const pdfPath = `${cacheDirectory}file.pdf`;
+ function writeWebViewComponentFile(container, fileName, callback) {
++    console.log(`[PdfReader] writing component file: ${fileName}`);
+     writeAsStringAsync(`${cacheDirectory}${fileName}`, container.getBundle()).then(() => {
++        console.log(`[PdfReader] finished writing: ${fileName}`);
+         if (typeof callback === 'function') {
+             callback();
+         }
++    }).catch(err => {
++        console.error(`[PdfReader] error writing ${fileName}:`, err);
+     });
+ }
+ function writeWebViewComponentFiles() {
+@@ -66,15 +70,19 @@ function writeWebViewComponentFiles() {
+     });
+ }
+ async function writeWebViewReaderFileAsync(data, customStyle, withScroll, withPinchZoom, maximumPinchZoomScale) {
++    console.log('[PdfReader] writeWebViewReaderFileAsync start');
+     writeWebViewComponentFiles();
++    console.log('[PdfReader] checking bundle.js exists...');
+     const { exists, md5 } = await getInfoAsync(bundleJsPath, { md5: true });
+     const bundleContainer = require('./bundleContainer');
+     if (__DEV__ || !exists || bundleContainer.getBundleMd5() !== md5) {
++        console.log('[PdfReader] writing bundle.js...');
+         await writeAsStringAsync(bundleJsPath, bundleContainer.getBundle());
+     }
++    console.log('[PdfReader] writing index.html...');
+     await writeAsStringAsync(htmlPath, viewerHtml(data, customStyle, withScroll, withPinchZoom, maximumPinchZoomScale));
+-}
+-async function writePDFAsync(base64) {
++    console.log('[PdfReader] writeWebViewReaderFileAsync finished');
++}async function writePDFAsync(base64) {
+     await writeAsStringAsync(pdfPath, base64.replace('data:application/pdf;base64,', ''), { encoding: EncodingType.Base64 });
+ }
+ export async function removeFilesAsync() {
+@@ -176,33 +184,40 @@ class PdfReader extends React.Component {
+         };
+         this.init = async () => {
+             try {
++                console.log('[PdfReader] init start');
+                 const { source, customStyle, withScroll, withPinchZoom, maximumPinchZoomScale, } = this.props;
+                 const { renderType } = this.state;
++                console.log('[PdfReader] renderType:', renderType);
+                 switch (renderType) {
+                     case 'GOOGLE_DRIVE_VIEWER': {
+                         break;
+                     }
+                     case 'URL_TO_BASE64': {
++                        console.log('[PdfReader] fetching PDF...');
+                         const data = await fetchPdfAsync(source);
++                        console.log('[PdfReader] writing files...');
+                         await writeWebViewReaderFileAsync(data, customStyle, withScroll, withPinchZoom, maximumPinchZoomScale);
+                         break;
+                     }
+                     case 'DIRECT_BASE64': {
++                        console.log('[PdfReader] writing files (direct base64)...');
+                         await writeWebViewReaderFileAsync(source.base64, customStyle, withScroll, withPinchZoom, maximumPinchZoomScale);
+                         break;
+                     }
+                     case 'BASE64_TO_LOCAL_PDF': {
++                        console.log('[PdfReader] writing local PDF...');
+                         await writePDFAsync(source.base64);
+                         break;
+                     }
+                     default:
+                         break;
+                 }
++                console.log('[PdfReader] init finished, setting ready: true');
+                 this.setState({ ready: true });
+             }
+             catch (error) {
+                 alert(`Sorry, an error occurred. ${error.message}`);
+-                console.error(error);
++                console.error('[PdfReader] init error:', error);
+             }
+         };
+         this.getRenderType = () => {
+@@ -294,20 +309,31 @@ class PdfReader extends React.Component {
+         const isAndroid = Platform.OS === 'android';
+         if (ready) {
+             const source = this.getWebviewSource();
++            console.log('[PdfReader] rendering WebView with source:', source);
+             return (React.createElement(View, { style: [styles.container, containerStyle] },
+                 React.createElement(WebView, { ...{
+                         originWhitelist,
+                         onLoad: (event) => {
++                            console.log('[PdfReader] WebView onLoad called');
+                             this.setState({ renderedOnce: true });
+                             if (onLoad) {
+                                 onLoad(event);
+                             }
+                         },
+-                        onLoadEnd,
+-                        onError,
+-                        onHttpError: onError,
++                        onLoadEnd: () => {
++                          console.log('[PdfReader] WebView onLoadEnd called');
++                          if (onLoadEnd) onLoadEnd();
++                        },
++                        onError: (error) => {
++                          console.error('[PdfReader] WebView onError:', error);
++                          if (onError) onError(error);
++                        },
++                        onHttpError: (error) => {
++                          console.error('[PdfReader] WebView onHttpError:', error);
++                          if (onError) onError(error);
++                        },
+                         style,
+-                        source: renderedOnce || !isAndroid ? source : undefined,
++                        source: source,
+                     }, allowFileAccess: isAndroid, allowFileAccessFromFileURLs: isAndroid, allowUniversalAccessFromFileURLs: isAndroid, scalesPageToFit: Platform.select({ android: false }), mixedContentMode: isAndroid ? 'always' : undefined, sharedCookiesEnabled: false, startInLoadingState: !noLoader, renderLoading: () => (noLoader ? React.createElement(View, null) : React.createElement(Loader, null)), ...webviewProps })));
+         }
+         return !noLoader && !ready && React.createElement(Loader, null);

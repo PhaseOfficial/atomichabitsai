@@ -12,9 +12,10 @@ import {
 interface ChatInputProps {
   inputText: string;
   onChangeText: (text: string) => void;
-  onSend: () => void;
+  onSend: (text: string) => void;
   placeholder: string;
   colors: ThemeColors;
+  disabled?: boolean;
 }
 
 const ChatInput = ({
@@ -23,32 +24,45 @@ const ChatInput = ({
   onSend,
   placeholder,
   colors,
+  disabled = false,
 }: ChatInputProps) => {
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const handleSend = () => {
+    if (inputText.trim() && !disabled) {
+      onSend(inputText);
+    }
+  };
 
   return (
     <View style={styles.inputSection}>
       <View style={styles.inputBarContainer}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, disabled && { opacity: 0.5 }]}
           placeholder={placeholder}
           placeholderTextColor={colors.onSurfaceVariant + "80"}
           value={inputText}
           onChangeText={onChangeText}
-          onSubmitEditing={onSend}
+          onSubmitEditing={handleSend}
           returnKeyType="send"
           blurOnSubmit={false}
           multiline={false}
+          editable={!disabled}
           accessibilityLabel="Chat input"
           accessibilityHint="Type a message for the Habit Architect"
         />
         <TouchableOpacity
-          style={[styles.sendButton, { backgroundColor: colors.primary }]}
-          onPress={onSend}
+          style={[
+            styles.sendButton,
+            { backgroundColor: colors.primary },
+            disabled && { backgroundColor: colors.outlineVariant, opacity: 0.7 },
+          ]}
+          onPress={handleSend}
+          disabled={disabled}
           accessibilityRole="button"
           accessibilityLabel="Send message"
         >
-          <Send size={18} color={colors.onPrimary} />
+          <Send size={18} color={disabled ? colors.onSurfaceVariant : colors.onPrimary} />
         </TouchableOpacity>
       </View>
     </View>

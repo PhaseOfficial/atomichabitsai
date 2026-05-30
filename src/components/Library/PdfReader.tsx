@@ -37,30 +37,38 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 import { WebView } from 'react-native-webview';
+import PDFReader from '@bildau/rn-pdf-reader';
 
 // Safe PDF Component Wrapper
 const PdfRendererComponent = (props: any) => {
   const { source, style, onLoad, onPageChange, page } = props;
   
-  const viewerUrl = useMemo(() => {
-    if (Platform.OS === 'ios') {
-      return source;
-    }
-    // Android: Use Google Docs Viewer for remote URLs
-    // Note: Local files won't work with this wrapper on Android
-    return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(source)}`;
-  }, [source]);
-
   return (
-    <WebView
-      originWhitelist={['*']}
-      source={{ uri: viewerUrl }}
+    <PDFReader
+      source={{ uri: source }}
       style={style}
-      onLoad={() => onLoad?.(0)} // WebView doesn't provide total pages easily
-      javaScriptEnabled={true}
-      domStorageEnabled={true}
-      startInLoadingState={true}
-      renderLoading={() => <ActivityIndicator style={StyleSheet.absoluteFill} size="large" />}
+      withScroll={true}
+      withPinchZoom={true}
+      noLoader={true}
+      customStyle={{
+        readerContainerNavigate: { display: 'none' },
+        readerContainerNumbers: { display: 'none' },
+      }}
+      onLoad={(event: any) => {
+        // The library doesn't easily expose total pages here, 
+        // but we can signal it's loaded.
+        onLoad?.(0);
+      }}
+      webviewProps={{
+        onMessage: (event: any) => {
+          try {
+            const data = JSON.parse(event.nativeEvent.data);
+            if (data.type === 'pageChange') {
+              onPageChange?.(data.page - 1, data.total);
+            }
+          } catch (e) {}
+        }
+      }}
     />
   );
 };

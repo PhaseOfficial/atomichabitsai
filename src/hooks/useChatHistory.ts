@@ -30,7 +30,8 @@ export function useChatHistory(userId: string | null) {
     (next: ChatMessage | ChatMessage[]) => {
       setStableMessages((prev) => {
         const nextMessages = Array.isArray(next) ? next : [next];
-        return [...prev, ...nextMessages];
+        // Prepend so the newest messages are at index 0
+        return [...nextMessages.reverse(), ...prev];
       });
     },
     [setStableMessages],

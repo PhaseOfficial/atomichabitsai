@@ -8,7 +8,7 @@ import { performMutation } from "@/src/lib/sync";
 import { getDb } from "@/src/db/database";
 import { decode } from "base-64";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { resolveFileUri, getRelativePath } from "@/src/lib/file-utils";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";

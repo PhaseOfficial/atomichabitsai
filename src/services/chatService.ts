@@ -50,7 +50,7 @@ export const fetchChatHistory = async (
     .from("chat_messages")
     .select("*")
     .eq("user_id", userId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error) {
     throw error;

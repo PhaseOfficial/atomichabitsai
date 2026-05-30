@@ -18,26 +18,29 @@ const suggestions = [
 interface SuggestionChipsProps {
   colors: ThemeColors;
   onSuggestionPress: (message: string) => void;
+  disabled?: boolean;
 }
 
 const SuggestionChips = ({
   colors,
   onSuggestionPress,
+  disabled = false,
 }: SuggestionChipsProps) => {
   const styles = createStyles(colors);
 
   const renderSuggestion = useCallback(
     ({ item }: { item: string }) => (
       <TouchableOpacity
-        style={styles.suggestionButton}
-        onPress={() => onSuggestionPress(item)}
+        style={[styles.suggestionButton, disabled && { opacity: 0.5 }]}
+        onPress={() => !disabled && onSuggestionPress(item)}
+        disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={`Send suggestion: ${item}`}
       >
         <Text style={styles.suggestionText}>{item}</Text>
       </TouchableOpacity>
     ),
-    [onSuggestionPress, styles],
+    [onSuggestionPress, styles, disabled],
   );
 
   return (

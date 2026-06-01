@@ -9,7 +9,7 @@ import { getDb } from "@/src/db/database";
 import { decode } from "base-64";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
-import { resolveFileUri, getRelativePath } from "@/src/lib/file-utils";
+import { resolveFileUri, getRelativePath, getDocumentDirectory } from "@/src/lib/file-utils";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -140,8 +140,9 @@ export default function LibraryScreen() {
         const fileName = `${userId}/${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        const localUri = `${FileSystem.documentDirectory}books/${fileName}`;
-        const dirPath = `${FileSystem.documentDirectory}books/${userId}`;
+        const docDir = getDocumentDirectory();
+        const localUri = `${docDir}books/${fileName}`;
+        const dirPath = `${docDir}books/${userId}`;
         await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
         await FileSystem.copyAsync({
           from: selectedFile.uri,

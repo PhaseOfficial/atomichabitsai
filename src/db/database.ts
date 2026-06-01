@@ -107,6 +107,8 @@ export const initDatabase = async () => {
         id TEXT PRIMARY KEY NOT NULL,
         user_id TEXT,
         book_id TEXT NOT NULL,
+        start_page INTEGER DEFAULT 0,
+        end_page INTEGER DEFAULT 0,
         pages_read INTEGER DEFAULT 0,
         duration_minutes REAL DEFAULT 0,
         duration_seconds REAL DEFAULT 0,
@@ -161,6 +163,8 @@ export const initDatabase = async () => {
       const rlCols = (readingLogInfo as any[]).map(c => c.name);
       if (!rlCols.includes('user_id')) await db.execAsync(`ALTER TABLE reading_logs ADD COLUMN user_id TEXT;`);
       if (!rlCols.includes('duration_seconds')) await db.execAsync(`ALTER TABLE reading_logs ADD COLUMN duration_seconds REAL DEFAULT 0;`);
+      if (!rlCols.includes('start_page')) await db.execAsync(`ALTER TABLE reading_logs ADD COLUMN start_page INTEGER DEFAULT 0;`);
+      if (!rlCols.includes('end_page')) await db.execAsync(`ALTER TABLE reading_logs ADD COLUMN end_page INTEGER DEFAULT 0;`);
 
       const bookmarksInfo = await db.getAllAsync(`PRAGMA table_info(bookmarks)`);
       const bCols = (bookmarksInfo as any[]).map(c => c.name);
@@ -187,7 +191,5 @@ export const initDatabase = async () => {
 };
 
 export const getDb = async () => {
-  if (dbInstance) return dbInstance;
-  dbInstance = await SQLite.openDatabaseAsync(DATABASE_NAME);
-  return dbInstance;
+  return initDatabase();
 };

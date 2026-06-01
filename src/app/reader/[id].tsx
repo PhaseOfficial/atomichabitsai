@@ -3,9 +3,10 @@ import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { getDb } from '@/src/db/database';
 import { performMutation } from '@/src/lib/sync';
-import { resolveFileUri } from '@/src/lib/file-utils';
+import { resolveFileUri, downloadBook } from '@/src/lib/file-utils';
 import PdfReader from '@/src/components/Library/PdfReader';
 import { useTheme } from '@/src/hooks/useTheme';
+import { ThemedText } from '@/components/themed-text';
 import * as Haptics from 'expo-haptics';
 
 interface Book {
@@ -24,7 +25,10 @@ export default function ReaderScreen() {
   
   const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [localUri, setLocalUri] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [startPage, setStartPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [sessionSeconds, setSessionSeconds] = useState(0);
   
@@ -45,7 +49,21 @@ export default function ReaderScreen() {
       if (bookData) {
         setBook(bookData);
         setCurrentPage(bookData.current_page || 0);
+        setStartPage(bookData.current_page || 0);
         setTotalPages(bookData.total_pages || 0);
+
+        // Ensure file is local
+        try {
+            setDownloading(true);
+            const uri = await downloadBook(bookData.file_uri);
+            setLocalUri(uri);
+        } catch (e) {
+            console.error('Failed to ensure local file:', e);
+            // Fallback to resolved URI (might be a remote URL if docDir was null)
+            setLocalUri(resolveFileUri(bookData.file_uri));
+        } finally {
+            setDownloading(false);
+        }
       } else {
         Alert.alert('Error', 'Book not found');
         router.back();
@@ -63,7 +81,7 @@ export default function ReaderScreen() {
     if (!book) return;
 
     const durationSeconds = Math.floor((Date.now() - sessionStartTime.current) / 1000);
-    const pagesRead = Math.max(0, currentPage - (book.current_page || 0));
+    const pagesRead = Math.max(0, currentPage - startPage);
 
     try {
       // Update book progress
@@ -80,6 +98,8 @@ export default function ReaderScreen() {
         await performMutation('reading_logs', 'INSERT', {
           id: Math.random().toString(36).substring(7),
           book_id: book.id,
+          start_page: startPage,
+          end_page: currentPage,
           pages_read: pagesRead,
           duration_seconds: durationSeconds,
           duration_minutes: durationSeconds / 60,
@@ -95,28 +115,33 @@ export default function ReaderScreen() {
     }
   };
 
-  const handlePageChange = (page: number, total: number) => {
+  const handlePageChange = useCallback((page: number, total: number) => {
     setCurrentPage(page);
     if (total > 0 && total !== totalPages) {
       setTotalPages(total);
     }
-  };
+  }, [totalPages]);
 
-  if (loading) {
+  if (loading || (downloading && !localUri)) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: '#000' }]}>
         <ActivityIndicator size="large" color={colors.primary} />
+        {downloading && (
+          <ThemedText style={{ color: '#fff', marginTop: 16 }}>
+            Downloading your book...
+          </ThemedText>
+        )}
       </View>
     );
   }
 
-  if (!book) return null;
+  if (!book || !localUri) return null;
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false, animation: 'fade' }} />
       <PdfReader
-        uri={resolveFileUri(book.file_uri)}
+        uri={localUri}
         title={book.title}
         initialPage={currentPage}
         onClose={handleClose}

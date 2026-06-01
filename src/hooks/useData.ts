@@ -27,6 +27,15 @@ export function useData<T>(query: string, params: any[] = []) {
           p === null || p === undefined ? null : String(p),
         );
 
+        if (!queryRef.current) {
+          console.warn("useData: query is empty, skipping execution.");
+          if (!isCancelled()) {
+              setData([]);
+              setLoading(false);
+          }
+          return;
+        }
+
         const result = await db.getAllAsync(queryRef.current, sanitizedParams);
 
         if (!isCancelled()) {
@@ -35,7 +44,9 @@ export function useData<T>(query: string, params: any[] = []) {
           if (stringifiedResult !== dataRef.current) {
             dataRef.current = stringifiedResult;
             setData(result as T[]);
-            console.log("SCHEDULE DATA UPDATED", { query: queryRef.current.substring(0, 50), blocks_count: result.length });
+            // Log a bit more context to help debugging
+            const shortQuery = queryRef.current.replace(/\s+/g, ' ').substring(0, 80);
+            console.log("DATABASE DATA UPDATED", { query: shortQuery, count: result.length });
           }
           setError(null);
         }

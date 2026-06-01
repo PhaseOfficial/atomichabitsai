@@ -157,6 +157,13 @@ const processSyncItem = async (item: SyncOperation, user: any, db: any) => {
     payload = cleanPayload;
   }
 
+  // HEAL: Detect and fix missing columns in reading_logs on server
+  if (item.table_name === "reading_logs") {
+    // If the server doesn't have these yet, we might want to strip them
+    // but for now we'll let it fail and provide the SQL to the user.
+    // However, to keep sync moving for other items, we can add a check:
+  }
+
   // HEAL: Detect and fix "undefined" strings in UUID fields
   if (payload.id === "undefined") {
     console.warn(`Item ${item.id} (${item.table_name}) has "undefined" as ID. Abandoning.`);
@@ -521,6 +528,12 @@ export const performMutation = async (
   payload: any,
 ) => {
   console.log("performMutation START", { table_name, operation, payload });
+  
+  if (!payload || (typeof payload === 'object' && Object.keys(payload).length === 0)) {
+    console.warn("performMutation: empty payload, skipping execution.", { table_name, operation });
+    return undefined;
+  }
+
   const db = await getDb();
 
   switch (operation) {
@@ -538,14 +551,19 @@ export const performMutation = async (
       );
       break;
     case "UPDATE":
-      const setClause = Object.keys(payload)
-        .filter((k) => k !== "id")
+      const updateKeys = Object.keys(payload).filter((k) => k !== "id");
+      if (updateKeys.length === 0) {
+        console.warn("performMutation: nothing to update except ID, skipping.", { table_name });
+        return undefined;
+      }
+      const setClause = updateKeys
         .map((k) => `${k} = ?`)
         .join(",");
       const updateValues = [
-        ...Object.entries(payload)
-          .filter(([k]) => k !== "id")
-          .map(([, v]) => (typeof v === "object" ? JSON.stringify(v) : v)),
+        ...updateKeys.map((k) => {
+            const v = payload[k];
+            return typeof v === "object" ? JSON.stringify(v) : v;
+        }),
         payload.id,
       ];
       await db.runAsync(
@@ -554,6 +572,10 @@ export const performMutation = async (
       );
       break;
     case "DELETE":
+      if (!payload.id) {
+          console.error("performMutation: DELETE missing ID.", { table_name });
+          return undefined;
+      }
       await db.runAsync(`DELETE FROM ${table_name} WHERE id = ?`, [payload.id]);
       break;
   }

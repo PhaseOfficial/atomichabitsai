@@ -34,18 +34,65 @@ import { useTheme } from '@/src/hooks/useTheme';
 
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
-const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
-
 import { WebView } from 'react-native-webview';
 import PDFReader from '@bildau/rn-pdf-reader';
+import * as FileSystem from 'expo-file-system/legacy';
 
 // Safe PDF Component Wrapper
-const PdfRendererComponent = (props: any) => {
+const PdfRendererComponent = React.memo((props: any) => {
   const { source, style, onLoad, onPageChange, page } = props;
+  const [base64Source, setBase64Source] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSource = async () => {
+      if (Platform.OS === 'android' && source.startsWith('file://')) {
+        try {
+          console.log('[PdfReader] Android local file detected, reading as base64...');
+          const base64 = await FileSystem.readAsStringAsync(source, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          if (isMounted) {
+            setBase64Source(`data:application/pdf;base64,${base64}`);
+          }
+        } catch (e: any) {
+          console.error('[PdfReader] Failed to read local file as base64:', e);
+          if (isMounted) {
+            setError(e.message);
+          }
+        }
+      } else {
+        if (isMounted) {
+          setBase64Source(null);
+        }
+      }
+    };
+
+    loadSource();
+    return () => { isMounted = false; };
+  }, [source]);
+
+  // Memoize source object to avoid triggering PDFReader's componentDidUpdate unnecessarily
+  const memoizedSource = useMemo(() => {
+    if (base64Source) {
+      return { base64: base64Source };
+    }
+    return { uri: source };
+  }, [source, base64Source]);
   
+  if (Platform.OS === 'android' && source.startsWith('file://') && !base64Source && !error) {
+    return (
+      <View style={[style, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#fff" />
+      </View>
+    );
+  }
+
   return (
     <PDFReader
-      source={{ uri: source }}
+      source={memoizedSource}
       style={style}
       withScroll={true}
       withPinchZoom={true}
@@ -71,7 +118,7 @@ const PdfRendererComponent = (props: any) => {
       }}
     />
   );
-};
+});
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -169,14 +216,19 @@ export const PdfReader: React.FC<PdfReaderProps> = ({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handlePageChange = (page: number, total: number) => {
+  const handlePageChange = useCallback((page: number, total: number) => {
     setCurrentPage(page);
     setTotalPages(total);
     // Use a small delay to avoid "update while rendering" if called synchronously by PdfRenderer
     setTimeout(() => {
       onPageChange?.(page, total);
     }, 0);
-  };
+  }, [onPageChange]);
+
+  const handleLoad = useCallback((total: number) => {
+    setTotalPages(total);
+    setIsLoading(false);
+  }, []);
 
   const handleGoToPage = () => {
     const page = parseInt(jumpToPage);
@@ -199,10 +251,7 @@ export const PdfReader: React.FC<PdfReaderProps> = ({
         <PdfRendererComponent
           source={uri}
           style={styles.pdf}
-          onLoad={(total: number) => {
-            setTotalPages(total);
-            setIsLoading(false);
-          }}
+          onLoad={handleLoad}
           onPageChange={handlePageChange}
           page={currentPage}
         />

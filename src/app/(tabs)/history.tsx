@@ -14,7 +14,8 @@ import {
     History as HistoryIcon,
     Layout,
     Menu,
-    Settings
+    Settings,
+    BookOpen
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -28,7 +29,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type TabType = "History" | "Repository";
+type TabType = "History" | "Repository" | "Reading";
 type FilterType = "Day" | "Week" | "Month" | "Year";
 
 interface Task {
@@ -49,6 +50,17 @@ interface ScheduleBlock {
   type?: string;
   todos?: any[];
   date: string;
+}
+
+interface ReadingLog {
+  id: string;
+  book_id: string;
+  book_title: string;
+  start_page: number;
+  end_page: number;
+  pages_read: number;
+  duration_seconds: number;
+  logged_at: string;
 }
 
 export default function HistoryScreen() {
@@ -87,6 +99,20 @@ export default function HistoryScreen() {
      AND date <= ?
      ORDER BY date DESC`,
     [userId, today],
+  );
+
+  // 3. Fetch Reading History
+  const {
+    data: readingLogs,
+    loading: readingLoading,
+    refresh: refreshReading,
+  } = useData<ReadingLog>(
+    `SELECT rl.*, b.title as book_title 
+     FROM reading_logs rl
+     JOIN books b ON rl.book_id = b.id
+     WHERE (rl.user_id = ? OR rl.user_id IS NULL)
+     ORDER BY rl.logged_at DESC LIMIT 100`,
+    [userId],
   );
 
   // Filtering Logic
@@ -131,156 +157,42 @@ export default function HistoryScreen() {
     });
   }, [completedTasks, activeFilter]);
 
+  const filteredReading = useMemo(() => {
+    const now = new Date();
+    return readingLogs.filter((log) => {
+      const logDate = new Date(log.logged_at);
+      const diffTime = now.getTime() - logDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
+
+      if (activeFilter === "Day") return diffDays <= 0;
+      if (activeFilter === "Week") return diffDays <= 7;
+      if (activeFilter === "Month") return diffDays <= 31;
+      if (activeFilter === "Year") return diffDays <= 365;
+      return true;
+    });
+  }, [readingLogs, activeFilter]);
+
   useFocusEffect(
     useCallback(() => {
       refreshTasks();
       refreshSchedules();
-    }, [refreshTasks, refreshSchedules]),
+      refreshReading();
+    }, [refreshTasks, refreshSchedules, refreshReading]),
   );
 
-  const handleReuseTask = async (task: Task | ScheduleBlock) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    const title = "task" in task ? task.task : task.title;
-    const todos =
-      "todos" in task
-        ? typeof task.todos === "string"
-          ? task.todos
-          : JSON.stringify(task.todos)
-        : "[]";
-    const tag = "tag" in task ? task.tag : "Reused";
-
-    Alert.alert("Reuse Task", `Clone "${title}" to your active rotation?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "To Inventory",
-        onPress: async () => {
-          try {
-            await performMutation("tasks", "INSERT", {
-              id: Math.random().toString(36).substring(7),
-              user_id: userId,
-              title: title,
-              status: "todo",
-              estimated_sessions: 1,
-              completed_sessions: 0,
-              tag: tag,
-              todos: todos,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          } catch (e) {
-            console.error(e);
-          }
-        },
-      },
-      {
-        text: "To Schedule",
-        onPress: () => {
-          handleReuseToInventoryAndSchedule(title, tag, todos);
-        },
-      },
-    ]);
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    if (mins < 1) return "< 1 min";
+    return `${mins} min${mins > 1 ? "s" : ""}`;
   };
 
-  const handleReuseToInventoryAndSchedule = async (
-    title: string,
-    tag: string,
-    todos: string,
-  ) => {
-    try {
-      const taskId = Math.random().toString(36).substring(7);
-
-      // 1. Create the task record
-      await performMutation("tasks", "INSERT", {
-        id: taskId,
-        user_id: userId,
-        title: title,
-        status: "todo",
-        estimated_sessions: 1,
-        completed_sessions: 0,
-        tag: tag,
-        todos: todos,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-
-      // 2. Automatically Add to Today's Schedule
-      const db = await (await import("@/src/db/database")).getDb();
-      const existingSchedule = await db.getFirstAsync<{
-        id: string;
-        time_blocks: string;
-      }>(
-        "SELECT id, time_blocks FROM schedules WHERE date = ? AND (user_id = ? OR user_id IS NULL)",
-        [today, userId],
-      );
-
-      let blocks = [];
-      let scheduleId = Math.random().toString(36).substring(7);
-
-      if (existingSchedule) {
-        try {
-          blocks = JSON.parse(existingSchedule.time_blocks);
-          scheduleId = existingSchedule.id;
-        } catch (e) {
-          blocks = [];
-        }
-      }
-
-      // Helper to find a gap (reusing logic from add-task.tsx)
-      const toMinutes = (time: string) => {
-        const [h, m] = time.split(":").map(Number);
-        return h * 60 + m;
-      };
-      const toTimeString = (minutes: number) => {
-        const h = Math.floor(minutes / 60);
-        const m = minutes % 60;
-        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      };
-
-      let currentStart = toMinutes("09:00");
-      const duration = 25; // Default focus duration
-      const sortedBlocks = [...blocks].sort((a, b) =>
-        a.start.localeCompare(b.start),
-      );
-
-      for (const block of sortedBlocks) {
-        const blockStart = toMinutes(block.start);
-        if (blockStart >= currentStart + duration) break;
-        currentStart = Math.max(currentStart, toMinutes(block.end));
-      }
-
-      const newBlock = {
-        start: toTimeString(currentStart),
-        end: toTimeString(currentStart + duration),
-        task: title,
-        type: "deep-work",
-        todos: JSON.parse(todos),
-        task_id: taskId,
-      };
-
-      const updatedBlocks = [...blocks, newBlock].sort((a, b) =>
-        a.start.localeCompare(b.start),
-      );
-
-      await performMutation(
-        "schedules",
-        existingSchedule ? "UPDATE" : "INSERT",
-        {
-          id: scheduleId,
-          user_id: userId,
-          date: today,
-          time_blocks: JSON.stringify(updatedBlocks),
-        },
-      );
-
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // Redirect to Calendar so user can edit the block
-      router.push("/(tabs)/calendar");
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Error", "Failed to reuse task and update schedule.");
-    }
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   return (
@@ -320,7 +232,7 @@ export default function HistoryScreen() {
             }}
           >
             <HistoryIcon
-              size={18}
+              size={16}
               color={activeTab === "History" ? colors.primary : colors.outline}
             />
             <Text
@@ -329,7 +241,7 @@ export default function HistoryScreen() {
                 activeTab === "History" && { color: colors.primary },
               ]}
             >
-              History
+              Plans
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -340,7 +252,7 @@ export default function HistoryScreen() {
             }}
           >
             <Layout
-              size={18}
+              size={16}
               color={
                 activeTab === "Repository" ? colors.primary : colors.outline
               }
@@ -351,7 +263,27 @@ export default function HistoryScreen() {
                 activeTab === "Repository" && { color: colors.primary },
               ]}
             >
-              Inventory
+              Tasks
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "Reading" && styles.activeTab]}
+            onPress={() => {
+              setActiveTab("Reading");
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+          >
+            <BookOpen
+              size={16}
+              color={activeTab === "Reading" ? colors.primary : colors.outline}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "Reading" && { color: colors.primary },
+              ]}
+            >
+              Reading
             </Text>
           </TouchableOpacity>
         </View>
@@ -429,6 +361,39 @@ export default function HistoryScreen() {
                     <Text style={styles.emptyText}>
                       No historical data for this period.
                     </Text>
+                  </View>
+                )}
+              </View>
+            ) : activeTab === "Reading" ? (
+              <View style={styles.historyList}>
+                {readingLoading ? (
+                  <ActivityIndicator
+                    color={colors.primary}
+                    style={{ marginTop: 40 }}
+                  />
+                ) : filteredReading.length > 0 ? (
+                  filteredReading.map((log) => (
+                    <View key={log.id} style={styles.historyCard}>
+                      <View style={styles.cardHeader}>
+                        <View style={styles.dateBadge}>
+                          <Text style={styles.dateText}>{formatDate(log.logged_at)}</Text>
+                        </View>
+                        <Text style={styles.timeRange}>{formatDuration(log.duration_seconds)}</Text>
+                      </View>
+                      <View style={styles.cardBody}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.taskTitle}>{log.book_title}</Text>
+                          <Text style={styles.inventoryMeta}>
+                            Read {log.pages_read} pages (p. {log.start_page} → {log.end_page})
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyState}>
+                    <BookOpen size={40} color={colors.outlineVariant} />
+                    <Text style={styles.emptyText}>No reading history for this period.</Text>
                   </View>
                 )}
               </View>
